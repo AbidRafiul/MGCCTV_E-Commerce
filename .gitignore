@@ -1,19 +1,14 @@
-﻿# Mengabaikan folder node_modules di manapun dia berada
+
 **/node_modules/
 node_modules/
 
-# Mengabaikan folder hasil build Next.js/Frontend
 **/.next/
 **/build/
 **/dist/
 
-# Mengabaikan semua file environment (Sangat Penting!)
 **/.env
 **/.env.local
 .env
 
-# Mengabaikan log dan file sampah sistem
 **/npm-debug.log*
 **/yarn-error.log*
-.DS_Store
-Thumbs.db
