@@ -1,5 +1,6 @@
-import HomeSection from "@/section/home/homeSection";
+// ISI HANYA INI SAJA
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return <HomeSection />;
+export default function RootPage() {
+  redirect("/beranda");
 }
