@@ -2,41 +2,56 @@ const connection = require("../../config/database");
 const bcrypt = require("bcrypt");
 
 const registerCustomer = async (req, res) => {
-
   try {
+    let { nama, username, email, password, no_hp, alamat } = req.body;
 
-    const { nama, username, email, password, no_hp, alamat } = req.body;
+    if (!nama || !username || !email || !password) {
+      return res.status(400).json({
+        message: "Data wajib diisi",
+      });
+    }
 
-    // cek email atau username
+    const emailClean = email.trim().toLowerCase();
+    const usernameClean = username.trim();
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password minimal 6 karakter",
+      });
+    }
+
     const [user] = await connection.query(
       "SELECT * FROM ms_users WHERE email = ? OR username = ?",
-      [email, username]
+      [emailClean, usernameClean]
     );
 
     if (user.length > 0) {
-      return res.json({
-        message: "Email atau username sudah digunakan"
+      return res.status(400).json({
+        message: "Email atau username sudah digunakan",
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const role = "kustomer";
+
     await connection.query(
       `INSERT INTO ms_users
       (nama, username, password, email, no_hp, alamat, role)
       VALUES (?,?,?,?,?,?,?)`,
-      [nama, username, hashedPassword, email, no_hp, alamat, role]
+      [nama, usernameClean, hashedPassword, emailClean, no_hp, alamat, role]
     );
 
-    res.json({
-      message: "Registrasi customer berhasil"
+    return res.status(201).json({
+      message: "Registrasi berhasil",
     });
 
   } catch (error) {
-    res.status(500).json(error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
-
 };
 
 module.exports = registerCustomer;
