@@ -59,8 +59,8 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      router.push("/");
+      localStorage.setItem("token", data.token);  
+      router.push("/beranda");
     } catch (err) {
       setError("Google login gagal");
     }
@@ -79,7 +79,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch("http://localhost:3000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
