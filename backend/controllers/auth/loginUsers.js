@@ -4,24 +4,35 @@ const jwt = require("jsonwebtoken");
 
 const loginUsers = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
-    const [user] = await connection.query(
-      "SELECT * FROM ms_users WHERE email = ?",
-      [email],
-    );
-
-    if (user.length === 0) {
-      return res.status(404).json({
-        message: "Customer tidak ditemukan",
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email dan password wajib diisi",
       });
     }
 
-    const checkPassword = await bcrypt.compare(password, user[0].password);
+    const emailClean = email.trim().toLowerCase();
+
+    const [user] = await connection.query(
+      "SELECT * FROM ms_users WHERE email = ?",
+      [emailClean]
+    );
+
+    if (user.length === 0) {
+      return res.status(401).json({
+        message: "Email atau password salah",
+      });
+    }
+
+    const checkPassword = await bcrypt.compare(
+      password,
+      user[0].password
+    );
 
     if (!checkPassword) {
-      return res.json({
-        message: "Password salah",
+      return res.status(401).json({
+        message: "Email atau password salah",
       });
     }
 
@@ -31,16 +42,20 @@ const loginUsers = async (req, res) => {
         role: user[0].role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "1d" }
     );
 
-    res.json({
-      message: `Login berhasil sebagai ${user[0].role}`,
+    return res.status(200).json({
+      message: "Login berhasil",
       token: token,
       role: user[0].role,
     });
+
   } catch (error) {
-    res.status(500).json(error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
