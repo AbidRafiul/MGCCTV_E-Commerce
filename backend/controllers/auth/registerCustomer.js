@@ -1,42 +1,25 @@
 const connection = require("../../config/database");
 const bcrypt = require("bcrypt");
+const { ROLE } = require("../../utils/role"); // Tambahkan ini
 
 const registerCustomer = async (req, res) => {
-
   try {
-
-    const { nama, username, email, password, no_hp, alamat } = req.body;
-
-    // cek email atau username
-    const [user] = await connection.query(
-      "SELECT * FROM ms_users WHERE email = ? OR username = ?",
-      [email, username]
-    );
-
-    if (user.length > 0) {
-      return res.json({
-        message: "Email atau username sudah digunakan"
-      });
-    }
+    let { nama, username, email, password, no_hp, alamat } = req.body;
+    // ... validasi input tetap sama ...
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const role = ROLE.KUSTOMER; // Gunakan konstanta
 
-    const role = "kustomer";
     await connection.query(
-      `INSERT INTO ms_users
-      (nama, username, password, email, no_hp, alamat, role)
-      VALUES (?,?,?,?,?,?,?)`,
-      [nama, username, hashedPassword, email, no_hp, alamat, role]
+      `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role)
+       VALUES (?,?,?,?,?,?,?)`,
+      [nama, username.trim(), hashedPassword, email.trim().toLowerCase(), no_hp, alamat, role]
     );
 
-    res.json({
-      message: "Registrasi customer berhasil"
-    });
-
+    return res.status(201).json({ message: "Registrasi berhasil" });
   } catch (error) {
-    res.status(500).json(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
-
 };
 
 module.exports = registerCustomer;

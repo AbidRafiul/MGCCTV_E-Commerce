@@ -1,13 +1,28 @@
 const express = require("express");
 const router = express.Router();
+const { ROLE } = require("../utils/role"); // Tambahkan ini
 
-const registerCustomer = require("../controllers/auth/registerCustomer");
 const loginUsers = require("../controllers/auth/loginUsers");
-const logoutCustomer = require("../controllers/auth/logoutCustomer");
+const registerCustomer = require("../controllers/auth/registerCustomer");
+const googleLogin = require("../controllers/auth/googleLogin");
 const auth = require("../middleware/auth");
+const authorize = require("../middleware/authorize");
 
-router.post("/register", registerCustomer);
 router.post("/login", loginUsers);
-router.post("/logout", auth, logoutCustomer);
+router.post("/register", registerCustomer);
+router.post("/google", googleLogin);
+
+// Menggunakan konstanta untuk validasi role
+router.get("/kustomer", auth, authorize(ROLE.KUSTOMER), (req, res) => {
+  res.json({ message: "halaman kustomer" });
+});
+
+router.get("/admin", auth, authorize(ROLE.ADMIN), (req, res) => {
+  res.json({ message: "halaman admin" });
+});
+
+router.get("/superadmin", auth, authorize(ROLE.SUPERADMIN), (req, res) => {
+  res.json({ message: "halaman superadmin" });
+});
 
 module.exports = router;
