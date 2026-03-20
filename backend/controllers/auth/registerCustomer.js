@@ -1,5 +1,6 @@
 const connection = require("../../config/database");
 const bcrypt = require("bcrypt");
+<<<<<<< HEAD
 const { ROLE } = require("../../utils/role");
 
 const registerCustomer = async (req, res) => {
@@ -44,19 +45,31 @@ const registerCustomer = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const role = ROLE.KUSTOMER;
+=======
+const { ROLE } = require("../../utils/role"); // Tambahkan ini
+
+const registerCustomer = async (req, res) => {
+  try {
+    let { nama, username, email, password, no_hp, alamat } = req.body;
+    // ... validasi input tetap sama ...
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const role = ROLE.KUSTOMER; // Gunakan konstanta
+>>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
 
     await connection.query(
       `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role)
        VALUES (?,?,?,?,?,?,?)`,
+<<<<<<< HEAD
       [nama, username, hashedPassword, email, no_hp, alamat, role],
+=======
+      [nama, username.trim(), hashedPassword, email.trim().toLowerCase(), no_hp, alamat, role]
+>>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
     );
 
     return res.status(201).json({ message: "Registrasi berhasil" });
   } catch (error) {
-    return res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

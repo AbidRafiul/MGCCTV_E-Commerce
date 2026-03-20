@@ -77,9 +77,36 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [handleGoogleLogin, token]);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (token) {
       router.replace("/beranda");
+=======
+  // 🔥 HANDLE GOOGLE LOGIN
+  const handleGoogleLogin = async (response) => {
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/google", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          credential: response.credential,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message);
+        return;
+      }
+
+      localStorage.setItem("token", data.token);  
+      router.push("/beranda");
+    } catch (err) {
+      setError("Google login gagal");
+>>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
     }
   }, [router, token]);
 
@@ -96,7 +123,11 @@ export default function LoginPage() {
     setError("");
 
     try {
+<<<<<<< HEAD
       const res = await fetch("http://localhost:3001/api/auth/login", {
+=======
+      const res = await fetch("http://localhost:3000/api/auth/login", {
+>>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
         method: "POST",
         headers: {
           "Content-Type": "application/json",
