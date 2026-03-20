@@ -2,18 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AUTH_API_URL } from "../../../lib/api";
+
+const initialForm = {
+  nama: "",
+  username: "",
+  email: "",
+  no_hp: "",
+  password: "",
+  alamat: "",
+};
 
 export default function RegisterPage() {
   const router = useRouter();
-
-  const [form, setForm] = useState({
-    nama: "",
-    username: "",
-    email: "",
-    no_hp: "",
-    password: "",
-    alamat: "",
-  });
+  const [form, setForm] = useState(initialForm);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -23,57 +27,83 @@ export default function RegisterPage() {
   };
 
   const handleRegister = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    setError("");
 
-  try {
-    const res = await fetch("http://localhost:3000/api/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
+    const normalizedForm = {
+      nama: form.nama.trim(),
+      username: form.username.trim(),
+      email: form.email.trim(),
+      no_hp: form.no_hp.trim(),
+      password: form.password,
+      alamat: form.alamat.trim(),
+    };
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message);
+    if (Object.values(normalizedForm).some((value) => value === "")) {
+      setError("Semua field wajib diisi");
       return;
     }
 
-    alert("Registrasi berhasil!");
-    router.push("/login");
+    if (normalizedForm.password.length < 8) {
+      setError("Password minimal 8 karakter");
+      return;
+    }
 
-  } catch (error) {
-    alert("Gagal koneksi ke server");
-  }
-};
+    try {
+      setIsSubmitting(true);
+
+      const res = await fetch(`${AUTH_API_URL}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(normalizedForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Registrasi gagal");
+        return;
+      }
+
+      alert("Registrasi berhasil!");
+      router.push("/login");
+    } catch {
+      setError("Gagal koneksi ke server");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-center overflow-hidden">
-      {/* BACKGROUND */}
       <img
         src="/images/bg login.jpg"
         alt="bg"
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* OVERLAY */}
       <div className="absolute inset-0 bg-black/40"></div>
 
-      {/* CONTENT */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* JUDUL */}
-        <h1 className="text-white text-3xl font-bold mb-2">REGISTRASI</h1>
+        <h1 className="text-white text-3xl font-bold mb-2">Registrasi</h1>
 
-        {/* CARD */}
         <div className="bg-white/90 backdrop-blur-md w-[380px] p-6 rounded-xl shadow-2xl text-[#0C2C55]">
           <form onSubmit={handleRegister} className="space-y-3">
+            {error ? (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </p>
+            ) : null}
+
             <input
               name="nama"
               placeholder="Nama lengkap"
               className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
+              value={form.nama}
+              required
             />
 
             <input
@@ -81,6 +111,8 @@ export default function RegisterPage() {
               placeholder="Username"
               className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
+              value={form.username}
+              required
             />
 
             <input
@@ -89,6 +121,8 @@ export default function RegisterPage() {
               placeholder="Email"
               className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
+              value={form.email}
+              required
             />
 
             <input
@@ -96,6 +130,8 @@ export default function RegisterPage() {
               placeholder="No. Handphone"
               className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
+              value={form.no_hp}
+              required
             />
 
             <input
@@ -104,6 +140,9 @@ export default function RegisterPage() {
               placeholder="Password"
               className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
+              value={form.password}
+              required
+              minLength={8}
             />
 
             <textarea
@@ -111,13 +150,16 @@ export default function RegisterPage() {
               placeholder="Alamat"
               className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
+              value={form.alamat}
+              required
             />
 
             <button
               type="submit"
-              className="w-full bg-blue-800 hover:bg-blue-900 text-white py-2 rounded font-semibold transition"
+              disabled={isSubmitting}
+              className="w-full bg-blue-800 hover:bg-blue-900 text-white py-2 rounded font-semibold transition disabled:opacity-70"
             >
-              Daftar
+              {isSubmitting ? "Mendaftar..." : "Daftar"}
             </button>
           </form>
 

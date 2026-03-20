@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { LoaderCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const [form, setForm] = useState({
     email: "",
@@ -13,8 +18,41 @@ export default function LoginPage() {
 
   const [error, setError] = useState("");
 
+  const handleGoogleLogin = useCallback(
+    async (response) => {
+      try {
+        const res = await fetch("http://localhost:3001/api/auth/google", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            credential: response.credential,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.message);
+          return;
+        }
+
+        localStorage.setItem("token", data.token);
+        router.push(redirectTo);
+      } catch {
+        setError("Google login gagal");
+      }
+    },
+    [redirectTo, router],
+  );
+
   // 🔥 GOOGLE INIT
   useEffect(() => {
+    if (token) {
+      return;
+    }
+
     const interval = setInterval(() => {
       if (window.google) {
         window.google.accounts.id.initialize({
@@ -37,8 +75,13 @@ export default function LoginPage() {
     }, 500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [handleGoogleLogin, token]);
 
+<<<<<<< HEAD
+  useEffect(() => {
+    if (token) {
+      router.replace("/beranda");
+=======
   // 🔥 HANDLE GOOGLE LOGIN
   const handleGoogleLogin = async (response) => {
     try {
@@ -63,8 +106,9 @@ export default function LoginPage() {
       router.push("/beranda");
     } catch (err) {
       setError("Google login gagal");
+>>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
     }
-  };
+  }, [router, token]);
 
   const handleChange = (e) => {
     setForm({
@@ -79,7 +123,11 @@ export default function LoginPage() {
     setError("");
 
     try {
+<<<<<<< HEAD
+      const res = await fetch("http://localhost:3001/api/auth/login", {
+=======
       const res = await fetch("http://localhost:3000/api/auth/login", {
+>>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,11 +143,20 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
-      router.push("/");
-    } catch (err) {
+      router.push(redirectTo);
+    } catch {
       setError("Gagal terhubung ke server");
     }
   };
+
+  if (token) {
+    return (
+      <div className="flex min-h-screen items-center justify-center gap-3 bg-[#f5f6f8] text-slate-500">
+        <LoaderCircle className="animate-spin" size={10} />
+        <span>Mengalihkan ke beranda...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-center overflow-hidden">

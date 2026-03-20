@@ -1,0 +1,342 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { CircleUserRound, LoaderCircle } from "lucide-react";
+import NavBox from "./NavBox";
+import { AUTH_API_URL } from "@/lib/api";
+
+
+const initialForm = {
+  nama: "",
+  email: "",
+  no_hp: "",
+  alamat: "",
+};
+
+const formatJoinDate = (dateString) => {
+  if (!dateString) {
+    return "-";
+  }
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
+export default function ProfileHero() {
+  const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState(initialForm);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("token");
+    router.push("/login");
+  }, [router]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const res = await fetch(`${AUTH_API_URL}/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Gagal mengambil data profile");
+        }
+
+        setProfile(data.user);
+        setForm({
+          nama: data.user.nama || "",
+          email: data.user.email || "",
+          no_hp: data.user.no_hp || "",
+          alamat: data.user.alamat || "",
+        });
+      } catch (fetchError) {
+        if (
+          fetchError.message?.toLowerCase().includes("jwt") ||
+          fetchError.message?.toLowerCase().includes("token") ||
+          fetchError.message?.toLowerCase().includes("unauthorized")
+        ) {
+          handleLogout();
+          return;
+        }
+
+        setError(fetchError.message || "Gagal memuat profile");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [handleLogout]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setError("");
+      setSuccess("");
+
+      const res = await fetch(`${AUTH_API_URL}/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal memperbarui profile");
+      }
+
+      setProfile((prev) => ({
+        ...prev,
+        ...data.user,
+      }));
+      setForm({
+        nama: data.user.nama || "",
+        email: data.user.email || "",
+        no_hp: data.user.no_hp || "",
+        alamat: data.user.alamat || "",
+      });
+      setIsEditing(false);
+      setSuccess(data.message || "Profile berhasil diperbarui");
+    } catch (submitError) {
+      setError(submitError.message || "Gagal memperbarui profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePrimaryAction = () => {
+    setSuccess("");
+
+    if (isEditing) {
+      handleSubmit();
+      return;
+    }
+
+    setIsEditing(true);
+  };
+
+  const handleSecondaryAction = () => {
+    if (isEditing) {
+      setForm({
+        nama: profile?.nama || "",
+        email: profile?.email || "",
+        no_hp: profile?.no_hp || "",
+        alamat: profile?.alamat || "",
+      });
+      setError("");
+      setSuccess("");
+      setIsEditing(false);
+      return;
+    }
+
+    window.alert();
+  };
+
+  const handleNavigate = (key) => {
+    if (key === "logout") {
+      handleLogout();
+      return;
+    }
+
+    if (key === "password") {
+      router.push("/ubah-password");
+      return;
+    }
+
+    if (key === "orders") {
+      window.alert("Halaman pesanan saya belum tersedia.");
+    }
+  };
+
+  const fields = [
+    { name: "nama", label: "Nama Lengkap", type: "text" },
+    { name: "email", label: "Email", type: "email" },
+    { name: "no_hp", label: "No. Handphone", type: "text" },
+    { name: "alamat", label: "Alamat", type: "textarea" },
+  ];
+
+  return (
+    <section className="min-h-screen bg-[#f5f6f8] px-4 py-10 md:px-8 lg:px-16">
+      <div className="mx-auto max-w-6xl">
+        <div className="px-5 py-10 mb-8">
+          <h2 className="text-2xl font-bold text-indigo-900">Profile Saya</h2>
+          <nav aria-label="Breadcrumb" className="mt-2">
+            <ol className="flex items-center gap-2 text-sm text-slate-500">
+              <li>
+                <Link href="/beranda" className="transition hover:text-slate-800">
+                  Beranda
+                </Link>
+              </li>
+              <li>/</li>
+              <li className="font-medium text-slate-700">Profile Saya</li>
+            </ol>
+          </nav>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+          <NavBox activeItem="profile" onNavigate={handleNavigate} />
+
+          <div className="rounded-2xl bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.10)] md:p-8">
+            {isLoading ? (
+              <div className="flex min-h-[320px] items-center justify-center gap-3 text-slate-500">
+                <LoaderCircle className="animate-spin" size={20} />
+                <span>Memuat data profile...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-200 text-slate-600">
+                    <CircleUserRound size={32} />
+                  </div>
+
+                  <div>
+                    <h3 className="text-2xl font-semibold text-slate-900">
+                      {profile?.nama || "Pengguna"}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Terdaftar Sejak: {formatJoinDate(profile?.created_at)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-slate-200 p-4 md:p-5">
+                  {error ? (
+                    <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  {success ? (
+                    <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                      {success}
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-3">
+                    {fields.map((field) => (
+                      <div
+                        key={field.name}
+                        className="grid gap-2 md:grid-cols-[140px_minmax(0,1fr)] md:items-center"
+                      >
+                        <label
+                          htmlFor={field.name}
+                          className="text-sm font-medium text-slate-700"
+                        >
+                          {field.label}
+                        </label>
+
+                        {field.type === "textarea" ? (
+                          <textarea
+                            id={field.name}
+                            name={field.name}
+                            value={form[field.name]}
+                            onChange={handleChange}
+                            disabled={!isEditing}
+                            rows={3}
+                            className={`min-h-[88px] rounded-lg border px-3 py-2 text-sm outline-none transition ${
+                              isEditing
+                                ? "border-slate-300 bg-white text-slate-900 focus:border-emerald-500"
+                                : "border-slate-200 bg-slate-50 text-slate-500"
+                            }`}
+                          />
+                        ) : (
+                          <input
+                            id={field.name}
+                            name={field.name}
+                            type={field.type}
+                            value={form[field.name]}
+                            onChange={handleChange}
+                            disabled={!isEditing}
+                            className={`rounded-lg border px-3 py-2 text-sm outline-none transition ${
+                              isEditing
+                                ? "border-slate-300 bg-white text-slate-900 focus:border-emerald-500"
+                                : "border-slate-200 bg-slate-50 text-slate-500"
+                            }`}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handlePrimaryAction}
+                    disabled={isSaving}
+                    className="min-w-[140px] rounded-full bg-[#49a942] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3b8d36] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isSaving
+                      ? "Menyimpan..."
+                      : isEditing
+                        ? "Simpan Profil"
+                        : "Edit Profil"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSecondaryAction}
+                    className="min-w-[140px] rounded-full bg-[#9d9d9d] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#858585]"
+                  >
+                    {isEditing ? "Batal" : "Ubah Password"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
