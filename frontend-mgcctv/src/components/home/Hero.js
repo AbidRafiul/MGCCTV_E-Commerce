@@ -2,36 +2,53 @@ import Link from "next/link";
 
 export default function Hero() {
   return (
-    <section className="relative w-full h-[500px] flex items-center justify-center">
-
-      {/* Background */}
+    <section className="relative w-full h-screen flex items-center overflow-hidden">
+      {/* BACKGROUND IMAGE - Full Screen & Mirrored */}
       <img
-        src="/images/hero-cctv.jpg"
-        alt="CCTV"
-        className="absolute inset-0 w-full h-full object-cover"
+        src="/images/header.jpg"
+        alt="MG CCTV Header"
+        className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
       />
 
-      {/* Overlay */}
+      {/* SOLID OVERLAY - Tanpa Gradasi (Pakai hitam transparan solid) */}
       <div className="absolute inset-0 bg-black/50"></div>
 
-      {/* Content */}
-      <div className="relative text-center text-white px-6">
-        <h1 className="text-4xl font-bold mb-4">
-          Keamanan Rumah Anda Prioritas Kami
-        </h1>
+      <div className="relative z-10 px-10 md:px-24 w-full">
+        <div className="max-w-3xl">
 
-        <p className="mb-6 text-lg">
-          Temukan berbagai pilihan CCTV berkualitas dengan harga terbaik
-        </p>
+          {/* HEADING - Solid White */}
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-8 leading-tight tracking-tight">
+            Awasi Segalanya, <br /> 
+            Dari Mana Saja.
+          </h1>
 
-        <Link
-          href="/produk"
-          className="bg-blue-700 hover:bg-blue-800 px-6 py-3 rounded font-semibold"
-        >
-          Lihat Produk
-        </Link>
+          {/* DESKRIPSI */}
+          <p className="mb-10 text-xl text-gray-200 max-w-xl leading-relaxed">
+            Hadirkan keamanan mutakhir di genggaman Anda. Solusi CCTV cerdas dengan kualitas Ultra HD untuk melindungi rumah dan bisnis Anda 24/7.
+          </p>
+
+          {/* BUTTONS - Solid Colors */}
+          <div className="flex flex-wrap gap-5">
+            <Link
+              href="/produk"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-xl font-bold text-lg transition-all flex items-center gap-3"
+            >
+              Lihat Produk
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </Link>
+
+            <Link
+              href="/tentang"
+              className="bg-green-600 hover:bg-gray-800 text-white px-10 py-5 rounded-xl font-bold text-lg transition-all"
+            >
+              Informasi Toko
+            </Link>
+          </div>
+        </div>
       </div>
-
     </section>
   );
 }
