@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -12,6 +12,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
+<<<<<<< HEAD
+=======
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -19,6 +21,7 @@
   }
 }
 
+>>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
 body {
   background: var(--foreground);
   color: var(--background);
