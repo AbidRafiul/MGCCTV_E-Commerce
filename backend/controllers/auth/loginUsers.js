@@ -40,6 +40,8 @@ const loginUsers = async (req, res) => {
       {
         id: user[0].id_users,
         role: user[0].role,
+        username: user[0].username,
+        email: user[0].email,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }

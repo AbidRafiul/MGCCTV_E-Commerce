@@ -38,12 +38,12 @@ const googleLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: userData.id_users, role: userData.role },
+      { id: userData.id_users, role: userData.role, username: userData.username, email: userData.email },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    return res.json({ message: "Login Google berhasil", token, role: userData.role });
+    return res.json({ message: "Login Google berhasil", token, role: userData.role, username: userData.username, email: userData.email });
   } catch (error) {
     return res.status(401).json({ message: "Google login gagal", error: error.message });
   }

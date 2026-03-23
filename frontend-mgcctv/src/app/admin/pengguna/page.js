@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import UserModal from "./components/UserModal";
+import Swal from 'sweetalert2';
 
 export default function DataPenggunaPage() {
   const [users, setUsers] = useState([]);
@@ -13,7 +14,7 @@ export default function DataPenggunaPage() {
   const [roleFilter, setRoleFilter] = useState("Semua Role");
   const [statusFilter, setStatusFilter] = useState("Semua Status");
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   const fetchUsers = async (token) => {
     try {
@@ -73,26 +74,61 @@ export default function DataPenggunaPage() {
     setIsModalOpen(false);
   };
 
-  const deleteUser = async (id) => {
-    if (confirm("Apakah Anda yakin ingin menghapus user ini?")) {
-      const token = localStorage.getItem("token");
-      try {
-        const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          refreshData();
-        } else {
+const deleteUser = async (id) => {
+    // 1. Pop-up Konfirmasi
+    Swal.fire({
+      title: 'Hapus Pengguna?',
+      text: "Data yang dihapus tidak dapat dikembalikan!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      
+      // Jika tombol "Ya" diklik
+      if (result.isConfirmed) {
+        try {
+          // Ganti port sesuaikan dengan environment kamu
+          const res = await fetch(`http://localhost:3000/api/admin/users/${id}`, {
+            method: "DELETE",
+            // Jangan lupa kirim token JWT di headers agar tidak ditolak backend
+            headers: {
+              "Authorization": `Bearer ${localStorage.getItem("token")}`
+            }
+          });
+          
           const data = await res.json();
-          alert(data.message || "Gagal menghapus user");
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
 
+          if (!res.ok) {
+            // 2. Pop-up Error (Misal: karena ada riwayat transaksi)
+            Swal.fire({
+              title: 'Gagal Dihapus!',
+              text: data.message,
+              icon: 'error',
+              confirmButtonColor: '#0C2C55'
+            });
+            return;
+          }
+
+          // 3. Pop-up Sukses
+          Swal.fire({
+            title: 'Terhapus!',
+            text: data.message,
+            icon: 'success',
+            confirmButtonColor: '#0C2C55'
+          });
+
+          // Panggil fungsi untuk refresh/fetch ulang tabel data pengguna di sini
+          // fetchUsers(); 
+          
+        } catch (error) {
+          Swal.fire('Error!', 'Terjadi kesalahan jaringan ke server.', 'error');
+        }
+      }
+    });
+  };
 const formatDate = (dateStr) => {
     if (!dateStr) return "-"; 
     const date = new Date(dateStr);

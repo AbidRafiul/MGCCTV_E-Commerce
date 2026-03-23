@@ -107,16 +107,33 @@ const deleteAdmin = async (req, res) => {
       return res.status(404).json({ message: "User tidak ditemukan" });
     }
 
-    // Optional constraint: prevent superadmin from deleting themselves, etc.
-    if (existing[0].role === "Superadmin" && req.user.id === parseInt(id)) {
+    const targetRole = existing[0].role?.toLowerCase();
+    const currentUserId = req.user?.id || req.user?.id_users;
+
+    if (targetRole === "superadmin" && currentUserId === parseInt(id)) {
       return res.status(400).json({ message: "Tidak dapat menghapus akun sendiri" });
     }
 
-    await connection.query("DELETE FROM ms_users WHERE id_users = ?", [id]);
+    // Eksekusi Hapus Permanen
+    try {
+      await connection.query("DELETE FROM ms_users WHERE id_users = ?", [id]);
+      return res.json({ message: "User berhasil dihapus permanen" });
+      
+    } catch (dbError) {
+      // Tangkap error 1451 (Terhalang Foreign Key Constraint)
+      if (dbError.errno === 1451) {
+        // Berikan pesan yang jelas ke frontend (Admin)
+        return res.status(400).json({ 
+          message: "Gagal dihapus: User ini memiliki riwayat pesanan. Silakan ubah statusnya menjadi Nonaktif melalui menu Edit." 
+        });
+      }
+      // Jika errornya bukan karena transaksi, lempar ke catch utama di bawah
+      throw dbError; 
+    }
 
-    res.json({ message: "User berhasil dihapus" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error Delete User:", error);
+    res.status(500).json({ message: "Gagal memproses penghapusan", error: error.message });
   }
 };
 

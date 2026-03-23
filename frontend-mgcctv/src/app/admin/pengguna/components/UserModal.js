@@ -14,7 +14,7 @@ export default function UserModal({ isOpen, onClose, user, onSuccess }) {
     password: ""
   });
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   useEffect(() => {
     if (user) {

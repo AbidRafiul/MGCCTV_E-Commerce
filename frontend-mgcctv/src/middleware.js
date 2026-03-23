@@ -14,7 +14,6 @@ export function middleware(request) {
   const isAdminOrSuperadmin = role === "admin" || role === "superadmin";
 
   // Proteksi halaman admin: kalau tidak ada token / bukan admin → redirect ke login
-  // Aturan redirect dari /login dihapus — menyebabkan loop antara cookie & localStorage
   if (isAdminRoute && (!token || !isAdminOrSuperadmin)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
