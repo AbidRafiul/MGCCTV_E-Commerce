@@ -7,9 +7,11 @@ import { LoaderCircle } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const redirectTo = searchParams.get("redirect") || "/beranda";
+  
+  // Ambil token dan role dari Local Storage
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const role = typeof window !== "undefined" ? localStorage.getItem("role") : null;
 
   const [form, setForm] = useState({
     email: "",
@@ -18,10 +20,11 @@ export default function LoginPage() {
 
   const [error, setError] = useState("");
 
+  //  HANDLE GOOGLE LOGIN
   const handleGoogleLogin = useCallback(
     async (response) => {
       try {
-        const res = await fetch("http://localhost:3001/api/auth/google", {
+        const res = await fetch("http://localhost:3000/api/auth/google", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -38,16 +41,28 @@ export default function LoginPage() {
           return;
         }
 
+        //  Simpan Token dan Role
         localStorage.setItem("token", data.token);
-        router.push(redirectTo);
+        localStorage.setItem("role", data.role || "pelanggan");
+        document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `role=${data.role || "pelanggan"}; path=/; max-age=86400; SameSite=Lax`;
+
+        const userRole = (data.role || "pelanggan").toLowerCase();
+
+        //  Redirect sesuai Role
+        if (userRole === "admin" || userRole === "superadmin") {
+          router.push("/admin");
+        } else {
+          router.push(redirectTo);
+        }
       } catch {
         setError("Google login gagal");
       }
     },
-    [redirectTo, router],
+    [redirectTo, router]
   );
 
-  // 🔥 GOOGLE INIT
+  //  GOOGLE INIT
   useEffect(() => {
     if (token) {
       return;
@@ -56,8 +71,7 @@ export default function LoginPage() {
     const interval = setInterval(() => {
       if (window.google) {
         window.google.accounts.id.initialize({
-          client_id:
-            "622310987018-nqqfd9cohvga8gam4273afcegl77pjr3.apps.googleusercontent.com",
+          client_id: "622310987018-nqqfd9cohvga8gam4273afcegl77pjr3.apps.googleusercontent.com",
           callback: handleGoogleLogin,
         });
 
@@ -77,38 +91,16 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [handleGoogleLogin, token]);
 
-<<<<<<< HEAD
+  //  REDIRECT JIKA SUDAH LOGIN (Cegah masuk ke form login lagi)
   useEffect(() => {
     if (token) {
-      router.replace("/beranda");
-=======
-  // 🔥 HANDLE GOOGLE LOGIN
-  const handleGoogleLogin = async (response) => {
-    try {
-      const res = await fetch("http://localhost:3000/api/auth/google", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          credential: response.credential,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message);
-        return;
+      if (role === "admin" || role === "superadmin") {
+        router.replace("/admin");
+      } else {
+        router.replace(redirectTo);
       }
-
-      localStorage.setItem("token", data.token);  
-      router.push("/beranda");
-    } catch (err) {
-      setError("Google login gagal");
->>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
     }
-  }, [router, token]);
+  }, [token, role, router, redirectTo]);
 
   const handleChange = (e) => {
     setForm({
@@ -117,17 +109,13 @@ export default function LoginPage() {
     });
   };
 
-  // 🔥 LOGIN MANUAL
+  //  LOGIN MANUAL
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-<<<<<<< HEAD
-      const res = await fetch("http://localhost:3001/api/auth/login", {
-=======
       const res = await fetch("http://localhost:3000/api/auth/login", {
->>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -142,30 +130,42 @@ export default function LoginPage() {
         return;
       }
 
+      //  Simpan Token dan Role
       localStorage.setItem("token", data.token);
-      router.push(redirectTo);
+      localStorage.setItem("role", data.role || "pelanggan");
+      document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `role=${data.role || "pelanggan"}; path=/; max-age=86400; SameSite=Lax`;
+
+      const userRole = (data.role || "pelanggan").toLowerCase();
+
+      //  Redirect sesuai Role
+      if (userRole === "admin" || userRole === "superadmin") {
+        router.push("/admin");
+      } else {
+        router.push(redirectTo);
+      }
     } catch {
       setError("Gagal terhubung ke server");
     }
   };
 
+  // LOADING STATE SAAT REDIRECT
   if (token) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-3 bg-[#f5f6f8] text-slate-500">
-        <LoaderCircle className="animate-spin" size={10} />
-        <span>Mengalihkan ke beranda...</span>
+        <LoaderCircle className="animate-spin" size={20} />
+        <span className="font-medium">Mengalihkan ke halaman tujuan...</span>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-center overflow-hidden">
-
       {/* BACKGROUND */}
       <img
         src="/images/bg login.jpg"
         alt="bg"
-        className="absolute top-1/2 left-1/2 h-[210%] -translate-x-1/2 -translate-y-1/2 rotate-90"
+        className="absolute top-1/2 left-1/2 h-[210%] -translate-x-1/2 -translate-y-1/2 rotate-90 object-cover"
       />
 
       {/* OVERLAY */}
@@ -173,70 +173,68 @@ export default function LoginPage() {
 
       {/* CONTENT */}
       <div className="relative z-10 flex flex-col items-center">
+        <h1 className="text-white text-3xl font-bold mb-6">Login</h1>
 
-        <h1 className="text-white text-3xl font-bold mb-2">
-          Login
-        </h1>
-
-        <div className="bg-white/90 backdrop-blur-md w-[350px] p-6 rounded-xl shadow-2xl text-[#0C2C55]">
-
-          <form onSubmit={handleLogin} className="space-y-3">
-
+        <div className="bg-white/95 backdrop-blur-md w-[350px] p-8 rounded-2xl shadow-2xl text-[#0C2C55]">
+          <form onSubmit={handleLogin} className="space-y-4">
             {/* ERROR */}
             {error && (
-              <p className="text-red-500 text-xs text-center">
+              <div className="bg-red-50 text-red-500 text-xs text-center font-bold py-2 rounded-lg border border-red-100">
                 {error}
-              </p>
+              </div>
             )}
 
             <div>
-              <label className="text-sm">Username</label>
+              <label className="text-sm font-bold mb-1 block">Username / Email</label>
               <input
                 type="text"
                 name="email"
                 placeholder="Masukkan username/email"
-                className="w-full border px-3 py-2 rounded text-sm"
+                className="w-full border border-slate-200 px-3 py-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-slate-50/50"
                 onChange={handleChange}
+                required
               />
             </div>
 
             <div>
-              <label className="text-sm">Password</label>
+              <label className="text-sm font-bold mb-1 block">Password</label>
               <input
                 type="password"
                 name="password"
                 placeholder="Masukkan password"
-                className="w-full border px-3 py-2 rounded text-sm"
+                className="w-full border border-slate-200 px-3 py-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-slate-50/50"
                 onChange={handleChange}
+                required
               />
             </div>
 
-            {/* 🔥 GOOGLE BUTTON */}
-            <div className="flex justify-center">
-              <div id="googleBtn"></div>
+            {/*  GOOGLE BUTTON */}
+            <div className="flex justify-center pt-2">
+              <div id="googleBtn" className="overflow-hidden rounded-lg"></div>
             </div>
 
             {/* Separator */}
-            <p className="text-center text-xs text-gray-500">atau</p>
+            <div className="flex items-center gap-3 py-2">
+              <div className="h-px w-full bg-slate-200"></div>
+              <p className="text-center text-xs font-semibold text-slate-400">atau</p>
+              <div className="h-px w-full bg-slate-200"></div>
+            </div>
 
             <button
               type="submit"
-              className="w-full bg-blue-800 hover:bg-blue-900 text-white py-2 rounded font-semibold"
+              className="w-full bg-[#0C2C55] hover:bg-blue-800 transition-colors text-white py-2.5 rounded-lg font-bold shadow-md shadow-blue-900/20"
             >
-              Login
+              Masuk
             </button>
-
           </form>
 
-          <p className="text-center text-xs mt-4">
+          <p className="text-center text-xs font-medium text-slate-500 mt-6">
             Belum memiliki akun?{" "}
-            <a href="/register" className="text-blue-600 font-semibold">
+            <a href="/register" className="text-blue-600 font-bold hover:underline">
               Daftar di sini
             </a>
           </p>
-
         </div>
-
       </div>
     </div>
   );

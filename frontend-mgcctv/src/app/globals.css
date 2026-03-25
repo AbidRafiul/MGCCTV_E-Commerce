@@ -1,5 +1,31 @@
 @import "tailwindcss";
+@source "../";
 
+@theme {
+  /* Warna Utama MGCCTV */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-bgMain: #f8fafc;
+  --color-bgSurface: #ffffff;
+  --color-textMain: #334155;
+  --color-textMuted: #64748b;
+  --color-borderColor: #e2e8f0;
+  
+  /* Warna Status */
+  --color-success: #10b981;
+  --color-success-bg: #d1fae5;
+  --color-success-text: #065f46;
+  
+  --color-danger: #ef4444;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #991b1b;
+  
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+}
+
+/* Konfigurasi Font & Background Bawaan Tailwind v4 */
 :root {
   --background: #ffffff;
   --foreground: #111827;
@@ -12,8 +38,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-<<<<<<< HEAD
-=======
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -21,9 +45,10 @@
   }
 }
 
->>>>>>> e94e6cf39d6fd65534166bb43add91957af03b3e
+/* Gabungan Body MGCCTV dan Next.js */
 body {
-  background: var(--foreground);
-  color: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-bgMain);
+  color: var(--color-textMain);
+  font-family: var(--font-inter), var(--font-sans), Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
