@@ -9,9 +9,10 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/beranda";
   
-  // Ambil token dan role dari Local Storage
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const role = typeof window !== "undefined" ? localStorage.getItem("role") : null;
+  // State untuk mencegah Hydration Error
+  const [isMounted, setIsMounted] = useState(false);
+  const [localToken, setLocalToken] = useState(null);
+  const [localRole, setLocalRole] = useState(null);
 
   const [form, setForm] = useState({
     email: "",
@@ -20,7 +21,29 @@ export default function LoginPage() {
 
   const [error, setError] = useState("");
 
-  //  HANDLE GOOGLE LOGIN
+  // Ambil data dari Local Storage HANYA di sisi Client
+  useEffect(() => {
+    setIsMounted(true);
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    
+    setLocalToken(token);
+    setLocalRole(role);
+  }, []);
+
+  // REDIRECT JIKA SUDAH LOGIN
+  useEffect(() => {
+    if (localToken && localRole) {
+      const currentRole = localRole.toLowerCase();
+      if (currentRole === "admin" || currentRole === "superadmin") {
+        router.replace("/admin");
+      } else {
+        router.replace(redirectTo);
+      }
+    }
+  }, [localToken, localRole, router, redirectTo]);
+
+  // HANDLE GOOGLE LOGIN
   const handleGoogleLogin = useCallback(
     async (response) => {
       try {
@@ -41,15 +64,13 @@ export default function LoginPage() {
           return;
         }
 
-        //  Simpan Token dan Role
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role || "pelanggan");
-        document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `role=${data.role || "pelanggan"}; path=/; max-age=86400; SameSite=Lax`;
-
         const userRole = (data.role || "pelanggan").toLowerCase();
 
-        //  Redirect sesuai Role
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", userRole);
+        document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
+
         if (userRole === "admin" || userRole === "superadmin") {
           router.push("/admin");
         } else {
@@ -62,9 +83,10 @@ export default function LoginPage() {
     [redirectTo, router]
   );
 
-  //  GOOGLE INIT
+  // GOOGLE INIT
   useEffect(() => {
-    if (token) {
+    // Ubah pengecekan menggunakan localToken
+    if (localToken) {
       return;
     }
 
@@ -89,18 +111,7 @@ export default function LoginPage() {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [handleGoogleLogin, token]);
-
-  //  REDIRECT JIKA SUDAH LOGIN (Cegah masuk ke form login lagi)
-  useEffect(() => {
-    if (token) {
-      if (role === "admin" || role === "superadmin") {
-        router.replace("/admin");
-      } else {
-        router.replace(redirectTo);
-      }
-    }
-  }, [token, role, router, redirectTo]);
+  }, [handleGoogleLogin, localToken]); // Dependency diubah ke localToken
 
   const handleChange = (e) => {
     setForm({
@@ -109,7 +120,7 @@ export default function LoginPage() {
     });
   };
 
-  //  LOGIN MANUAL
+  // LOGIN MANUAL
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -130,15 +141,13 @@ export default function LoginPage() {
         return;
       }
 
-      //  Simpan Token dan Role
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role || "pelanggan");
-      document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
-      document.cookie = `role=${data.role || "pelanggan"}; path=/; max-age=86400; SameSite=Lax`;
-
       const userRole = (data.role || "pelanggan").toLowerCase();
 
-      //  Redirect sesuai Role
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", userRole);
+      document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
+
       if (userRole === "admin" || userRole === "superadmin") {
         router.push("/admin");
       } else {
@@ -149,12 +158,12 @@ export default function LoginPage() {
     }
   };
 
-  // LOADING STATE SAAT REDIRECT
-  if (token) {
+  // LOADING STATE
+  if (!isMounted || localToken) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-3 bg-[#f5f6f8] text-slate-500">
         <LoaderCircle className="animate-spin" size={20} />
-        <span className="font-medium">Mengalihkan ke halaman tujuan...</span>
+        <span className="font-medium">Memuat halaman...</span>
       </div>
     );
   }
@@ -176,7 +185,7 @@ export default function LoginPage() {
         <h1 className="text-white text-3xl font-bold mb-6">Login</h1>
 
         <div className="bg-white/95 backdrop-blur-md w-[350px] p-8 rounded-2xl shadow-2xl text-[#0C2C55]">
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4" suppressHydrationWarning>
             {/* ERROR */}
             {error && (
               <div className="bg-red-50 text-red-500 text-xs text-center font-bold py-2 rounded-lg border border-red-100">
@@ -208,7 +217,7 @@ export default function LoginPage() {
               />
             </div>
 
-            {/*  GOOGLE BUTTON */}
+            {/* GOOGLE BUTTON */}
             <div className="flex justify-center pt-2">
               <div id="googleBtn" className="overflow-hidden rounded-lg"></div>
             </div>

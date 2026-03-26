@@ -199,21 +199,21 @@ const formatDate = (dateStr) => {
       </div>
 
       {/* Tabel Card */}
-      <div className="bg-bgSurface border border-borderColor rounded-xl shadow-sm overflow-hidden">
-        {/* Tab Header & Export */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-borderColor px-2 sm:px-6">
-           <div className="w-full overflow-x-auto scrollbar-hide">
-             <div className="flex gap-6 min-w-max">
-               <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Semua Role' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Semua Role')}>Semua Pengguna ({users.length})</div>
-               <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Admin' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Admin')}>Admin ({users.filter(u => u.role === 'Admin').length})</div>
-               <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Pelanggan' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Pelanggan')}>Pelanggan ({users.filter(u => u.role === 'Pelanggan').length})</div>
-             </div>
-           </div>
-           <button className="hidden sm:block px-3 py-1.5 border border-borderColor text-textMain rounded-md text-xs font-medium hover:bg-bgMain transition-colors mt-3 sm:mt-0">
-             Export
-           </button>
-        </div>
-        
+        <div className="bg-bgSurface border border-borderColor rounded-xl shadow-sm overflow-hidden">
+          {/* Tab Header & Export */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-borderColor px-2 sm:px-6">
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="flex gap-6 min-w-max">
+                <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Semua Role' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Semua Role')}>Semua Pengguna ({users.length})</div>
+                <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Admin' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Admin')}>Admin ({users.filter(u => u.role === 'Admin').length})</div>
+                <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Pelanggan' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Pelanggan')}>Pelanggan ({users.filter(u => u.role === 'Pelanggan').length})</div>
+              </div>
+            </div>
+            <button className="hidden sm:block px-3 py-1.5 border border-borderColor text-textMain rounded-md text-xs font-medium hover:bg-bgMain transition-colors mt-3 sm:mt-0">
+              Export
+            </button>
+          </div>
+          
         {/* Table Container dengan overflow */}
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[800px]">
