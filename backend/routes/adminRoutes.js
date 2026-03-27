@@ -12,7 +12,7 @@ const upload = require("../middleware/upload");
 // 2. IMPORT CONTROLLERS
 // ==========================================
 const { getDashboardStats } = require("../controllers/admin/dashboardController");
-const { getSemuaKategori } = require("../controllers/admin/kategoriController");
+const { getAllKategori, addKategori, updateKategori, deleteKategori } = require("../controllers/admin/kategoriController");
 const { 
   getAllUsers, 
   addAdmin, 
@@ -57,7 +57,10 @@ router.get("/dashboard", getDashboardStats);
 
 
 // --- RUTE KATEGORI (MEREK) ---
-router.get("/kategori", getSemuaKategori);
+router.get("/kategori", getAllKategori);
+router.post("/kategori", addKategori);
+router.put("/kategori/:id", updateKategori);
+router.delete("/kategori/:id", deleteKategori);
 
 
 // --- RUTE PRODUK ---
