@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AUTH_API_URL } from "@/lib/api";
+import Swal from "sweetalert2";
 
 const navLinks = [
   { href: "/beranda", label: "Beranda" },
@@ -96,8 +97,24 @@ export default function Navbar() {
     };
   }, [isMobileMenuOpen]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: "Logout?",
+      text: "Apakah yakin untuk logout?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, Logout",
+      cancelButtonText: "Batal",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
     localStorage.removeItem("token");
+    localStorage.removeItem("role");
     setIsLogin(false);
     setProfile(null);
     setIsMobileMenuOpen(false);

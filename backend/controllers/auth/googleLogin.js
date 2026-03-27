@@ -28,7 +28,7 @@ const googleLogin = async (req, res) => {
       const role = ROLE.KUSTOMER; // Gunakan konstanta
 
       const [result] = await connection.query(
-        `INSERT INTO ms_users (nama, email, role) VALUES (?,?,?)`,
+        `INSERT INTO ms_users (nama, email, role, created_at) VALUES (?,?,?, NOW())`,
         [nama, email, role]
       );
 

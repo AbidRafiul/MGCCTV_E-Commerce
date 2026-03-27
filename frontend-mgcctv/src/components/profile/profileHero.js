@@ -15,22 +15,81 @@ const initialForm = {
   alamat: "",
 };
 
-const formatJoinDate = (dateString) => {
-  if (!dateString) {
-    return "-";
+const parseProfileDate = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
   }
 
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
+  if (typeof value === "number") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
+
+  if (typeof value === "string") {
+    const cleaned = value.trim();
+
+    // ISO / "YYYY-MM-DD HH:mm:ss"
+    const normalized = cleaned.includes(" ") ? cleaned.replace(" ", "T") : cleaned;
+    const isoParsed = new Date(normalized);
+    if (!Number.isNaN(isoParsed.getTime())) {
+      return isoParsed;
+    }
+
+    // dd-mm-yyyy atau dd/mm/yyyy
+    const dmyMatch = cleaned.match(/^(\d{2})[-/](\d{2})[-/](\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (dmyMatch) {
+      const [, day, month, year, hour = "00", minute = "00", second = "00"] = dmyMatch;
+      const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    // yyyy-mm-dd atau yyyy/mm/dd
+    const ymdMatch = cleaned.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (ymdMatch) {
+      const [, year, month, day, hour = "00", minute = "00", second = "00"] = ymdMatch;
+      const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+  }
+
+  const fallbackDate = new Date(value);
+  return Number.isNaN(fallbackDate.getTime()) ? null : fallbackDate;
+};
+
+const formatJoinDate = (dateValue) => {
+  if (!dateValue) return "-";
+
+  const date = parseProfileDate(dateValue);
+  if (!date) return "-";
 
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
   }).format(date);
+};
+
+const normalizeProfile = (user) => {
+  if (!user || typeof user !== "object") {
+    return null;
+  }
+
+  return {
+    ...user,
+    created_at:
+      user.created_at ??
+      user.createdAt ??
+      user.tanggal_daftar ??
+      user.tanggalDaftar ??
+      user.registered_at ??
+      user.registeredAt ??
+      user.join_date ??
+      user.joinDate ??
+      user.tgl_daftar ??
+      null,
+  };
 };
 
 export default function ProfileHero() {
@@ -49,55 +108,58 @@ export default function ProfileHero() {
   }, [router]);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem("token");
+  const fetchProfile = async () => {
+    const token = localStorage.getItem("token");
 
-      if (!token) {
+    if (!token) {
+      handleLogout();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const res = await fetch(`${AUTH_API_URL}/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal mengambil data profile");
+      }
+
+      const rawUser = data?.user ?? data?.data?.user ?? data?.data ?? null;
+      const normalizedUser = normalizeProfile(rawUser);
+
+      setProfile(normalizedUser);
+      setForm({
+        nama: normalizedUser?.nama || "",
+        email: normalizedUser?.email || "",
+        no_hp: normalizedUser?.no_hp || "",
+        alamat: normalizedUser?.alamat || "",
+      });
+    } catch (fetchError) {
+      if (
+        fetchError.message?.toLowerCase().includes("jwt") ||
+        fetchError.message?.toLowerCase().includes("token") ||
+        fetchError.message?.toLowerCase().includes("unauthorized")
+      ) {
         handleLogout();
         return;
       }
 
-      try {
-        setIsLoading(true);
-        setError("");
+      setError(fetchError.message || "Gagal memuat profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        const res = await fetch(`${AUTH_API_URL}/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.message || "Gagal mengambil data profile");
-        }
-
-        setProfile(data.user);
-        setForm({
-          nama: data.user.nama || "",
-          email: data.user.email || "",
-          no_hp: data.user.no_hp || "",
-          alamat: data.user.alamat || "",
-        });
-      } catch (fetchError) {
-        if (
-          fetchError.message?.toLowerCase().includes("jwt") ||
-          fetchError.message?.toLowerCase().includes("token") ||
-          fetchError.message?.toLowerCase().includes("unauthorized")
-        ) {
-          handleLogout();
-          return;
-        }
-
-        setError(fetchError.message || "Gagal memuat profile");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [handleLogout]);
+  fetchProfile();
+}, [handleLogout]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -107,53 +169,59 @@ export default function ProfileHero() {
       [name]: value,
     }));
   };
+      const handleSubmit = async () => {
+        const token = localStorage.getItem("token");
 
-  const handleSubmit = async () => {
-    const token = localStorage.getItem("token");
+        if (!token) {
+          router.push("/login");
+          return;
+        }
 
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+        try {
+          setIsSaving(true);
+          setError("");
+          setSuccess("");
 
-    try {
-      setIsSaving(true);
-      setError("");
-      setSuccess("");
+          const res = await fetch(`${AUTH_API_URL}/profile`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(form),
+          });
 
-      const res = await fetch(`${AUTH_API_URL}/profile`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
+          const data = await res.json();
 
-      const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || "Gagal memperbarui profile");
+          }
 
-      if (!res.ok) {
-        throw new Error(data.message || "Gagal memperbarui profile");
-      }
+          const rawUser = data?.user ?? data?.data?.user ?? data?.data ?? null;
+          const normalizedUser = normalizeProfile(rawUser);
 
-      setProfile((prev) => ({
-        ...prev,
-        ...data.user,
-      }));
-      setForm({
-        nama: data.user.nama || "",
-        email: data.user.email || "",
-        no_hp: data.user.no_hp || "",
-        alamat: data.user.alamat || "",
-      });
-      setIsEditing(false);
-      setSuccess(data.message || "Profile berhasil diperbarui");
-    } catch (submitError) {
-      setError(submitError.message || "Gagal memperbarui profile");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+          setProfile((prev) =>
+            normalizeProfile({
+              ...prev,
+              ...normalizedUser,
+            })
+          );
+
+          setForm({
+            nama: normalizedUser?.nama || "",
+            email: normalizedUser?.email || "",
+            no_hp: normalizedUser?.no_hp || "",
+            alamat: normalizedUser?.alamat || "",
+          });
+
+          setIsEditing(false);
+          setSuccess(data.message || "Profile berhasil diperbarui");
+        } catch (submitError) {
+          setError(submitError.message || "Gagal memperbarui profile");
+        } finally {
+          setIsSaving(false);
+        }
+      };
 
   const handlePrimaryAction = () => {
     setSuccess("");

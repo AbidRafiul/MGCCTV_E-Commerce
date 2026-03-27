@@ -55,8 +55,8 @@ const addAdmin = async (req, res) => {
 
     await connection.query(
       `INSERT INTO ms_users 
-      (nama, username, password, email, no_hp, alamat, role, status) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (nama, username, password, email, no_hp, alamat, role, status, created_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [nama, username, hashedPassword, email, no_hp, alamat, finalRole, finalStatus]
     );
 
