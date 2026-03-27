@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AUTH_API_URL } from "@/lib/api";
-import Swal from "sweetalert2";
+import Swal from 'sweetalert2';
+import { useRouter } from 'next/navigation';
 
 const navLinks = [
   { href: "/beranda", label: "Beranda" },
@@ -97,28 +98,38 @@ export default function Navbar() {
     };
   }, [isMobileMenuOpen]);
 
-  const handleLogout = async () => {
-    const result = await Swal.fire({
-      title: "Logout?",
-      text: "Apakah yakin untuk logout?",
-      icon: "warning",
+  const router = useRouter();
+  const handleLogout = () => {
+    Swal.fire({
+      title: 'Keluar dari Sistem?',
+      text: "Sesi Anda akan diakhiri.",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Ya, Logout",
-      cancelButtonText: "Batal",
+      confirmButtonColor: '#d33', 
+      cancelButtonColor: '#3085d6', 
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal',
+      shape: 'rounded-xl'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Logika logout kamu tetap sama di dalam sini
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+        document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+        
+        // Opsional: Pop-up sukses kecil sebelum pindah halaman
+        Swal.fire({
+          title: 'Berhasil Logout!',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        }).then(() => {
+          // Pindah ke halaman beranda (hard reload)
+          window.location.href = "/beranda";
+        });
+      }
     });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    setIsLogin(false);
-    setProfile(null);
-    setIsMobileMenuOpen(false);
-    window.location.reload();
   };
 
   const closeMobileMenu = () => {

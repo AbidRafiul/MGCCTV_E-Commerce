@@ -11,7 +11,7 @@ async function seed() {
     if (superadmins.length === 0) {
       await connection.query(
         `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role, status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         ["Super Admin Utama", "superadmin", superadminPassword, "superadmin@mgcctv.com", "081234567890", "Kantor Pusat", "Superadmin", "Aktif"]
       );
       console.log("Berhasil menambahkan default Superadmin.");
@@ -24,7 +24,7 @@ async function seed() {
     if (admins.length === 0) {
       await connection.query(
         `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role, status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         ["Admin Operasional", "admin", adminPassword, "admin@mgcctv.com", "081987654321", "Cabang Madiun", "Admin", "Aktif"]
       );
       console.log("Berhasil menambahkan default Admin.");
