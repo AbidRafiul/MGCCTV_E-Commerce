@@ -10,13 +10,8 @@ async function seed() {
     const [superadmins] = await connection.query("SELECT * FROM ms_users WHERE role = 'Superadmin'");
     if (superadmins.length === 0) {
       await connection.query(
-<<<<<<< HEAD
-        `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-=======
         `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role, status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
->>>>>>> main
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         ["Super Admin Utama", "superadmin", superadminPassword, "superadmin@mgcctv.com", "081234567890", "Kantor Pusat", "Superadmin", "Aktif"]
       );
       console.log("Berhasil menambahkan default Superadmin.");
