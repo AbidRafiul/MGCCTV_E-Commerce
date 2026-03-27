@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import UserModal from "./components/UserModal";
 import Swal from 'sweetalert2';
+import { Search, Plus, Edit3, Trash2, Download } from "lucide-react";
+import { exportToExcel } from "@/utils/exportExcel";
 
 export default function DataPenggunaPage() {
   const [users, setUsers] = useState([]);
@@ -23,10 +25,8 @@ export default function DataPenggunaPage() {
       });
       
       if (res.ok) {
-        // Cukup panggil res.json() SATU KALI saja
         const data = await res.json();
         setUsers(data);
-        console.log("Data dari backend:", data); // Log ini pasti akan muncul sekarang
       } else {
         console.error("Response gagal dari server");
       }
@@ -74,26 +74,21 @@ export default function DataPenggunaPage() {
     setIsModalOpen(false);
   };
 
-const deleteUser = async (id) => {
-    // 1. Pop-up Konfirmasi
+  const deleteUser = async (id) => {
     Swal.fire({
       title: 'Hapus Pengguna?',
       text: "Data yang dihapus tidak dapat dikembalikan!",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
+      cancelButtonColor: '#0C2C55', // Disamakan dengan tema biru
       confirmButtonText: 'Ya, Hapus!',
       cancelButtonText: 'Batal'
     }).then(async (result) => {
-      
-      // Jika tombol "Ya" diklik
       if (result.isConfirmed) {
         try {
-          // Ganti port sesuaikan dengan environment kamu
-          const res = await fetch(`http://localhost:3000/api/admin/users/${id}`, {
+          const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
             method: "DELETE",
-            // Jangan lupa kirim token JWT di headers agar tidak ditolak backend
             headers: {
               "Authorization": `Bearer ${localStorage.getItem("token")}`
             }
@@ -102,7 +97,6 @@ const deleteUser = async (id) => {
           const data = await res.json();
 
           if (!res.ok) {
-            // 2. Pop-up Error (Misal: karena ada riwayat transaksi)
             Swal.fire({
               title: 'Gagal Dihapus!',
               text: data.message,
@@ -112,7 +106,6 @@ const deleteUser = async (id) => {
             return;
           }
 
-          // 3. Pop-up Sukses
           Swal.fire({
             title: 'Terhapus!',
             text: data.message,
@@ -120,8 +113,7 @@ const deleteUser = async (id) => {
             confirmButtonColor: '#0C2C55'
           });
 
-          // Panggil fungsi untuk refresh/fetch ulang tabel data pengguna di sini
-          // fetchUsers(); 
+          refreshData(); 
           
         } catch (error) {
           Swal.fire('Error!', 'Terjadi kesalahan jaringan ke server.', 'error');
@@ -129,7 +121,8 @@ const deleteUser = async (id) => {
       }
     });
   };
-const formatDate = (dateStr) => {
+
+  const formatDate = (dateStr) => {
     if (!dateStr) return "-"; 
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return "-"; 
@@ -137,6 +130,7 @@ const formatDate = (dateStr) => {
       day: 'numeric', month: 'short', year: 'numeric'
     });
   };
+
   // Logika Filter
   const filteredUsers = users.filter(user => {
     const matchSearch = user.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -147,8 +141,33 @@ const formatDate = (dateStr) => {
     return matchSearch && matchRole && matchStatus;
   });
 
+const handleExportExcel = () => {
+    if (filteredUsers.length === 0) {
+      Swal.fire('Data Kosong', 'Tidak ada data pengguna yang bisa diekspor.', 'warning'); return;
+    }
+
+    const dataToExport = filteredUsers.map((user, index) => ({
+      "No": index + 1,
+      "Nama Lengkap": user.nama,
+      "Role": user.role,
+      "Email": user.email,
+      "No. Handphone": user.no_hp || "-",
+      "Kota/Alamat": user.alamat || "-",
+      "Status": user.status,
+      "Tanggal Daftar": formatDate(user.created_at)
+    }));
+
+    const columnWidths = [
+      { wch: 5 }, { wch: 30 }, { wch: 15 }, { wch: 35 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 20 }
+    ];
+
+    // Panggil pabrik Excel kita!
+    exportToExcel(dataToExport, "Laporan_Data_Pengguna_MGCCTV", "Data Pengguna", columnWidths);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
+      
       {/* Header Halaman */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -157,111 +176,185 @@ const formatDate = (dateStr) => {
         </div>
       </div>
 
-{/* Filter Bar */}
-      <div className="bg-bgSurface p-4 rounded-xl shadow-sm border border-borderColor flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-4">
-        {/* Grup Input Filter */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 flex-1">
-          <input 
-            type="text" 
-            placeholder="Cari nama/email..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-auto sm:flex-1 min-w-[200px] px-4 py-2 text-sm border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" 
-          />
-          <select 
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2 text-sm border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-          >
-            <option value="Semua Role">Semua Role</option>
-            <option value="Superadmin">Superadmin</option>
-            <option value="Admin">Admin</option>
-            <option value="Pelanggan">Pelanggan</option>
-          </select>
-          <select 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2 text-sm border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-          >
-            <option value="Semua Status">Semua Status</option>
-            <option value="Aktif">Aktif</option>
-            <option value="Nonaktif">Nonaktif</option>
-          </select>
+      {/* FILTER BAR - Responsif */}
+      <div className="bg-bgSurface p-4 rounded-xl shadow-sm border border-borderColor flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full xl:w-auto">
+          
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={18} />
+            <input 
+              type="text" 
+              placeholder="Cari nama/email..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 sm:py-2 text-sm border border-borderColor rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all bg-slate-50" 
+            />
+          </div>
+
+          <div className="flex w-full sm:w-auto gap-3">
+            <select 
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm border border-borderColor rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all bg-slate-50 cursor-pointer"
+            >
+              <option value="Semua Role">Semua Role</option>
+              <option value="Superadmin">Superadmin</option>
+              <option value="Admin">Admin</option>
+              <option value="Pelanggan">Pelanggan</option>
+            </select>
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm border border-borderColor rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all bg-slate-50 cursor-pointer"
+            >
+              <option value="Semua Status">Semua Status</option>
+              <option value="Aktif">Aktif</option>
+              <option value="Nonaktif">Nonaktif</option>
+            </select>
+          </div>
         </div>
         
-        {/* Tombol Tambah */}
         <button 
           onClick={openAddModal} 
-          className="bg-primary hover:bg-primary-hover text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap sm:w-auto w-full flex justify-center"
+          className="w-full xl:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-3 sm:py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
         >
-          + Tambah Admin
+          <Plus size={18} /> Tambah Admin
         </button>
       </div>
 
-      {/* Tabel Card */}
-        <div className="bg-bgSurface border border-borderColor rounded-xl shadow-sm overflow-hidden">
-          {/* Tab Header & Export */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-borderColor px-2 sm:px-6">
-            <div className="w-full overflow-x-auto scrollbar-hide">
-              <div className="flex gap-6 min-w-max">
-                <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Semua Role' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Semua Role')}>Semua Pengguna ({users.length})</div>
-                <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Admin' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Admin')}>Admin ({users.filter(u => u.role === 'Admin').length})</div>
-                <div className={`pb-3 pt-4 text-sm font-medium border-b-2 cursor-pointer transition-colors ${roleFilter === 'Pelanggan' ? 'border-primary text-primary' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Pelanggan')}>Pelanggan ({users.filter(u => u.role === 'Pelanggan').length})</div>
-              </div>
+      {/* CONTAINER UTAMA DATA */}
+      <div className="bg-bgSurface border border-borderColor rounded-2xl shadow-sm overflow-hidden">
+        
+        {/* Tab Header (Bisa di-scroll nyamping di HP) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-borderColor px-4 sm:px-6 bg-white">
+          <div className="w-full overflow-x-auto custom-scrollbar">
+            <div className="flex gap-6 min-w-max">
+              <div className={`pb-3 pt-4 text-sm font-bold border-b-2 cursor-pointer transition-colors ${roleFilter === 'Semua Role' ? 'border-[#0C2C55] text-[#0C2C55]' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Semua Role')}>Semua Pengguna ({users.length})</div>
+              <div className={`pb-3 pt-4 text-sm font-bold border-b-2 cursor-pointer transition-colors ${roleFilter === 'Admin' ? 'border-[#0C2C55] text-[#0C2C55]' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Admin')}>Admin ({users.filter(u => u.role === 'Admin').length})</div>
+              <div className={`pb-3 pt-4 text-sm font-bold border-b-2 cursor-pointer transition-colors ${roleFilter === 'Pelanggan' ? 'border-[#0C2C55] text-[#0C2C55]' : 'border-transparent text-textMuted hover:text-textMain'}`} onClick={() => setRoleFilter('Pelanggan')}>Pelanggan ({users.filter(u => u.role === 'Pelanggan').length})</div>
             </div>
-            <button className="hidden sm:block px-3 py-1.5 border border-borderColor text-textMain rounded-md text-xs font-medium hover:bg-bgMain transition-colors mt-3 sm:mt-0">
-              Export
-            </button>
           </div>
-          
-        {/* Table Container dengan overflow */}
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead>
-              <tr className="bg-bgMain/50">
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">Pengguna</th>
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">Role</th>
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">Email</th>
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">No. HP</th>
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">Kota</th>
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">Tgl Daftar</th>
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">Status</th>
-                <th className="py-3 px-6 text-xs font-semibold tracking-wider text-textMuted uppercase border-b border-borderColor">Aksi</th>
+          <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 border border-borderColor text-textMain rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors mt-3 sm:mt-0 mb-3 sm:mb-0">
+            <Download size={16} /> Export
+          </button>
+        </div>
+
+        {/* ========================================== */}
+        {/* 1. MOBILE VIEW (Card Layout) - < 768px */}
+        {/* ========================================== */}
+        <div className="block md:hidden p-4">
+          {filteredUsers.length > 0 ? (
+            <div className="space-y-4">
+              {filteredUsers.map((user) => (
+                <div key={user.id_users} className="bg-white p-4 rounded-xl border border-borderColor shadow-sm space-y-3 relative hover:border-blue-100 transition-colors">
+                  
+                  {/* Avatar & Nama */}
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm ${user.role === 'Superadmin' ? 'bg-[#0C2C55]' : user.role === 'Admin' ? 'bg-blue-500' : 'bg-slate-400'}`}>
+                      {user.nama.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 overflow-hidden pr-16">
+                      <h3 className="font-bold text-slate-800 text-sm truncate">{user.nama}</h3>
+                      <p className="text-[11px] font-medium text-textMuted truncate mt-0.5">{user.email}</p>
+                    </div>
+                    {/* Badge Status */}
+                    <span className={`shrink-0 absolute top-4 right-4 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide ${user.status === 'Aktif' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                      {user.status}
+                    </span>
+                  </div>
+
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-borderColor">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold text-textMuted uppercase tracking-wide">Role</span>
+                      <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-bold ${user.role === 'Superadmin' ? 'bg-blue-100 text-blue-700' : user.role === 'Admin' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {user.role}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 items-end">
+                      <span className="text-[10px] font-bold text-textMuted uppercase tracking-wide">Terdaftar</span>
+                      <span className="font-semibold text-xs text-slate-600">{formatDate(user.created_at)}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold text-textMuted uppercase tracking-wide">No. HP</span>
+                      <span className="font-semibold text-xs text-slate-600">{user.no_hp || "-"}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 items-end">
+                      <span className="text-[10px] font-bold text-textMuted uppercase tracking-wide">Kota</span>
+                      <span className="font-semibold text-xs text-slate-600 text-right line-clamp-1">{user.alamat || "-"}</span>
+                    </div>
+                  </div>
+
+                  {/* Tombol Aksi */}
+                  <div className="flex items-center justify-end pt-3 border-t border-borderColor gap-2">
+                    <button onClick={() => openEditModal(user)} className="p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm" title="Edit">
+                      <Edit3 size={16} />
+                    </button>
+                    <button onClick={() => deleteUser(user.id_users)} className="p-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors bg-white shadow-sm" title="Hapus">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-10 text-center text-textMuted text-sm">
+              Data pengguna tidak ditemukan.
+            </div>
+          )}
+        </div>
+
+        {/* ========================================== */}
+        {/* 2. DESKTOP VIEW (Table Layout) - >= 768px */}
+        {/* ========================================== */}
+        <div className="hidden md:block w-full overflow-x-auto custom-scrollbar p-1">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Pengguna</th>
+                <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">No. HP</th>
+                <th className="px-6 py-4">Kota</th>
+                <th className="px-6 py-4">Tgl Daftar</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-borderColor text-slate-700">
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                  <tr key={user.id_users} className="hover:bg-bgMain/30 transition-colors">
-                    <td className="py-4 px-6 border-b border-borderColor">
+                  <tr key={user.id_users} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold shrink-0 ${user.role === 'Superadmin' ? 'bg-primary' : user.role === 'Admin' ? 'bg-success' : 'bg-slate-500'}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shrink-0 shadow-sm ${user.role === 'Superadmin' ? 'bg-[#0C2C55]' : user.role === 'Admin' ? 'bg-blue-500' : 'bg-slate-400'}`}>
                           {user.nama.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium text-textMain whitespace-nowrap">{user.nama}</span>
+                        <span className="font-bold text-slate-800 text-sm">{user.nama}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6 border-b border-borderColor">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${user.role === 'Superadmin' ? 'bg-blue-100 text-blue-700' : user.role === 'Admin' ? 'bg-success-bg text-success-text' : 'bg-warning-bg text-warning-text'}`}>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${user.role === 'Superadmin' ? 'bg-blue-100 text-blue-700' : user.role === 'Admin' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                         {user.role}
                       </span>
                     </td>
-                    <td className="py-4 px-6 border-b border-borderColor text-sm text-textMuted">{user.email}</td>
-                    <td className="py-4 px-6 border-b border-borderColor text-sm text-textMuted">{user.no_hp}</td>
-                    <td className="py-4 px-6 border-b border-borderColor text-sm text-textMuted">{user.alamat}</td>
-                    <td className="py-4 px-6 border-b border-borderColor text-sm text-primary font-medium whitespace-nowrap">{formatDate(user.created_at)}</td>
-                    <td className="py-4 px-6 border-b border-borderColor">
-                      <span className={`text-sm font-medium ${user.status === 'Aktif' ? 'text-success' : 'text-danger'}`}>
+                    <td className="px-6 py-4 font-medium text-slate-500 text-xs">{user.email}</td>
+                    <td className="px-6 py-4 font-medium text-slate-500 text-xs">{user.no_hp || "-"}</td>
+                    <td className="px-6 py-4 font-medium text-slate-500 text-xs truncate max-w-[150px]">{user.alamat || "-"}</td>
+                    <td className="px-6 py-4 font-bold text-slate-600 text-xs">{formatDate(user.created_at)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${user.status === 'Aktif' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                         {user.status}
                       </span>
                     </td>
-                    <td className="py-4 px-6 border-b border-borderColor">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openEditModal(user)} className="px-3 py-1.5 border border-borderColor text-textMain rounded-md text-xs font-medium hover:bg-bgMain transition-colors">
-                          Edit
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        {/* UPDATE: Tombol Desktop disamakan memakai ikon */}
+                        <button onClick={() => openEditModal(user)} className="p-1.5 md:p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm" title="Edit">
+                          <Edit3 size={14} className="md:w-4 md:h-4" />
                         </button>
-                        <button onClick={() => deleteUser(user.id_users)} className="px-3 py-1.5 border border-danger-bg text-danger rounded-md text-xs font-medium hover:bg-danger hover:text-white transition-colors">
-                          Del
+                        <button onClick={() => deleteUser(user.id_users)} className="p-1.5 md:p-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors bg-white shadow-sm" title="Hapus">
+                          <Trash2 size={14} className="md:w-4 md:h-4" />
                         </button>
                       </div>
                     </td>
@@ -269,7 +362,7 @@ const formatDate = (dateStr) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-textMuted text-sm">
+                  <td colSpan="8" className="py-10 text-center text-textMuted text-sm">
                     Data pengguna tidak ditemukan.
                   </td>
                 </tr>
@@ -279,7 +372,7 @@ const formatDate = (dateStr) => {
         </div>
         
         {/* Footer Table */}
-        <div className="p-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center text-sm text-textMuted border-t border-borderColor gap-3">
+        <div className="p-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center text-xs font-medium text-textMuted border-t border-borderColor gap-3 bg-white">
           <span>Menampilkan {filteredUsers.length} dari {users.length} pengguna</span>
         </div>
       </div>

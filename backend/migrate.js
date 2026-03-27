@@ -2,8 +2,8 @@ const connection = require("./config/database");
 
 async function migrate() {
   try {
-    // Modify 'role' in 'ms_users' to contain 'Superadmin', 'Admin', 'Pelanggan', 'kustomer'
-    await connection.query("ALTER TABLE ms_users MODIFY COLUMN role ENUM('Superadmin', 'Admin', 'Pelanggan', 'kustomer') DEFAULT 'kustomer'");
+    // Modify 'role' in 'ms_users' to contain 'Superadmin', 'Admin', 'Pelanggan'
+    await connection.query("ALTER TABLE ms_users MODIFY COLUMN role ENUM('Superadmin', 'Admin', 'Pelanggan') DEFAULT 'Pelanggan'");
     console.log("Modified role Enum");
 
     // Add 'status' column

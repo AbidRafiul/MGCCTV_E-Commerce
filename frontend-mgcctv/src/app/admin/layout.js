@@ -74,8 +74,8 @@ export default function AdminLayout({ children }) {
       text: "Sesi Anda akan diakhiri.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#d33', // Warna merah untuk tombol keluar
-      cancelButtonColor: '#3085d6', // Warna biru untuk batal
+      confirmButtonColor: '#d33', 
+      cancelButtonColor: '#3085d6', 
       confirmButtonText: 'Ya, Keluar',
       cancelButtonText: 'Batal',
       shape: 'rounded-xl'
@@ -122,7 +122,7 @@ export default function AdminLayout({ children }) {
     { name: "Pengaturan", href: "/admin/pengaturan", section: "SISTEM", icon: icons.settings },
   ];
 
-  // 👈 Sembunyikan 'Data Pengguna' jika bukan Superadmin (Kesehatan Mental)
+  // Sembunyikan 'Data Pengguna' jika bukan Superadmin
   const filteredMenuItems = menuItems.filter(item => {
     if (item.href.includes("/admin/pengguna")) {
       return userRole === "superadmin";
@@ -238,6 +238,19 @@ export default function AdminLayout({ children }) {
 
       {/* CONTAINER KANAN (Main Content) */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        {/* TAMBAHAN: Header khusus Mobile untuk tombol pembuka Sidebar */}
+        <header className="md:hidden flex items-center gap-3 bg-white border-b border-slate-200 px-4 py-3 shrink-0">
+          <button 
+            onClick={toggleSidebar} 
+            className="p-1.5 -ml-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </header>
+
         {/* AREA KONTEN UTAMA - Hanya area ini yang bisa di-scroll */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           {children}

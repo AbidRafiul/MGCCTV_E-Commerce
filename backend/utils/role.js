@@ -1,11 +1,11 @@
 const ROLE = {
-  KUSTOMER: "kustomer",
+  KUSTOMER: "pelanggan",
   ADMIN: "admin",
   SUPERADMIN: "superadmin",
 };
 
 const ROLE_LEVEL = {
-  kustomer: 1,
+  pelanggan: 1,
   admin: 2,
   superadmin: 3,
 };
