@@ -1,9 +1,18 @@
 const connection = require("../../config/database");
 
+const PROFILE_SELECT_FIELDS = `
+  nama,
+  username,
+  email,
+  no_hp,
+  alamat,
+  DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+`;
+
 const profileUsers = async (req, res) => {
   try {
     const [user] = await connection.query(
-      "SELECT nama, username, email, no_hp, alamat, created_at FROM ms_users WHERE id_users = ?",
+      `SELECT ${PROFILE_SELECT_FIELDS} FROM ms_users WHERE id_users = ?`,
       [req.user.id],
     );
 
@@ -70,7 +79,7 @@ const profileUsers = async (req, res) => {
       );
 
       const [updatedUser] = await connection.query(
-        "SELECT nama, username, email, no_hp, alamat FROM ms_users WHERE id_users = ?",
+        `SELECT ${PROFILE_SELECT_FIELDS} FROM ms_users WHERE id_users = ?`,
         [req.user.id],
       );
 
