@@ -52,8 +52,8 @@ const registerCustomer = async (req, res) => {
 
     // 7. Simpan ke Database
     await connection.query(
-      `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO ms_users (nama, username, password, email, no_hp, alamat, role, created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
       [nama, username, hashedPassword, email, no_hp, alamat, role]
     );
 
