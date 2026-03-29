@@ -14,14 +14,19 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const [isLogin, setIsLogin] = useState(() =>
-    typeof window !== "undefined" ? !!localStorage.getItem("token") : false,
-  );
+  // FIX HYDRATION: Inisialisasi awal harus false agar sama dengan Server
+  const [isLogin, setIsLogin] = useState(false);
+  const [isMounted, setIsMounted] = useState(false); // Flag pelindung hydration
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(null);
 
+  const router = useRouter();
+
   useEffect(() => {
+    // Tandai bahwa sudah di browser (client)
+    setIsMounted(true);
+
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -51,11 +56,9 @@ export default function Navbar() {
         });
         const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data.message || "Gagal mengambil data profile");
+        if (res.ok) {
+          setProfile(data.user || null);
         }
-
-        setProfile(data.user || null);
       } catch {
         setProfile(null);
       }
@@ -81,9 +84,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (!isMobileMenuOpen) {
-      return undefined;
-    }
+    if (!isMobileMenuOpen) return;
 
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
@@ -92,13 +93,9 @@ export default function Navbar() {
     };
 
     window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, [isMobileMenuOpen]);
 
-  const router = useRouter();
   const handleLogout = () => {
     Swal.fire({
       title: 'Keluar dari Sistem?',
@@ -109,23 +106,19 @@ export default function Navbar() {
       cancelButtonColor: '#3085d6', 
       confirmButtonText: 'Ya, Keluar',
       cancelButtonText: 'Batal',
-      shape: 'rounded-xl'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Logika logout kamu tetap sama di dalam sini
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
         document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
         
-        // Opsional: Pop-up sukses kecil sebelum pindah halaman
         Swal.fire({
           title: 'Berhasil Logout!',
           icon: 'success',
           timer: 1500,
           showConfirmButton: false
         }).then(() => {
-          // Pindah ke halaman beranda (hard reload)
           window.location.href = "/beranda";
         });
       }
@@ -173,7 +166,7 @@ export default function Navbar() {
         ))}
       </div>
 
-      {/* ACTIONS (Search, Cart, Auth) */}
+      {/* ACTIONS */}
       <div className="flex gap-5 items-center shrink-0">
         <div className="relative hidden md:block text-[#0C2C55]">
           <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -197,75 +190,68 @@ export default function Navbar() {
           />
         </button>
 
+        {/* 🛡️ PERBAIKAN HYDRATION DI SINI (Bungkus bagian Auth dengan isMounted) */}
         <div className="hidden lg:flex items-center gap-4 ml-2 pl-5 border-l border-gray-200">
-          {!isLogin ? (
-            <Link
-              href="/login"
-              className="bg-[#0C2C55] text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all duration-300"
-            >
-              Login
-            </Link>
-          ) : (
-            <div className="flex items-center gap-4">
-              <Link href="/profile" className="flex items-center gap-2 group">
-                <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-md group-hover:ring-2 group-hover:ring-blue-300 transition-all text-sm font-semibold">
-                  {profileInitial}
-                </div>
-                <div className="flex min-w-0 max-w-[180px] flex-col">
-                  <span className="truncate font-bold text-[#0C2C55] group-hover:text-blue-600 transition-colors">
-                    {profile?.nama || "Profile"}
-                  </span>
-                  <span className="truncate text-xs text-slate-500">
-                    {profile?.email || "-"}
-                  </span>
-                </div>
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors group"
-                title="Logout"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  className="group-hover:rotate-12 transition-transform"
+          {isMounted && (
+            <>
+              {!isLogin ? (
+                <Link
+                  href="/login"
+                  className="bg-[#0C2C55] text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all duration-300"
                 >
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"></path>
-                </svg>
-              </button>
-            </div>
+                  Login
+                </Link>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <Link href="/profile" className="flex items-center gap-2 group">
+                    <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-md group-hover:ring-2 group-hover:ring-blue-300 transition-all text-sm font-semibold">
+                      {profileInitial}
+                    </div>
+                    <div className="flex min-w-0 max-w-[180px] flex-col">
+                      <span className="truncate font-bold text-[#0C2C55] group-hover:text-blue-600 transition-colors">
+                        {profile?.nama || "Profile"}
+                      </span>
+                      <span className="truncate text-xs text-slate-500">
+                        {profile?.email || "-"}
+                      </span>
+                    </div>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors group"
+                    title="Logout"
+                  >
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"></path>
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* MOBILE MENU TOGGLE */}
         <div className="flex items-center gap-2 lg:hidden">
-          <button
-            type="button"
-            className="rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100"
-            aria-label="Keranjang"
-          >
+          <button type="button" className="rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100">
             <ShoppingCart size={20} />
           </button>
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             className="rounded-full bg-[#0C2C55] p-2 text-white transition-colors hover:bg-blue-700"
-            aria-label={isMobileMenuOpen ? "Tutup menu" : "Buka menu"}
           >
             {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
-      {/* MOBILE MENU DROPDOWN */}
+      {/* MOBILE MENU DROPDOWN (Bungkus juga dengan isMounted untuk bagian Auth) */}
       {isMobileMenuOpen && (
         <div className="absolute top-full left-0 w-full border-t border-slate-200 bg-white px-4 pb-5 pt-4 shadow-lg lg:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-4">
+            {/* Search Input Mobile */}
             <div className="relative text-[#0C2C55]">
               <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <Search size={16} />
@@ -273,64 +259,50 @@ export default function Navbar() {
               <input
                 type="text"
                 placeholder="Cari perangkat..."
-                className="w-full rounded-2xl border border-slate-200 bg-gray-50 py-2 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-2xl border border-slate-200 bg-gray-50 py-2 pl-10 pr-4 text-sm outline-none"
               />
             </div>
 
-            {isLogin && profile && (
+            {/* Profile Info Mobile */}
+            {isMounted && isLogin && profile && (
               <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
                   {profileInitial}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-[#0C2C55]">
-                    {profile.nama || "Profile"}
-                  </p>
-                  <p className="truncate text-sm text-slate-500">
-                    {profile.email || "-"}
-                  </p>
+                  <p className="truncate font-semibold text-[#0C2C55]">{profile.nama || "Profile"}</p>
+                  <p className="truncate text-sm text-slate-500">{profile.email || "-"}</p>
                 </div>
               </div>
             )}
 
+            {/* Nav Links Mobile */}
             <div className="flex flex-col gap-2">
               {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={closeMobileMenu}
-                  className="rounded-xl px-3 py-2 font-semibold text-[#0C2C55] transition hover:bg-blue-50 hover:text-blue-600"
-                >
+                <Link key={link.href} href={link.href} onClick={closeMobileMenu} className="rounded-xl px-3 py-2 font-semibold text-[#0C2C55] hover:bg-blue-50">
                   {link.label}
                 </Link>
               ))}
             </div>
 
+            {/* Auth Buttons Mobile */}
             <div className="flex flex-col gap-2 border-t border-slate-200 pt-4">
-              {!isLogin ? (
-                <Link
-                  href="/login"
-                  onClick={closeMobileMenu}
-                  className="rounded-xl bg-[#0C2C55] px-4 py-3 text-center font-bold text-white transition hover:bg-blue-700"
-                >
-                  Login
-                </Link>
-              ) : (
+              {isMounted && (
                 <>
-                  <Link
-                    href="/profile"
-                    onClick={closeMobileMenu}
-                    className="rounded-xl bg-blue-50 px-4 py-3 text-center font-semibold text-[#0C2C55] transition hover:bg-blue-100"
-                  >
-                    Buka Profil
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="rounded-xl bg-red-50 px-4 py-3 font-semibold text-red-500 transition hover:bg-red-100"
-                  >
-                    Logout
-                  </button>
+                  {!isLogin ? (
+                    <Link href="/login" onClick={closeMobileMenu} className="rounded-xl bg-[#0C2C55] px-4 py-3 text-center font-bold text-white">
+                      Login
+                    </Link>
+                  ) : (
+                    <>
+                      <Link href="/profile" onClick={closeMobileMenu} className="rounded-xl bg-blue-50 px-4 py-3 text-center font-semibold text-[#0C2C55]">
+                        Buka Profil
+                      </Link>
+                      <button type="button" onClick={handleLogout} className="rounded-xl bg-red-50 px-4 py-3 font-semibold text-red-500 text-left">
+                        Logout
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </div>

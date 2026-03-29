@@ -28,7 +28,7 @@ export default function TambahBarangPage() {
   useEffect(() => {
     const fetchKategori = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/admin/kategori", {
+        const res = await fetch("http://localhost:3000/api/public/kategori", {
           headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         });
         const data = await res.json();

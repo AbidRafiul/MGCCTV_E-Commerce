@@ -68,7 +68,7 @@ const getDashboardStats = async (req, res) => {
                 COALESCE(SUM(dt.quantity), 0) AS total_terjual
           FROM ms_kategori k
           LEFT JOIN ms_produk p ON p.ms_kategori_id_kategori = k.id_kategori
-          LEFT JOIN ms_detail_transaction dt ON dt.id_product = p.id_produk
+          LEFT JOIN ms_detail_transaction dt ON dt.id_produk = p.id_produk
           GROUP BY k.id_kategori, k.nama_kategori
           ORDER BY total_terjual DESC
           LIMIT 5`
