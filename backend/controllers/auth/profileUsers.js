@@ -6,6 +6,10 @@ const PROFILE_SELECT_FIELDS = `
   email,
   no_hp,
   alamat,
+  CASE
+    WHEN password IS NULL OR password = '' THEN TRUE
+    ELSE FALSE
+  END AS is_google_account,
   DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
 `;
 
@@ -32,6 +36,7 @@ const profileUsers = async (req, res) => {
     if (req.method === "PUT" || req.method === "PATCH") {
       const isPutRequest = req.method === "PUT";
       const { nama, username, email, no_hp, alamat } = req.body;
+      const isGoogleAccount = Boolean(user[0].is_google_account);
 
       if (isPutRequest && (!nama || !username || !email || !no_hp || !alamat)) {
         return res.status(400).json({
@@ -45,23 +50,46 @@ const profileUsers = async (req, res) => {
         });
       }
 
+      if (isGoogleAccount && (username !== undefined || email !== undefined)) {
+        return res.status(400).json({
+          message: "Akun Google hanya dapat mengubah nama lengkap, no handphone, dan alamat",
+        });
+      }
+
       const updatedProfile = {
         nama: nama ?? user[0].nama,
-        username: username ?? user[0].username,
-        email: email ?? user[0].email,
+        username: isGoogleAccount ? user[0].username : (username ?? user[0].username),
+        email: isGoogleAccount ? user[0].email : (email ?? user[0].email),
         no_hp: no_hp ?? user[0].no_hp,
         alamat: alamat ?? user[0].alamat,
       };
 
-      const [duplicateUser] = await connection.query(
-        "SELECT id_users FROM ms_users WHERE (email = ? OR username = ?) AND id_users != ?",
-        [updatedProfile.email, updatedProfile.username, req.user.id],
-      );
+      const duplicateConditions = [];
+      const duplicateParams = [];
 
-      if (duplicateUser.length > 0) {
-        return res.status(400).json({
-          message: "Email atau username sudah digunakan",
-        });
+      if (!isGoogleAccount && updatedProfile.email) {
+        duplicateConditions.push("email = ?");
+        duplicateParams.push(updatedProfile.email);
+      }
+
+      if (!isGoogleAccount && updatedProfile.username) {
+        duplicateConditions.push("username = ?");
+        duplicateParams.push(updatedProfile.username);
+      }
+
+      if (duplicateConditions.length > 0) {
+        const [duplicateUser] = await connection.query(
+          `SELECT id_users
+           FROM ms_users
+           WHERE (${duplicateConditions.join(" OR ")}) AND id_users != ?`,
+          [...duplicateParams, req.user.id],
+        );
+
+        if (duplicateUser.length > 0) {
+          return res.status(400).json({
+            message: "Email atau username sudah digunakan",
+          });
+        }
       }
 
       await connection.query(

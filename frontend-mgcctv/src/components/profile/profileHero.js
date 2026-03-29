@@ -10,6 +10,7 @@ import { AUTH_API_URL } from "@/lib/api";
 
 const initialForm = {
   nama: "",
+  username: "",
   email: "",
   no_hp: "",
   alamat: "",
@@ -101,6 +102,7 @@ export default function ProfileHero() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const isGoogleAccount = Boolean(profile?.is_google_account);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
@@ -138,6 +140,7 @@ export default function ProfileHero() {
       setProfile(normalizedUser);
       setForm({
         nama: normalizedUser?.nama || "",
+        username: normalizedUser?.username || "",
         email: normalizedUser?.email || "",
         no_hp: normalizedUser?.no_hp || "",
         alamat: normalizedUser?.alamat || "",
@@ -177,10 +180,18 @@ export default function ProfileHero() {
           return;
         }
 
-        try {
+      try {
           setIsSaving(true);
           setError("");
           setSuccess("");
+
+          const payload = isGoogleAccount
+            ? {
+                nama: form.nama,
+                no_hp: form.no_hp,
+                alamat: form.alamat,
+              }
+            : form;
 
           const res = await fetch(`${AUTH_API_URL}/profile`, {
             method: "PATCH",
@@ -188,7 +199,7 @@ export default function ProfileHero() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(form),
+            body: JSON.stringify(payload),
           });
 
           const data = await res.json();
@@ -209,6 +220,7 @@ export default function ProfileHero() {
 
           setForm({
             nama: normalizedUser?.nama || "",
+            username: normalizedUser?.username || "",
             email: normalizedUser?.email || "",
             no_hp: normalizedUser?.no_hp || "",
             alamat: normalizedUser?.alamat || "",
@@ -238,6 +250,7 @@ export default function ProfileHero() {
     if (isEditing) {
       setForm({
         nama: profile?.nama || "",
+        username: profile?.username || "",
         email: profile?.email || "",
         no_hp: profile?.no_hp || "",
         alamat: profile?.alamat || "",
@@ -258,6 +271,9 @@ export default function ProfileHero() {
     }
 
     if (key === "password") {
+      if (isGoogleAccount) {
+        return;
+      }
       router.push("/ubah-password");
       return;
     }
@@ -269,16 +285,23 @@ export default function ProfileHero() {
 
   const fields = [
     { name: "nama", label: "Nama Lengkap", type: "text" },
+    { name: "username", label: "Username", type: "text" },
     { name: "email", label: "Email", type: "email" },
     { name: "no_hp", label: "No. Handphone", type: "text" },
     { name: "alamat", label: "Alamat", type: "textarea" },
   ];
 
+  const isFieldEditable = (fieldName) => {
+    if (!isEditing) return false;
+    if (!isGoogleAccount) return true;
+    return fieldName === "nama" || fieldName === "no_hp" || fieldName === "alamat";
+  };
+
   return (
-    <section className="min-h-screen bg-[#f5f6f8] px-4 py-10 md:px-8 lg:px-16">
+    <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
       <div className="mx-auto max-w-6xl">
-        <div className="px-5 py-10 mb-8">
-          <h2 className="text-2xl font-bold text-indigo-900">Profile Saya</h2>
+        <div className="mb-8 px-5 py-2 sm:py-4">
+          <h2 className="text-2xl font-extrabold text-[#0C2C55]">Profile Saya</h2>
           <nav aria-label="Breadcrumb" className="mt-2">
             <ol className="flex items-center gap-2 text-sm text-slate-500">
               <li>
@@ -293,7 +316,11 @@ export default function ProfileHero() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-          <NavBox activeItem="profile" onNavigate={handleNavigate} />
+          <NavBox
+            activeItem="profile"
+            onNavigate={handleNavigate}
+            canAccessPassword={!isGoogleAccount}
+          />
 
           <div className="rounded-2xl bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.10)] md:p-8">
             {isLoading ? (
@@ -331,8 +358,18 @@ export default function ProfileHero() {
                     </div>
                   ) : null}
 
+                  {isGoogleAccount ? (
+                    <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                      Akun Google hanya dapat mengubah nama lengkap, no. handphone, dan alamat. Username dan email mengikuti akun Google Anda.
+                    </div>
+                  ) : null}
+
                   <div className="space-y-3">
-                    {fields.map((field) => (
+                    {fields.map((field) => {
+                      const editable = isFieldEditable(field.name);
+                      const disabled = !editable;
+
+                      return (
                       <div
                         key={field.name}
                         className="grid gap-2 md:grid-cols-[140px_minmax(0,1fr)] md:items-center"
@@ -350,10 +387,10 @@ export default function ProfileHero() {
                             name={field.name}
                             value={form[field.name]}
                             onChange={handleChange}
-                            disabled={!isEditing}
+                            disabled={disabled}
                             rows={3}
                             className={`min-h-[88px] rounded-lg border px-3 py-2 text-sm outline-none transition ${
-                              isEditing
+                              editable
                                 ? "border-slate-300 bg-white text-slate-900 focus:border-emerald-500"
                                 : "border-slate-200 bg-slate-50 text-slate-500"
                             }`}
@@ -361,20 +398,21 @@ export default function ProfileHero() {
                         ) : (
                           <input
                             id={field.name}
-                            name={field.name}
+                            name={field.name} 
                             type={field.type}
                             value={form[field.name]}
                             onChange={handleChange}
-                            disabled={!isEditing}
+                            disabled={disabled}
                             className={`rounded-lg border px-3 py-2 text-sm outline-none transition ${
-                              isEditing
+                              editable
                                 ? "border-slate-300 bg-white text-slate-900 focus:border-emerald-500"
                                 : "border-slate-200 bg-slate-50 text-slate-500"
                             }`}
                           />
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

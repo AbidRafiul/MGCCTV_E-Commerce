@@ -77,7 +77,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:py-12">
       <img
         src="/images/bg login.jpg"
         alt="bg"
@@ -86,69 +86,89 @@ export default function RegisterPage() {
 
       <div className="absolute inset-0 bg-black/40"></div>
 
-      <div className="relative z-10 flex flex-col items-center">
-        <h1 className="text-white text-3xl font-bold mb-2">Registrasi</h1>
+      <div className="relative z-10 flex w-full max-w-[320px] flex-col items-center justify-center sm:max-w-[340px]">
+        <h1 className="mb-3 text-center text-xl font-bold text-white sm:text-2xl">Registrasi</h1>
 
-        <div className="bg-white/90 backdrop-blur-md w-[380px] p-6 rounded-xl shadow-2xl text-[#0C2C55]">
-          <form onSubmit={handleRegister} className="space-y-3">
+        <div className="w-full rounded-xl bg-white/90 p-4 text-[#0C2C55] shadow-2xl backdrop-blur-md sm:p-5">
+          <form onSubmit={handleRegister} className="space-y-2.5 sm:space-y-3">
             {error ? (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
                 {error}
               </p>
             ) : null}
 
+
+            <label className="text-sm font-bold mb-1 block">Nama Lengkap</label>
             <input
               name="nama"
-              placeholder="Nama lengkap"
-              className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
+              placeholder="Masukkan nama lengkap"
+              className="w-full rounded border px-3 py-2 text-[13px] text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
               value={form.nama}
               required
-            />
+            /> 
 
+            <label className="text-sm font-bold mb-1 block">Username</label>
             <input
               name="username"
-              placeholder="Username"
-              className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
+              placeholder="Masukkan username"
+              className="w-full rounded border px-3 py-2 text-[13px] text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
               value={form.username}
               required
             />
 
+              <label className="text-sm font-bold mb-1 block">Email</label>
             <input
               type="email"
               name="email"
-              placeholder="Email"
-              className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
+              placeholder="Masukkan email"
+              className="w-full rounded border px-3 py-2 text-[13px] text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
               value={form.email}
               required
             />
 
+            <label className="text-sm font-bold mb-1 block">No Handphone</label>
             <input
               name="no_hp"
-              placeholder="No. Handphone"
-              className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
+              placeholder="Masukkan no handphone"
+              className="w-full rounded border px-3 py-2 text-[13px] text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
               value={form.no_hp}
               required
             />
 
+            <label className="text-sm font-bold mb-1 block">Password</label>
             <input
               type="password"
               name="password"
-              placeholder="Password"
-              className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
+              placeholder="Masukkan password"
+              className="w-full rounded border px-3 py-2 text-[13px] text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
               value={form.password}
               required
               minLength={8}
             />
 
+            <label className="text-sm font-bold mb-1 block">Konfirmasi Password</label>
+            <input
+              type="password"
+              name="confirm_password"
+              placeholder="Masukkan kembali password"
+              className="w-full rounded border px-3 py-2 text-[13px] text-[#0C2C55] placeholder-gray-400"
+              onChange={handleChange}
+              value={form.confirm_password}
+              required
+              minLength={8}
+            />
+
+
+            <label className="text-sm font-bold mb-1 block">Alamat</label>
             <textarea
               name="alamat"
-              placeholder="Alamat"
-              className="w-full border px-3 py-2 rounded text-sm text-[#0C2C55] placeholder-gray-400"
+              placeholder="Masukkan alamat lengkap"
+              className="min-h-[76px] w-full rounded border px-3 py-2 text-[13px] text-[#0C2C55] placeholder-gray-400"
               onChange={handleChange}
               value={form.alamat}
               required
@@ -157,13 +177,13 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-blue-800 hover:bg-blue-900 text-white py-2 rounded font-semibold transition disabled:opacity-70"
+              className="w-full bg-[#0C2C55] hover:bg-blue-800 transition-colors text-white py-2.5 rounded-lg font-bold shadow-md shadow-blue-900/20"
             >
               {isSubmitting ? "Mendaftar..." : "Daftar"}
             </button>
           </form>
 
-          <p className="text-center text-xs mt-4">
+          <p className="mt-4 text-center text-xs">
             Sudah punya akun?{" "}
             <a href="/login" className="text-blue-600 font-semibold">
               Login

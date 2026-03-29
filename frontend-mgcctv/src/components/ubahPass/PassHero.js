@@ -20,6 +20,7 @@ export default function PassHero() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isGoogleAccount, setIsGoogleAccount] = useState(false);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
@@ -27,14 +28,45 @@ export default function PassHero() {
   }, [router]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const checkPasswordAccess = async () => {
+      const token = localStorage.getItem("token");
 
-    if (!token) {
-      handleLogout();
-      return;
-    }
+      if (!token) {
+        handleLogout();
+        return;
+      }
 
-    setIsLoading(false);
+      try {
+        const res = await fetch(`${AUTH_API_URL}/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Gagal mengambil data profile");
+        }
+
+        const user = data?.user ?? null;
+        const isGoogleUser = Boolean(user?.is_google_account);
+
+        setIsGoogleAccount(isGoogleUser);
+
+        if (isGoogleUser) {
+          router.replace("/profile");
+          return;
+        }
+      } catch {
+        handleLogout();
+        return;
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkPasswordAccess();
   }, [handleLogout]);
 
   const handleChange = useCallback((event) => {
@@ -160,7 +192,11 @@ export default function PassHero() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-          <NavBox activeItem="password" onNavigate={handleNavigate} />
+          <NavBox
+            activeItem="password"
+            onNavigate={handleNavigate}
+            canAccessPassword={!isGoogleAccount}
+          />
 
           <div className="flex-1">
             <div className="rounded-xl bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
