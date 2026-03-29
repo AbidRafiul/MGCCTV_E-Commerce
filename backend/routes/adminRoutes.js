@@ -48,6 +48,8 @@ const handleUploadGambar = (req, res, next) => {
 // 4. DAFTAR ROUTES
 // ==========================================
 
+
+
 // GLOBAL MIDDLEWARE: Pastikan semua yang masuk rute di bawah ini sudah login
 router.use(auth);
 
@@ -57,15 +59,15 @@ router.get("/dashboard", getDashboardStats);
 
 
 // --- RUTE KATEGORI (MEREK) ---
-router.get("/kategori", getAllKategori);
+// router.get("/kategori", getAllKategori);
 router.post("/kategori", addKategori);
 router.put("/kategori/:id", updateKategori);
 router.delete("/kategori/:id", deleteKategori);
 
 
 // --- RUTE PRODUK ---
-router.get("/produk", getAllProduk);
-router.get("/produk/:id", getProdukById);
+// router.get("/produk", getAllProduk);
+// router.get("/produk/:id", getProdukById);
 router.post("/produk", handleUploadGambar, addProduk);
 router.put("/produk/:id", handleUploadGambar, updateProduk);
 router.patch("/produk/:id/status", updateStatusProduk);

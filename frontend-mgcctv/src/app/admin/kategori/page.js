@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Edit3, FolderPlus, LoaderCircle, Tag, Trash2, X } from "lucide-react";
 import Swal from "sweetalert2";
 
-const API_URL = "http://localhost:3000/api/admin/kategori";
+const PUBLIC_API = "http://localhost:3000/api/public/kategori"; // Buat ambil data (GET)
+const ADMIN_API = "http://localhost:3000/api/admin/kategori";   // Buat aksi (POST/PUT/DELETE)
 
 export default function KategoriPage() {
   const [kategori, setKategori] = useState([]);
@@ -20,7 +21,7 @@ export default function KategoriPage() {
     try {
       setError("");
 
-      const res = await fetch(API_URL, {
+      const res = await fetch(PUBLIC_API, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -53,7 +54,7 @@ export default function KategoriPage() {
 
       const isEditing = editingKategoriId !== null;
       const res = await fetch(
-        isEditing ? `${API_URL}/${editingKategoriId}` : API_URL,
+        isEditing ? `${ADMIN_API}/${editingKategoriId}` : ADMIN_API,
         {
           method: isEditing ? "PUT" : "POST",
           headers: {
@@ -133,7 +134,7 @@ export default function KategoriPage() {
       setError("");
       setSuccess("");
 
-      const res = await fetch(`${API_URL}/${item.id_kategori}`, {
+      const res = await fetch(`${ADMIN_API}/${item.id_kategori}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

@@ -22,7 +22,7 @@
     // 1. Fetch Data Produk
     const fetchProduk = async () => {
         try {
-        const res = await fetch("http://localhost:3000/api/admin/produk", {
+        const res = await fetch("http://localhost:3000/api/public/produk", {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         });
         const data = await res.json();
@@ -40,7 +40,7 @@
     // 2. Fetch Data Kategori (Merek) untuk Dropdown
     const fetchKategori = async () => {
         try {
-        const res = await fetch("http://localhost:3000/api/admin/kategori", {
+        const res = await fetch("http://localhost:3000/api/public/kategori", {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         });
         const data = await res.json();

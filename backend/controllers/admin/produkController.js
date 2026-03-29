@@ -93,18 +93,28 @@
     const getProdukById = async (req, res) => {
     try {
         const { id } = req.params;
-        const [produk] = await connection.query("SELECT * FROM ms_produk WHERE id_produk = ?", [id]);
+        
+        // Query baru: Menggabungkan tabel produk dan kategori
+        const query = `
+            SELECT p.*, k.nama_kategori AS merek, k.nama_kategori AS nama_kategori
+            FROM ms_produk p
+            LEFT JOIN ms_kategori k ON p.ms_kategori_id_kategori = k.id_kategori
+            WHERE p.id_produk = ?
+        `;
+        
+        const [produk] = await connection.query(query, [id]);
         
         if (produk.length === 0) {
-        return res.status(404).json({ message: "Produk tidak ditemukan" });
+            return res.status(404).json({ message: "Produk tidak ditemukan" });
         }
         
         res.status(200).json(produk[0]);
     } catch (error) {
+        console.error("Error GetProdukById:", error); // Biar gampang ngecek kalau ada error
         res.status(500).json({ message: "Gagal mengambil produk", error: error.message });
     }
     };
-
+    
     // ==========================================
     // 5. FUNGSI PUT (Edit Produk & Ganti Gambar)
     // ==========================================

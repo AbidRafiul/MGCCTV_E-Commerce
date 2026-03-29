@@ -32,13 +32,13 @@
             const token = localStorage.getItem("token");
             
             // Ambil kategori
-            const resKategori = await fetch("http://localhost:3000/api/admin/kategori", {
+            const resKategori = await fetch("http://localhost:3000/api/public/kategori", {
             headers: { "Authorization": `Bearer ${token}` }
             });
             if (resKategori.ok) setKategoriList(await resKategori.json());
 
             // Ambil data produk berdasarkan ID
-            const resProduk = await fetch(`http://localhost:3000/api/admin/produk/${id}`, {
+            const resProduk = await fetch(`http://localhost:3000/api/public/produk/${id}`, {
             headers: { "Authorization": `Bearer ${token}` }
             });
             
