@@ -301,7 +301,7 @@ export default function ProfileHero() {
     <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 px-5 py-2 sm:py-4">
-          <h2 className="text-2xl font-extrabold text-[#0C2C55]">Profile Saya</h2>
+          <h2 className="mb-2 text-2xl font-extrabold text-[#0C2C55] sm:text-3xl">Profile Saya</h2>
           <nav aria-label="Breadcrumb" className="mt-2">
             <ol className="flex items-center gap-2 text-sm text-slate-500">
               <li>

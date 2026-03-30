@@ -164,10 +164,10 @@ export default function PassHero() {
   }
 
   return (
-    <section className="min-h-screen bg-[#f5f6f8] px-4 py-10 md:px-8 lg:px-16">
+    <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
        <div className="mx-auto max-w-6xl">
-        <div className="px-5 py-10 mb-8">
-          <h2 className="text-2xl font-bold text-indigo-900">Ubah Password</h2>
+        <div className="mb-8 px-5 py-2 sm:py-4">
+          <h2 className="mb-2 text-2xl font-extrabold text-[#0C2C55] sm:text-3xl">Ubah Password</h2>
         <nav aria-label="Breadcrumb" className="mt-2">
           <ol className="flex items-center gap-2 text-sm text-slate-500">
             <li>

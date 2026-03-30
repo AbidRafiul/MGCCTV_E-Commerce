@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AUTH_API_URL } from "@/lib/api";
+import { getCartCount } from "@/services/cartService";
 import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
 
@@ -20,6 +21,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [cartCount, setCartCount] = useState(0);
 
   const router = useRouter();
 
@@ -38,6 +40,10 @@ export default function Navbar() {
       if (!token) {
         setProfile(null);
       }
+    };
+
+    const syncCartCount = () => {
+      setCartCount(getCartCount());
     };
 
     const fetchProfile = async () => {
@@ -67,6 +73,7 @@ export default function Navbar() {
     const handleFocus = () => {
       syncLoginState();
       fetchProfile();
+      syncCartCount();
     };
 
     handleScroll();
@@ -74,11 +81,13 @@ export default function Navbar() {
 
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
+    window.addEventListener("cart-updated", syncCartCount);
     window.addEventListener("scroll", handleScroll);
 
     return () => {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
+      window.removeEventListener("cart-updated", syncCartCount);
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
@@ -137,6 +146,10 @@ export default function Navbar() {
 
   const profileInitial = profile?.nama?.trim()?.charAt(0)?.toUpperCase() || "P";
 
+  const handleAddToCart = () => {
+    router.push("/keranjang");
+  }
+
   const menuClass =
     "relative text-[#0C2C55] font-semibold transition-all duration-300 hover:text-blue-600 " +
     "after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 " +
@@ -186,6 +199,7 @@ export default function Navbar() {
         </div>
 
         <button
+          onClick={handleAddToCart}
           type="button"
           className="relative p-2 bg-blue-50 rounded-full cursor-pointer hover:bg-blue-100 transition-colors group hidden lg:block"
           aria-label="Keranjang"
@@ -194,6 +208,11 @@ export default function Navbar() {
             size={20}
             className="text-[#0C2C55] transition-transform group-hover:scale-110"
           />
+          {cartCount > 0 ? (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold leading-none text-white shadow-sm">
+              {cartCount > 99 ? "99+" : cartCount}
+            </span>
+          ) : null}
         </button>
 
         {/* 🛡️ PERBAIKAN HYDRATION DI SINI (Bungkus bagian Auth dengan isMounted) */}
@@ -240,8 +259,17 @@ export default function Navbar() {
 
         {/* MOBILE MENU TOGGLE */}
         <div className="flex items-center gap-2 lg:hidden">
-          <button type="button" className="rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="relative rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100"
+          >
             <ShoppingCart size={20} />
+            {cartCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            ) : null}
           </button>
           <button
             type="button"
