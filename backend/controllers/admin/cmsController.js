@@ -39,8 +39,8 @@ exports.addGallery = async (req, res) => {
     const result = await uploadToCloudinary(req.file.buffer, 'CMS_Galeri');
     const url_gambar = result.secure_url;
 
-    // 2. Simpan ke Database (Perhatikan: kolom deskripsi dihilangkan jika tidak ada di DB aslimu)
-    const query = `INSERT INTO tr_cms_galleries (section_name, url_gambar) VALUES (?, ?)`;
+    // 2. Simpan ke Database (Ditambah created_at dan updated_at pakai NOW())
+    const query = `INSERT INTO tr_cms_galleries (section_name, url_gambar, created_at, updated_at) VALUES (?, ?, NOW(), NOW())`;
     const [dbResult] = await connection.query(query, [section_name || 'Galeri', url_gambar]);
     
     res.status(201).json({ message: "Galeri berhasil ditambahkan", id: dbResult.insertId, url_gambar });
@@ -99,28 +99,28 @@ exports.updateTentangContent = async (req, res) => {
   try {
     let url_gambar = req.body.url_gambar || null; 
 
-    // Jika admin mengupload gambar baru (Biasanya untuk foto utama Tentang Kami)
+    // Jika admin mengupload gambar baru
     if (req.file) {
       const result = await uploadToCloudinary(req.file.buffer, 'CMS_Tentang');
       url_gambar = result.secure_url;
     }
 
-    // Jika ID belum ada, INSERT. Jika sudah ada, UPDATE.
-    // Tapi karena ini CMS, biasanya kita UPDATE baris yang sudah ada.
+    // Cek apakah ID sudah ada di database
     const [check] = await connection.query("SELECT id_cms_konten FROM tr_cms_konten WHERE id_cms_konten = ?", [id]);
     
     if (check.length === 0) {
-       // Insert jika belum ada
-       const query = `INSERT INTO tr_cms_konten (id_cms_konten, section_name, content_value, url_gambar) VALUES (?, ?, ?, ?)`;
+       // JIKA BELUM ADA (INSERT): Tambahkan NOW() untuk created_at dan updated_at
+       const query = `INSERT INTO tr_cms_konten (id_cms_konten, section_name, content_value, url_gambar, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())`;
        await connection.query(query, [id, section_name, content_value, url_gambar]);
     } else {
-       // Update jika sudah ada
-       // Jika url_gambar bernilai null (admin tidak upload file baru), jangan timpa URL gambar lama menjadi null
+       // JIKA SUDAH ADA (UPDATE): Tambahkan updated_at = NOW()
        if (url_gambar) {
-         const query = `UPDATE tr_cms_konten SET section_name = ?, content_value = ?, url_gambar = ? WHERE id_cms_konten = ?`;
+         // Jika ada update gambar (atau URL embed map)
+         const query = `UPDATE tr_cms_konten SET section_name = ?, content_value = ?, url_gambar = ?, updated_at = NOW() WHERE id_cms_konten = ?`;
          await connection.query(query, [section_name, content_value, url_gambar, id]);
        } else {
-         const query = `UPDATE tr_cms_konten SET section_name = ?, content_value = ? WHERE id_cms_konten = ?`;
+         // Jika hanya update teks (tanpa gambar)
+         const query = `UPDATE tr_cms_konten SET section_name = ?, content_value = ?, updated_at = NOW() WHERE id_cms_konten = ?`;
          await connection.query(query, [section_name, content_value, id]);
        }
     }

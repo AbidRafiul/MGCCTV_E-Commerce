@@ -1,13 +1,15 @@
 import Navbar from "@/components/layouts/Navbar";
 import Footer from "@/components/layouts/Footer";
-import { Clock, MapPin, ShieldCheck, MessageCircle, Navigation, CheckCircle2 } from "lucide-react";
+import { Clock, MapPin, ShieldCheck, MessageCircle, CheckCircle2 } from "lucide-react";
 
-// 1. Fungsi ambil Konten Teks (Tentang, Info, Lokasi)
+// Import komponen Slider Galeri yang baru kita buat
+import GallerySlider from "./GallerySlider";
+
+export const dynamic = "force-dynamic";
+
 async function getCmsTentang() {
   try {
-    const res = await fetch("http://localhost:3000/api/admin/cms/tentang", {
-      cache: "no-store", 
-    });
+    const res = await fetch("http://localhost:3000/api/admin/cms/tentang", { cache: "no-store" });
     if (!res.ok) return [];
     return await res.json();
   } catch (error) {
@@ -16,12 +18,9 @@ async function getCmsTentang() {
   }
 }
 
-// 2. Fungsi ambil Data Galeri (INI YANG TADI KURANG)
 async function getCmsGaleri() {
   try {
-    const res = await fetch("http://localhost:3000/api/admin/cms/galeri", {
-      cache: "no-store", 
-    });
+    const res = await fetch("http://localhost:3000/api/admin/cms/galeri", { cache: "no-store" });
     if (!res.ok) return [];
     return await res.json();
   } catch (error) {
@@ -31,18 +30,18 @@ async function getCmsGaleri() {
 }
 
 export default async function TentangKamiPage() {
-  // Ambil kedua data secara paralel
   const [cmsData, galeriData] = await Promise.all([
     getCmsTentang(),
     getCmsGaleri()
   ]);
 
-  // Memisahkan data teks
   const tentangUtama = cmsData?.find(item => item.id_cms_konten === 1) || {};
   const infoToko = cmsData?.find(item => item.id_cms_konten === 2) || {};
   const lokasiToko = cmsData?.find(item => item.id_cms_konten === 3) || {};
+  
+  const waAdmin1 = cmsData?.find(item => item.id_cms_konten === 4)?.content_value || "6281234567890";
+  const waAdmin2 = cmsData?.find(item => item.id_cms_konten === 5)?.content_value || "6281234567890";
 
-  // Default image jika database kosong
   const defaultImage = "https://images.unsplash.com/photo-1558002038-1055907df827";
 
   return (
@@ -95,24 +94,15 @@ export default async function TentangKamiPage() {
             </div>
           </section>
 
-          {/* SECTION GALERI (SEKARANG SUDAH CONNECT KE TR_CMS_GALLERIES) */}
+          {/* SECTION GALERI - Menggunakan Komponen Slider Baru! */}
           <section>
             <div className="text-center mb-8 md:mb-12">
               <h2 className="text-3xl md:text-4xl font-extrabold text-[#0C2C55] tracking-tight">Galeri Kami</h2>
               <div className="w-16 h-1.5 bg-blue-600 mx-auto mt-4 rounded-full"></div>
             </div>
             
-            <div className="flex md:grid md:grid-cols-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 pb-4 -mx-5 px-5 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
-              {galeriData.length > 0 ? (
-                galeriData.map((item) => (
-                  <div key={item.id_cms_konten} className="w-[75vw] md:w-auto shrink-0 snap-center aspect-video md:aspect-square rounded-2xl overflow-hidden shadow-md group border border-slate-100">
-                    <img src={item.url_gambar} alt="Galeri MGCCTV" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-4 text-center py-10 text-slate-400 italic">Belum ada foto galeri.</div>
-              )}
-            </div>
+            <GallerySlider galeriData={galeriData} />
+            
           </section>
 
           {/* SECTION INFO & LOKASI */}
@@ -141,16 +131,26 @@ export default async function TentangKamiPage() {
                     </p>
                   </div>
                 </div>
+                
                 <div className="pt-6 border-t border-slate-100">
                   <div className="grid grid-cols-2 gap-3">
-                    <a href="https://wa.me/6281234567890" target="_blank" className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-green-500/20 active:scale-95">
+                    <a 
+                      href={`https://wa.me/${waAdmin1.replace(/\D/g, '')}`} 
+                      target="_blank" 
+                      className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-green-500/20 active:scale-95"
+                    >
                       <MessageCircle size={18} /> Admin 1
                     </a>
-                    <a href="https://wa.me/6281234567890" target="_blank" className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-green-500/20 active:scale-95">
+                    <a 
+                      href={`https://wa.me/${waAdmin2.replace(/\D/g, '')}`} 
+                      target="_blank" 
+                      className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-green-500/20 active:scale-95"
+                    >
                       <MessageCircle size={18} /> Admin 2
                     </a>
                   </div>
                 </div>
+
               </div>
             </div>
 
