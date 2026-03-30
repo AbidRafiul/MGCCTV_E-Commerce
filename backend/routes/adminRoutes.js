@@ -38,6 +38,7 @@ const handleUploadGambar = (req, res, next) => {
 // 4. DAFTAR ROUTES PUBLIK (Tidak perlu auth)
 // ==========================================
 
+<<<<<<< HEAD
 // --- RUTE CMS TENTANG KAMI PUBLIK ---
 router.get("/cms/tentang", cmsController.getTentangContent);
 router.get("/cms/galeri", cmsController.getGallery);
@@ -48,6 +49,11 @@ router.get("/cms/unggulan", getProdukUnggulan);
 // 5. GLOBAL MIDDLEWARE: Auth Required
 // ==========================================
 // Semua rute di bawah baris ini wajib login
+=======
+
+
+// GLOBAL MIDDLEWARE: Pastikan semua yang masuk rute di bawah ini sudah login
+>>>>>>> main
 router.use(auth);
 
 
@@ -55,14 +61,14 @@ router.use(auth);
 router.get("/dashboard", getDashboardStats);
 
 // --- RUTE KATEGORI (MEREK) ---
-router.get("/kategori", getAllKategori);
+// router.get("/kategori", getAllKategori);
 router.post("/kategori", addKategori);
 router.put("/kategori/:id", updateKategori);
 router.delete("/kategori/:id", deleteKategori);
 
 // --- RUTE PRODUK ---
-router.get("/produk", getAllProduk);
-router.get("/produk/:id", getProdukById);
+// router.get("/produk", getAllProduk);
+// router.get("/produk/:id", getProdukById);
 router.post("/produk", handleUploadGambar, addProduk);
 router.put("/produk/:id", handleUploadGambar, updateProduk);
 router.patch("/produk/:id/status", updateStatusProduk);

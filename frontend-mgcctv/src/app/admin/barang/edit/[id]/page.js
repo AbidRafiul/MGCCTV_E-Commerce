@@ -68,16 +68,19 @@ export default function EditBarangPage() {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
+  // 1. Ambil daftar Kategori & Data Produk lama (KODE SUDAH DIBERSIHKAN DARI CONFLICT)
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
         
+        // Ambil kategori dari API Admin
         const resKategori = await fetch("http://localhost:3000/api/admin/kategori", {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (resKategori.ok) setKategoriList(await resKategori.json());
 
+        // Ambil data produk berdasarkan ID dari API Admin
         const resProduk = await fetch(`http://localhost:3000/api/admin/produk/${id}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -91,7 +94,7 @@ export default function EditBarangPage() {
             stok: data.stok,
             ms_kategori_id_kategori: data.ms_kategori_id_kategori,
           });
-          // Tampilkan gambar lama
+          // Tampilkan gambar lama dari database sebagai preview awal
           setPreview(data.gambar_produk);
         } else {
           Swal.fire("Error", "Data produk tidak ditemukan", "error");
@@ -104,7 +107,9 @@ export default function EditBarangPage() {
       }
     };
     
-    fetchData();
+    if (id) {
+      fetchData();
+    }
   }, [id, router]);
 
   const handleChange = (e) => {
