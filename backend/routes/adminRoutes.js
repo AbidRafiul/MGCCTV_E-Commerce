@@ -38,7 +38,6 @@ const handleUploadGambar = (req, res, next) => {
 // 4. DAFTAR ROUTES PUBLIK (Tidak perlu auth)
 // ==========================================
 
-<<<<<<< HEAD
 // --- RUTE CMS TENTANG KAMI PUBLIK ---
 router.get("/cms/tentang", cmsController.getTentangContent);
 router.get("/cms/galeri", cmsController.getGallery);
@@ -49,11 +48,6 @@ router.get("/cms/unggulan", getProdukUnggulan);
 // 5. GLOBAL MIDDLEWARE: Auth Required
 // ==========================================
 // Semua rute di bawah baris ini wajib login
-=======
-
-
-// GLOBAL MIDDLEWARE: Pastikan semua yang masuk rute di bawah ini sudah login
->>>>>>> main
 router.use(auth);
 
 
