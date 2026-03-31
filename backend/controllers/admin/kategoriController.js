@@ -1,23 +1,16 @@
-const connection = require("../../config/database");
+const KategoriModel = require("../../models/KategoriModel");
 
+// Helper: Membersihkan input string
 const getKategoriName = (value) => {
   if (typeof value !== "string") {
     return "";
   }
-
   return value.trim();
 };
 
 const getAllKategori = async (req, res) => {
   try {
-    const sql = `
-      SELECT 
-        id_kategori,
-        nama_kategori
-      FROM ms_kategori
-      ORDER BY nama_kategori ASC
-    `;
-    const [kategori] = await connection.query(sql);
+    const kategori = await KategoriModel.getAll();
     res.status(200).json(kategori);
   } catch (error) {
     console.error("Error GetKategori:", error);
@@ -33,24 +26,13 @@ const addKategori = async (req, res) => {
       return res.status(400).json({ message: "Nama kategori wajib diisi" });
     }
 
-    const [existingKategori] = await connection.query(
-      "SELECT id_kategori FROM ms_kategori WHERE LOWER(nama_kategori) = LOWER(?) LIMIT 1",
-      [namaKategori],
-    );
-
+    const existingKategori = await KategoriModel.findByName(namaKategori);
     if (existingKategori.length > 0) {
       return res.status(400).json({ message: "Kategori sudah ada" });
     }
 
-    const [result] = await connection.query(
-      "INSERT INTO ms_kategori (nama_kategori) VALUES (?)",
-      [namaKategori],
-    );
-
-    const [newKategori] = await connection.query(
-      "SELECT id_kategori, nama_kategori FROM ms_kategori WHERE id_kategori = ?",
-      [result.insertId],
-    );
+    const result = await KategoriModel.create(namaKategori);
+    const newKategori = await KategoriModel.findById(result.insertId);
 
     return res.status(201).json({
       message: "Kategori berhasil ditambahkan",
@@ -75,33 +57,18 @@ const updateKategori = async (req, res) => {
       return res.status(400).json({ message: "Nama kategori wajib diisi" });
     }
 
-    const [existingKategori] = await connection.query(
-      "SELECT id_kategori FROM ms_kategori WHERE id_kategori = ? LIMIT 1",
-      [kategoriId],
-    );
-
+    const existingKategori = await KategoriModel.findById(kategoriId);
     if (existingKategori.length === 0) {
       return res.status(404).json({ message: "Kategori tidak ditemukan" });
     }
 
-    const [duplicateKategori] = await connection.query(
-      "SELECT id_kategori FROM ms_kategori WHERE LOWER(nama_kategori) = LOWER(?) AND id_kategori != ? LIMIT 1",
-      [namaKategori, kategoriId],
-    );
-
+    const duplicateKategori = await KategoriModel.findDuplicateName(namaKategori, kategoriId);
     if (duplicateKategori.length > 0) {
       return res.status(400).json({ message: "Nama kategori sudah digunakan" });
     }
 
-    await connection.query(
-      "UPDATE ms_kategori SET nama_kategori = ? WHERE id_kategori = ?",
-      [namaKategori, kategoriId],
-    );
-
-    const [updatedKategori] = await connection.query(
-      "SELECT id_kategori, nama_kategori FROM ms_kategori WHERE id_kategori = ?",
-      [kategoriId],
-    );
+    await KategoriModel.update(kategoriId, namaKategori);
+    const updatedKategori = await KategoriModel.findById(kategoriId);
 
     return res.status(200).json({
       message: "Kategori berhasil diperbarui",
@@ -121,27 +88,19 @@ const deleteKategori = async (req, res) => {
       return res.status(400).json({ message: "ID kategori tidak valid" });
     }
 
-    const [existingKategori] = await connection.query(
-      "SELECT id_kategori, nama_kategori FROM ms_kategori WHERE id_kategori = ? LIMIT 1",
-      [kategoriId],
-    );
-
+    const existingKategori = await KategoriModel.findById(kategoriId);
     if (existingKategori.length === 0) {
       return res.status(404).json({ message: "Kategori tidak ditemukan" });
     }
 
-    const [usedByProduk] = await connection.query(
-      "SELECT id_produk FROM ms_produk WHERE ms_kategori_id_kategori = ? LIMIT 1",
-      [kategoriId],
-    );
-
+    const usedByProduk = await KategoriModel.checkIfUsedByProduk(kategoriId);
     if (usedByProduk.length > 0) {
       return res.status(400).json({
         message: "Kategori tidak bisa dihapus karena masih digunakan oleh produk",
       });
     }
 
-    await connection.query("DELETE FROM ms_kategori WHERE id_kategori = ?", [kategoriId]);
+    await KategoriModel.delete(kategoriId);
 
     return res.status(200).json({
       message: `Kategori "${existingKategori[0].nama_kategori}" berhasil dihapus`,

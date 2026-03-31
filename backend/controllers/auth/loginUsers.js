@@ -1,6 +1,6 @@
-const connection = require("../../config/database");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const AuthModel = require("../../models/AuthModel"); // Memanggil Koki Auth kita!
 
 const loginUsers = async (req, res) => {
   try {
@@ -14,20 +14,28 @@ const loginUsers = async (req, res) => {
 
     const emailClean = email.trim().toLowerCase();
 
-    const [user] = await connection.query(
-      "SELECT * FROM ms_users WHERE email = ?",
-      [emailClean]
-    );
+    // Panggil Model yang sudah kita buat sebelumnya
+    const existingUser = await AuthModel.findUserByEmail(emailClean);
 
-    if (user.length === 0) {
+    if (existingUser.length === 0) {
       return res.status(401).json({
         message: "Email atau password salah",
       });
     }
 
+    const user = existingUser[0];
+
+    // BONUS KEAMANAN: Jika akun dibuat via Google (password di DB kosong)
+    if (!user.password) {
+       return res.status(401).json({
+         message: "Akun ini terdaftar menggunakan Google. Silakan login dengan tombol Google.",
+       });
+    }
+
+    // Controller murni mengurus logika enkripsi dan bisnis
     const checkPassword = await bcrypt.compare(
       password,
-      user[0].password
+      user.password
     );
 
     if (!checkPassword) {
@@ -38,10 +46,10 @@ const loginUsers = async (req, res) => {
 
     const token = jwt.sign(
       {
-        id: user[0].id_users,
-        role: user[0].role,
-        username: user[0].username,
-        email: user[0].email,
+        id: user.id_users,
+        role: user.role,
+        username: user.username,
+        email: user.email,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
@@ -50,7 +58,7 @@ const loginUsers = async (req, res) => {
     return res.status(200).json({
       message: "Login berhasil",
       token: token,
-      role: user[0].role,
+      role: user.role,
     });
 
   } catch (error) {

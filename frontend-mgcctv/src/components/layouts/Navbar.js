@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, Search, ShoppingCart, X, LogOut } from "lucide-react";
+import { Menu, Search, ShoppingCart, X, LogOut, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AUTH_API_URL } from "@/lib/api";
 import { getCartCount } from "@/services/cartService";
-import Swal from 'sweetalert2';
-import { useRouter } from 'next/navigation';
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navLinks = [
   { href: "/beranda", label: "Beranda" },
@@ -15,10 +16,11 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const [isMounted, setIsMounted] = useState(false); 
+  const [isMounted, setIsMounted] = useState(false);
   const [isLogin, setIsLogin] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profile, setProfile] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
@@ -31,19 +33,19 @@ export default function Navbar() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    const syncAuth = async () => {
+    const syncAuth = () => {
       const token = localStorage.getItem("token");
       setIsLogin(!!token);
 
       if (!token) {
         setProfile(null);
-        setCartCount(0); // PERBAIKAN 1: Reset angka keranjang jika tidak ada user login
+        setCartCount(0);
       }
     };
 
     const syncCartCount = () => {
       const token = localStorage.getItem("token");
-      // Hanya ambil data keranjang kalau user sedang login
+
       if (token) {
         setCartCount(getCartCount());
       } else {
@@ -61,14 +63,19 @@ export default function Navbar() {
 
       try {
         const res = await fetch(`${AUTH_API_URL}/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
+
         const data = await res.json();
 
         if (res.ok) {
           setProfile(data.user || null);
+        } else {
+          setProfile(null);
         }
-      } catch {
+      } catch (error) {
         setProfile(null);
       }
     };
@@ -80,20 +87,18 @@ export default function Navbar() {
     };
 
     handleScroll();
-    syncAuth();
-    fetchProfile();
-    syncCartCount();
+    handleFocus();
 
+    window.addEventListener("scroll", handleScroll);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
     window.addEventListener("cart-updated", syncCartCount);
-    window.addEventListener("scroll", handleScroll);
-    
+
     return () => {
+      window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
       window.removeEventListener("cart-updated", syncCartCount);
-      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -107,220 +112,344 @@ export default function Navbar() {
     };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, [isMobileMenuOpen]);
 
-  const handleLogout = () => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-
-    Swal.fire({
-      title: 'Keluar dari Sistem?',
-      text: "Sesi Anda akan diakhiri.",
-      icon: 'warning',
-      showCancelButton: true,
-      width: isMobile ? 320 : 420,
-      padding: isMobile ? "1.25rem" : "1.75rem",
-      confirmButtonColor: '#d33', 
-      cancelButtonColor: '#64748b', 
-      confirmButtonText: 'Ya, Keluar',
-      cancelButtonText: 'Batal',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // 1. Hapus semua data di Local Storage & Cookies
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        localStorage.removeItem("mgcctv-cart"); 
-        localStorage.removeItem("mgcctv-checkout"); 
-        
-        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";  
-        document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
-        
-        // 2. LANGSUNG reset tampilan UI (Navbar) detik itu juga!
-        setIsLogin(false);
-        setProfile(null);
-        setCartCount(0);
-        window.dispatchEvent(new Event("cart-updated"));
-
-        // 3. Tampilkan Notifikasi Sukses
-        Swal.fire({
-          title: 'Berhasil Logout!',
-          icon: 'success',
-          width: isMobile ? 300 : 380,
-          padding: isMobile ? "1.1rem" : "1.5rem",
-          timer: 1500,
-          showConfirmButton: false
-        }).then(() => {
-          // 4. Paksa browser memuat ulang halaman untuk membersihkan cache Next.js
-          window.location.reload();
-        });
-      }
-    });
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
   };
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
-  const profileInitial = profile?.nama?.trim()?.charAt(0)?.toUpperCase() || "U";
 
   const handleAddToCart = () => {
     router.push("/keranjang");
-  }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("mgcctv-cart");
+    localStorage.removeItem("mgcctv-checkout");
+
+    document.cookie =
+      "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+    document.cookie =
+      "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+
+    setIsLogin(false);
+    setProfile(null);
+    setCartCount(0);
+    setShowLogoutModal(false);
+    setIsMobileMenuOpen(false);
+
+    window.dispatchEvent(new Event("cart-updated"));
+
+    toast.success("Berhasil Logout", {
+      description: "Anda telah keluar dari sesi dengan aman.",
+    });
+
+    setTimeout(() => {
+      window.location.href = "/beranda";
+    }, 1000);
+  };
+
+  const profileInitial =
+    profile?.nama?.trim()?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <nav suppressHydrationWarning className={`fixed top-0 w-full z-[100] transition-all duration-300 ${
-      isScrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 py-3" : "bg-white py-4"
-    }`}>
-      
-      {/* CONTAINER EDGE-TO-EDGE */}
-      <div className="w-full px-6 md:px-12 lg:px-20 flex justify-between items-center">
-        
-        {/* BAGIAN 1: LOGO (KIRI) */}
-        <div className="flex-1 flex justify-start z-50">
-          <Link href="/beranda" className="flex items-center gap-2 group cursor-pointer">
-            <img src="/images/logo.jpg" alt="MG Logo" className="h-8 w-auto object-contain transition-transform group-hover:scale-105" />
-            <span className="font-extrabold text-2xl text-[#0C2C55] tracking-tight transition-colors">
-              CCTV
-            </span>
-          </Link>
-        </div>
+    <>
+      <nav
+        suppressHydrationWarning
+        className={`fixed top-0 w-full z-[100] transition-all duration-300 font-sans ${
+          isScrolled
+            ? "bg-white/90 backdrop-blur-lg shadow-sm border-b border-slate-200/50 py-3"
+            : "bg-white py-4 md:py-5"
+        }`}
+      >
+        <div className="w-full px-5 md:px-8 xl:px-12 2xl:px-20 flex justify-between items-center">
+          {/* LEFT */}
+          <div className="flex items-center gap-4 xl:gap-8 z-50">
+            <Link
+              href="/beranda"
+              className="flex items-center gap-2 group cursor-pointer shrink-0"
+            >
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 p-0.5 shadow-lg shadow-blue-500/30 transition-transform duration-300 group-hover:scale-105">
+                <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/images/logo.jpg"
+                    alt="MG CCTV"
+                    className="h-6 w-auto object-contain"
+                  />
+                </div>
+              </div>
 
-        {/* BAGIAN 2: DESKTOP MENU (TENGAH) */}
-        <div className="hidden lg:flex flex-1 justify-center gap-8 xl:gap-12 items-center">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="text-[#0C2C55] font-semibold hover:text-blue-600 transition-colors whitespace-nowrap">
-              {link.label}
+              <span className="font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight">
+                CCTV
+              </span>
             </Link>
-          ))}
-        </div>
-        
-        {/* BAGIAN 3: DESKTOP ACTIONS (KANAN) */}
-        <div className="hidden lg:flex flex-1 justify-end items-center gap-4 xl:gap-6">
-          
-          <div className="relative text-[#0C2C55]">
-            <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
-              <Search size={16} />
-            </span>
-            <input
-              suppressHydrationWarning
-              type="text"
-              placeholder="Cari perangkat..."
-              className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-sm w-44 xl:w-56 focus:w-64 focus:ring-2 focus:ring-blue-500 transition-all duration-300 outline-none"
-            />
+
+            <div className="hidden lg:block w-px h-8 bg-slate-200"></div>
+
+            <div className="hidden lg:flex items-center gap-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="px-4 py-2 rounded-full text-slate-600 font-bold hover:bg-slate-50 hover:text-blue-600 transition-colors whitespace-nowrap"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
-          <button
-            suppressHydrationWarning
-            onClick={handleAddToCart}
-            type="button"
-            className="relative p-2 bg-blue-50 rounded-full cursor-pointer hover:bg-blue-100 transition-colors group hidden lg:block"
-            aria-label="Keranjang"
-          >
-            <ShoppingCart
-              size={20}
-              className="text-[#0C2C55] transition-transform group-hover:scale-110"
-            />
-            {cartCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold leading-none text-white shadow-sm">
-                {cartCount > 99 ? "99+" : cartCount}
+          {/* RIGHT */}
+          <div className="flex justify-end items-center gap-3 xl:gap-5">
+            {/* Search Desktop */}
+            <div className="hidden lg:block relative text-slate-600">
+              <span className="absolute inset-y-0 left-3 flex items-center text-slate-400 pointer-events-none">
+                <Search size={16} />
               </span>
-            ) : null}
-          </button>
 
-          {/* AUTH PELINDUNG HYDRATION */}
-          <div className="flex items-center gap-4 pl-4 xl:pl-6 border-l border-slate-200">
-            {isMounted && (
-              <>
-                {!isLogin ? (
-                  <Link href="/login" className="bg-[#0C2C55] text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 transition-all duration-300 whitespace-nowrap">
-                    Login
+              <input
+                type="text"
+                placeholder="Cari CCTV..."
+                className="pl-9 pr-4 py-2.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-full text-sm w-48 xl:w-64 focus:w-72 focus:bg-white focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 outline-none"
+              />
+            </div>
+
+            {/* Cart Desktop */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="relative p-2.5 rounded-full text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-colors hidden lg:block shrink-0"
+            >
+              <ShoppingCart size={20} />
+
+              <AnimatePresence>
+                {cartCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm ring-2 ring-white"
+                  >
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+
+            {/* Desktop Auth */}
+            <div className="hidden lg:flex items-center shrink-0">
+              {isMounted &&
+                (!isLogin ? (
+                  <Link
+                    href="/login"
+                    className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 whitespace-nowrap ml-2"
+                  >
+                    Masuk
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-4">
-                    <Link href="/profile" className="flex items-center gap-2 group">
-                      <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-md group-hover:ring-2 group-hover:ring-blue-300 transition-all text-sm font-semibold">
+                  <div className="flex items-center gap-2 p-1.5 pr-3 bg-slate-50 border border-slate-200 rounded-full shadow-sm hover:shadow-md transition-shadow ml-2">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2.5 group"
+                    >
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner">
                         {profileInitial}
                       </div>
-                      <div className="flex min-w-0 max-w-[150px] flex-col">
-                        <span className="truncate font-bold text-[#0C2C55] text-sm group-hover:text-blue-600 transition-colors">
+
+                      <div className="flex min-w-0 max-w-[120px] flex-col justify-center">
+                        <span className="truncate font-bold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
                           {profile?.nama || "User"}
                         </span>
-                        <span className="truncate text-xs text-slate-500">
-                          {profile?.email || "-"}
-                        </span>
                       </div>
                     </Link>
-                    <button type="button" onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors" title="Logout">
-                      <LogOut size={20} />
+
+                    <div className="w-px h-5 bg-slate-200 mx-1"></div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowLogoutModal(true)}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                      title="Logout"
+                    >
+                      <LogOut size={16} />
                     </button>
                   </div>
+                ))}
+            </div>
+
+            {/* MOBILE */}
+            <div className="flex items-center gap-3 lg:hidden z-50">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="relative p-2.5 rounded-full text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              >
+                <ShoppingCart size={18} />
+
+                {cartCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm ring-2 ring-white">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
                 )}
-              </>
-            )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2.5 rounded-full bg-slate-900 text-white hover:bg-blue-600 transition-colors"
+              >
+                {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* MOBILE MENU TOGGLE */}
-        <div className="flex items-center gap-2 lg:hidden">
-          <button
-            suppressHydrationWarning
-            type="button"
-            onClick={handleAddToCart}
-            className="relative rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100"
-          >
-            <ShoppingCart size={20} />
-            {cartCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm">
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            ) : null}
-          </button>
-          <button suppressHydrationWarning type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-full bg-[#0C2C55] p-2 text-white transition-colors hover:bg-blue-700">
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute top-full left-0 w-full bg-white shadow-2xl border-t border-slate-100 lg:hidden overflow-hidden"
+            >
+              <div className="px-6 py-6 flex flex-col gap-6">
+                <div className="relative">
+                  <Search
+                    size={18}
+                    className="absolute inset-y-0 left-4 my-auto text-slate-400"
+                  />
 
-      </div>
+                  <input
+                    type="text"
+                    placeholder="Cari CCTV..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-full py-3.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow"
+                  />
+                </div>
 
-      {/* MOBILE DROPDOWN */}
-      <div className={`absolute top-full left-0 w-full bg-white shadow-xl transition-all duration-300 origin-top overflow-hidden lg:hidden ${isMobileMenuOpen ? "max-h-[600px] border-t border-slate-100" : "max-h-0"}`}>
-        <div className="px-6 py-6 flex flex-col gap-6">
-          
-          <div className="relative">
-            <Search size={18} className="absolute inset-y-0 left-4 my-auto text-slate-400" />
-            <input suppressHydrationWarning type="text" placeholder="Cari perangkat CCTV..." className="w-full bg-slate-50 border border-slate-100 rounded-full py-3 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} onClick={closeMobileMenu} className="font-bold text-[#0C2C55] text-lg hover:text-blue-600 transition-colors px-2 py-2 rounded-xl hover:bg-blue-50">
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          <div className="border-t border-slate-100 pt-6 flex flex-col gap-3">
-            {isMounted && (
-              <>
-                {!isLogin ? (
-                  <Link href="/login" onClick={closeMobileMenu} className="w-full bg-[#0C2C55] text-white py-3.5 rounded-xl text-center font-bold hover:bg-blue-800 transition-colors">
-                    Login / Masuk
-                  </Link>
-                ) : (
-                  <>
-                    <Link href="/profile" onClick={closeMobileMenu} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-slate-50">
-                      <div className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">{profileInitial}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-[#0C2C55] truncate">{profile?.nama || "User"}</p>
-                        <p className="text-xs text-slate-500 truncate">{profile?.email || "-"}</p>
-                      </div>
+                <div className="flex flex-col gap-1">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={closeMobileMenu}
+                      className="font-bold text-slate-700 text-base hover:text-blue-600 hover:bg-blue-50 transition-colors px-4 py-3 rounded-2xl"
+                    >
+                      {link.label}
                     </Link>
-                    <button onClick={handleLogout} className="w-full py-3 flex items-center justify-center gap-2 font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors">
-                      <LogOut size={18} /> Keluar Akun
-                    </button>
-                  </>
-                )}
-              </>
-            )}
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-100 pt-6">
+                  {isMounted &&
+                    (!isLogin ? (
+                      <Link
+                        href="/login"
+                        onClick={closeMobileMenu}
+                        className="flex items-center justify-center w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-md shadow-blue-600/20 hover:bg-blue-700 transition-colors"
+                      >
+                        Masuk ke Akun
+                      </Link>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        <Link
+                          href="/profile"
+                          onClick={closeMobileMenu}
+                          className="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100 transition-colors"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center font-bold text-lg shadow-inner">
+                            {profileInitial}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-slate-900 truncate">
+                              {profile?.nama || "User"}
+                            </p>
+                            <p className="text-xs font-medium text-slate-500 truncate">
+                              {profile?.email || "-"}
+                            </p>
+                          </div>
+
+                          <User size={20} className="text-slate-400" />
+                        </Link>
+
+                        <button
+                          onClick={() => setShowLogoutModal(true)}
+                          className="w-full py-4 flex items-center justify-center gap-2 font-bold text-red-500 hover:bg-red-50 rounded-2xl transition-colors border border-transparent hover:border-red-100"
+                        >
+                          <LogOut size={18} />
+                          Keluar Akun
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+
+      {/* Logout Modal */}
+      <AnimatePresence>
+        {showLogoutModal && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLogoutModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-[400px] bg-white rounded-3xl p-6 sm:p-8 shadow-2xl ring-1 ring-slate-100 overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-5 ring-8 ring-red-50/50">
+                  <LogOut size={28} className="ml-1" />
+                </div>
+
+                <h3 className="text-xl font-extrabold text-slate-900 mb-2">
+                  Akhiri Sesi?
+                </h3>
+
+                <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                  Anda akan keluar dari akun ini. Anda harus masuk kembali untuk
+                  melihat keranjang dan pesanan Anda.
+                </p>
+
+                <div className="flex w-full gap-3">
+                  <button
+                    onClick={() => setShowLogoutModal(false)}
+                    className="flex-1 py-3.5 px-4 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex-1 py-3.5 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 hover:shadow-lg transition-all"
+                  >
+                    Ya, Keluar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </div>
-    </nav>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

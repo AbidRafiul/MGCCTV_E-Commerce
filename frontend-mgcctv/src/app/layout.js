@@ -1,21 +1,21 @@
+// 1. Tambahkan import ini di bagian atas
+import { Toaster } from "sonner"; 
 import "./globals.css";
-import { Roboto } from "next/font/google";
-
-const roboto = Roboto({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "800"],
-});
-
-export const metadata = {
-  title: "MGCCTV",
-  description: "Admin Dashboard for MGCCTV",
-};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="id">
-      <body className={`${roboto.className} bg-slate-50 text-slate-800 antialiased`}>
+      <body>
         {children}
+        
+        
+        <Toaster 
+          position="top-right" 
+          offset="80px"
+          richColors 
+          theme="light" 
+          style={{ zIndex: 99999 }} 
+        />
       </body>
     </html>
   );
