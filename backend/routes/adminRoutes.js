@@ -55,7 +55,7 @@ router.use(auth);
 router.get("/dashboard", getDashboardStats);
 
 // --- RUTE KATEGORI (MEREK) ---
-// router.get("/kategori", getAllKategori);
+router.get("/kategori", getAllKategori);
 router.post("/kategori", addKategori);
 router.put("/kategori/:id", updateKategori);
 router.delete("/kategori/:id", deleteKategori);

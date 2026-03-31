@@ -62,13 +62,14 @@ const getDashboardStats = async (req, res) => {
           LIMIT 5`
       ),
 
-      // 7. Kategori Terlaris (berdasarkan jumlah quantity terjual)
+      // 7. Kategori Terlaris (DI SINI PERBAIKANNYA)
       connection.query(
         `SELECT k.nama_kategori,
                 COALESCE(SUM(dt.quantity), 0) AS total_terjual
           FROM ms_kategori k
           LEFT JOIN ms_produk p ON p.ms_kategori_id_kategori = k.id_kategori
-          LEFT JOIN ms_detail_transaction dt ON dt.id_produk = p.id_produk
+          -- Perbaikan: Menggunakan 'id_product' sesuai skema di image_7b3c3c.png
+          LEFT JOIN ms_detail_transaction dt ON dt.id_product = p.id_produk
           GROUP BY k.id_kategori, k.nama_kategori
           ORDER BY total_terjual DESC
           LIMIT 5`
@@ -88,7 +89,7 @@ const getDashboardStats = async (req, res) => {
           LIMIT 5`
       ),
 
-      // 9. Aktivitas Terkini: gabungan transaksi baru + produk baru (5 item terakhir)
+      // 9. Aktivitas Terkini
       connection.query(
         `(SELECT 
             CONCAT('Pesanan #ORD-', LPAD(t.id_transaksi, 4, '0'), 
@@ -121,7 +122,7 @@ const getDashboardStats = async (req, res) => {
       ),
     ]);
 
-    // Hitung persentase kategori terlaris
+    // Format data kategori
     const kategoriData = kategoriTerlarisResult[0];
     const totalTerjual = kategoriData.reduce((acc, k) => acc + Number(k.total_terjual), 0) || 1;
     const kategoriWithPercent = kategoriData.map((k) => ({
@@ -130,7 +131,7 @@ const getDashboardStats = async (req, res) => {
       persen: Math.round((Number(k.total_terjual) / totalTerjual) * 100),
     }));
 
-    // Hitung max pendapatan harian untuk proporsi bar
+    // Format data harian
     const harianData = pendapatanHarianResult[0];
     const maxHarian = Math.max(...harianData.map((d) => Number(d.total)), 1);
     const harianWithRatio = harianData.map((d) => ({

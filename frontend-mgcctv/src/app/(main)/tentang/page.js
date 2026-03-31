@@ -155,29 +155,33 @@ export default async function TentangKamiPage() {
             </div>
 
             {/* KARTU 2: LOKASI */}
-            <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden flex flex-col">
-              <div className="bg-[#0C2C55] py-4 px-6 text-center">
-                <h3 className="text-xl font-bold text-white tracking-wide">Lokasi Kami</h3>
-              </div>
-              <div className="p-6 md:p-8 flex flex-col grow space-y-6">
-                <div className="flex items-start gap-3">
-                  <MapPin size={24} className="text-blue-600 shrink-0" />
-                  <p className="text-slate-600 text-sm leading-relaxed">
-                    <span className="font-bold text-[#0C2C55] block mb-1">Madiun, Jawa Timur</span>
-                    {lokasiToko.content_value || "Alamat belum diatur."}
-                  </p>
-                </div>
-                <div className="w-full bg-slate-200 rounded-xl overflow-hidden grow min-h-[250px] border border-slate-200">
-                  <iframe 
-                    src={lokasiToko.url_gambar || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15814.773946059296!2d111.5235835!3d-7.629555!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e79be4000000001%3A0x1234567890abcdef!2sMadiun%2C%20Jawa%20Timur!5e0!3m2!1sid!2sid!4v1234567890"} 
-                    className="w-full h-full border-0 min-h-[250px]" 
-                    allowFullScreen="" 
-                    loading="lazy" 
-                    title="Maps"
-                  ></iframe>
-                </div>
-              </div>
-            </div>
+<div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden flex flex-col">
+  <div className="bg-[#0C2C55] py-4 px-6 text-center">
+    <h3 className="text-xl font-bold text-white tracking-wide">Lokasi Kami</h3>
+  </div>
+  <div className="p-6 md:p-8 flex flex-col grow space-y-6">
+    <div className="flex items-start gap-3">
+      <MapPin size={24} className="text-blue-600 shrink-0" />
+      <p className="text-slate-600 text-sm leading-relaxed">
+        <span className="font-bold text-[#0C2C55] block mb-1">Madiun, Jawa Timur</span>
+        {/* Alamat tetap ambil dari CMS agar fleksibel */}
+        {lokasiToko.content_value || "Alamat belum diatur."}
+      </p>
+    </div>
+    
+    {/* BAGIAN MAP DI-HARDCODE KE LOKASI MADIUN */}
+    <div className="w-full bg-slate-100 rounded-2xl overflow-hidden grow min-h-[250px] border border-slate-200">
+        <iframe 
+  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3954.5138243623346!2d111.53108757605332!3d-7.627756875430821!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e79bfa50bfad8dd%3A0xd91b9465d702759b!2sMG%20CCTV%20Partner%20Madiun!5e0!3m2!1sid!2sid!4v1774859104828!5m2!1sid!2sid" 
+  className="w-full h-full border-0 min-h-[300px]" 
+  allowFullScreen={true} 
+  loading="lazy" 
+  referrerPolicy="no-referrer-when-downgrade" 
+  title="Lokasi MG CCTV Madiun"
+></iframe>
+    </div>
+  </div>
+</div>
           </section>
         </div>
       </main>
