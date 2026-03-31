@@ -1,56 +1,102 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function Hero({ data }) {
   const bgImage = data?.url_gambar || "/images/header.jpg";
   const descText = data?.content_value || "Hadirkan keamanan mutakhir di genggaman Anda. Solusi CCTV cerdas dengan kualitas Ultra HD untuk melindungi rumah dan bisnis Anda 24/7.";
 
+  // Konfigurasi animasi Framer Motion
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.2, delayChildren: 0.3 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  };
+
   return (
-    // Mobile: min-h-[75vh], Desktop: h-[100svh]
-    <section className="relative w-full min-h-[75vh] md:min-h-[100svh] flex items-center overflow-hidden">
-      <img
-        src={bgImage}
-        alt="MG CCTV Header"
-        className="absolute inset-0 w-full h-full object-cover scale-x-[-1] object-center"
-      />
+    <section className="relative w-full min-h-[80vh] md:min-h-[100svh] flex items-center overflow-hidden bg-slate-900 font-sans">
+      
+      {/* Background Image dengan Animasi Zoom-out perlahan */}
+      <motion.div 
+        initial={{ scale: 1.1 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className="absolute inset-0"
+      >
+        <img
+          src={bgImage}
+          alt="MG CCTV Header"
+          className="w-full h-full object-cover scale-x-[-1] object-center opacity-70"
+        />
+      </motion.div>
 
-      <div className="absolute inset-0 bg-black/60 md:bg-black/50"></div>
+      {/* Overlay Gradient (Gelap di kiri, transparan di kanan) agar teks selalu terbaca */}
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/70 to-transparent"></div>
+      {/* Tambahan overlay bawah untuk layar HP */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent md:hidden"></div>
 
-      {/* Padding mobile dikurangi agar tidak memakan layar */}
-      <div className="relative z-10 px-5 md:px-24 w-full pt-20 md:pt-0">
-        <div className="max-w-3xl">
+      {/* Konten Utama */}
+      <div className="relative z-10 w-full px-6 py-20 md:px-16 lg:px-24">
+        <motion.div 
+          className="max-w-3xl"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Badge Modern */}
+          <motion.div variants={itemVariants} className="mb-6">
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/20 px-4 py-2 text-xs font-bold uppercase tracking-widest text-blue-200 backdrop-blur-md shadow-lg">
+              <ShieldCheck size={16} className="text-blue-400" />
+              Sistem Keamanan Pintar
+            </span>
+          </motion.div>
 
-          {/* Judul: Mobile text-3xl, Desktop text-7xl */}
-          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 md:mb-8 leading-[1.2] md:leading-tight tracking-tight">
-            Awasi Segalanya, <br /> 
-            Dari Mana Saja.
-          </h1>
+          {/* Judul Utama */}
+          <motion.div variants={itemVariants}>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 leading-[1.15] tracking-tight">
+              Awasi Segalanya, <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
+                Dari Mana Saja.
+              </span>
+            </h1>
+          </motion.div>
 
-          {/* Deskripsi: Mobile text-sm, Desktop text-xl */}
-          <p className="mb-8 md:mb-10 text-sm md:text-xl text-gray-200 max-w-xl leading-relaxed">
-            {descText}
-          </p>
+          {/* Deskripsi */}
+          <motion.div variants={itemVariants}>
+            <p className="mb-10 text-base md:text-xl text-slate-300 max-w-xl leading-relaxed">
+              {descText}
+            </p>
+          </motion.div>
 
-          {/* Tombol: Dikecilkan di HP agar muat bersebelahan atau rapi bersusun */}
-          <div className="flex flex-wrap gap-3 md:gap-5">
+          {/* Tombol Aksi */}
+          <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4 md:gap-6">
+            {/* Tombol Utama */}
             <Link
               href="/produk"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 md:px-10 md:py-5 rounded-lg md:rounded-xl font-bold text-sm md:text-lg transition-all flex items-center gap-2"
+              className="group flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 md:px-8 md:py-4 text-sm md:text-base font-bold text-white shadow-lg shadow-blue-600/30 transition-all hover:-translate-y-1 hover:bg-blue-700 hover:shadow-blue-600/50"
             >
-              Lihat Produk
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 md:w-5 md:h-5">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
+              Belanja Sekarang
+              <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
             </Link>
 
+            {/* Tombol Sekunder (Glassmorphism) */}
             <Link
               href="/tentang"
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 md:px-10 md:py-5 rounded-lg md:rounded-xl font-bold text-sm md:text-lg transition-all"
+              className="flex items-center gap-2 rounded-xl border border-slate-400/30 bg-white/5 px-6 py-3.5 md:px-8 md:py-4 text-sm md:text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/10 hover:border-slate-300/50"
             >
-              Informasi Toko
+              Pelajari Lebih Lanjut
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

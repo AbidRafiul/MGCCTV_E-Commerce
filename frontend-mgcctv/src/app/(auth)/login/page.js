@@ -2,26 +2,25 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Eye, EyeOff } from "lucide-react"; 
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/beranda";
   
-  // State untuk mencegah Hydration Error
   const [isMounted, setIsMounted] = useState(false);
   const [localToken, setLocalToken] = useState(null);
   const [localRole, setLocalRole] = useState(null);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [showPassword, setShowPassword] = useState(false); 
 
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
-  const [error, setError] = useState("");
-
-  // Ambil data dari Local Storage HANYA di sisi Client
   useEffect(() => {
     setIsMounted(true);
     const token = localStorage.getItem("token");
@@ -31,7 +30,6 @@ export default function LoginPage() {
     setLocalRole(role);
   }, []);
 
-  // REDIRECT JIKA SUDAH LOGIN
   useEffect(() => {
     if (localToken && localRole) {
       const currentRole = localRole.toLowerCase();
@@ -43,7 +41,6 @@ export default function LoginPage() {
     }
   }, [localToken, localRole, router, redirectTo]);
 
-  // HANDLE GOOGLE LOGIN
   const handleGoogleLogin = useCallback(
     async (response) => {
       try {
@@ -71,11 +68,9 @@ export default function LoginPage() {
         document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
         document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
 
-        // === PERBAIKAN: Bersihkan keranjang sisa saat login Google ===
         localStorage.removeItem("mgcctv-cart");
         localStorage.removeItem("mgcctv-checkout");
         window.dispatchEvent(new Event("cart-updated"));
-        // =============================================================
 
         if (userRole === "admin" || userRole === "superadmin") {
           router.push("/admin");
@@ -83,13 +78,12 @@ export default function LoginPage() {
           router.push(redirectTo);
         }
       } catch {
-        setError("Google login gagal");
+        setError("Google login gagal. Periksa koneksi Anda.");
       }
     },
     [redirectTo, router]
   );
 
-  // GOOGLE INIT
   useEffect(() => {
     if (localToken) {
       return;
@@ -107,7 +101,7 @@ export default function LoginPage() {
           {
             theme: "outline",
             size: "large",
-            width: 300,
+            width: 320, 
           }
         );
 
@@ -125,10 +119,10 @@ export default function LoginPage() {
     });
   };
 
-  // LOGIN MANUAL
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setIsSubmitting(true);
 
     try {
       const res = await fetch("http://localhost:3000/api/auth/login", {
@@ -143,6 +137,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError(data.message);
+        setIsSubmitting(false);
         return;
       }
 
@@ -153,11 +148,9 @@ export default function LoginPage() {
       document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
       document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
 
-      // === PERBAIKAN: Bersihkan keranjang sisa saat login Manual ===
       localStorage.removeItem("mgcctv-cart");
       localStorage.removeItem("mgcctv-checkout");
       window.dispatchEvent(new Event("cart-updated"));
-      // =============================================================
 
       if (userRole === "admin" || userRole === "superadmin") {
         router.push("/admin");
@@ -165,100 +158,146 @@ export default function LoginPage() {
         router.push(redirectTo);
       }
     } catch {
-      setError("Gagal terhubung ke server");
+      setError("Gagal terhubung ke server. Periksa jaringan Anda.");
+      setIsSubmitting(false);
     }
   };
 
-  // LOADING STATE
   if (!isMounted || localToken) {
     return (
-      <div className=" flex min-h-screen items-center justify-center gap-3 bg-[#f5f6f8] text-slate-500">
-        <LoaderCircle className="animate-spin" size={20} />
-        <span className="font-medium">Memuat halaman...</span>
+      <div className="flex min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-500">
+        <LoaderCircle className="animate-spin text-blue-600" size={24} />
+        <span className="font-medium">Memverifikasi sesi...</span>
       </div>
     );
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:py-12">
-      {/* BACKGROUND */}
-      <img
-        src="/images/bg login.jpg"
-        alt="bg"
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+    // Tambahan overflow-hidden dan relative di kontainer utama agar "cahaya" tidak luber
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 p-0 font-sans sm:p-8 overflow-hidden">
+      
+      {/* --- DEKORASI BACKGROUND (Menghilangkan kesan kopong) --- */}
+      <div className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-blue-500/10 blur-[100px] hidden sm:block"></div>
+      <div className="pointer-events-none absolute -bottom-20 -right-20 h-[30rem] w-[30rem] rounded-full bg-indigo-500/10 blur-[120px] hidden sm:block"></div>
+      {/* --------------------------------------------------------- */}
 
-      {/* OVERLAY */}
-      <div className="absolute inset-0 bg-black/40"></div>
+      <div className="relative z-10 flex w-full max-w-[1000px] flex-col overflow-hidden bg-white sm:rounded-3xl sm:shadow-2xl sm:ring-1 sm:ring-slate-200 lg:flex-row">
+        
+        {/* BAGIAN KIRI: Gambar & Teks (Rata Kiri) */}
+        <div className="relative hidden w-full bg-slate-900 lg:block lg:w-5/12 xl:w-1/2">
+          <img
+            className="absolute inset-0 h-full w-full object-cover opacity-60"
+            src="/images/bg login.jpg"
+            alt="Keamanan CCTV"
+          />
+          <div className="absolute inset-0 bg-slate-900/40 mix-blend-multiply" />
+          
+          {/* PERBAIKAN: items-start (rata kiri), text-left */}
+          <div className="absolute inset-0 flex flex-col items-start justify-center p-12 text-left text-white">
+            
+            {/* PERBAIKAN BADGE: w-fit agar tidak melar seperti pita */}
+            <span className="mb-5 inline-flex w-fit items-center rounded-full border border-blue-400/30 bg-blue-500/20 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-100 backdrop-blur-md">
+              Selamat Datang Kembali
+            </span>
+            
+            <h2 className="mb-4 text-3xl font-extrabold leading-tight xl:text-4xl">
+              Akses Kendali<br/>Dalam Genggaman.
+            </h2>
+            <p className="max-w-sm text-sm text-slate-300 leading-relaxed">
+              Masuk untuk melanjutkan aktivitas pemantauan dan kelola pesanan CCTV Anda dengan mudah.
+            </p>
+          </div>
+        </div>
 
-      {/* CONTENT */}
-      <div className="relative z-10 flex w-full max-w-[320px] flex-col items-center justify-center sm:max-w-[340px]">
-        <h1 className="mb-4 text-center text-xl font-bold text-white sm:text-2xl">Login</h1>
+        {/* BAGIAN KANAN: Form */}
+        <div className="flex w-full flex-col justify-center px-6 py-10 sm:p-10 lg:w-7/12 xl:w-1/2 lg:p-12">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              Log In
+            </h1>
+            <p className="mt-1.5 text-sm text-slate-500">
+              Masukkan email dan password Anda untuk masuk.
+            </p>
+          </div>
 
-        <div className="w-full rounded-xl bg-white/95 p-4 text-[#0C2C55] shadow-2xl backdrop-blur-md sm:p-5">
-          <form onSubmit={handleLogin} className="space-y-3" suppressHydrationWarning>
-            {/* ERROR */}
-            {error && (
-              <div className="bg-red-50 text-red-500 text-xs text-center font-bold py-2 rounded-lg border border-red-100">
+          {error && (
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+                <svg className="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
                 {error}
-              </div>
-            )}
+              </p>
+            </div>
+          )}
 
+          <form onSubmit={handleLogin} className="space-y-5" suppressHydrationWarning>
+            
             <div>
-              <label className="text-sm font-bold mb-1 block">Username / Email</label>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Username / Email</label>
               <input
                 type="text"
                 name="email"
-                placeholder="Masukkan username/email"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-[13px] outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="Masukkan username atau email"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
                 onChange={handleChange}
+                value={form.email}
                 required
               />
             </div>
 
             <div>
-              <label className="text-sm font-bold mb-1 block">Password</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Masukkan password"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-[13px] outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                onChange={handleChange}
-                required
-              />
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Masukkan password"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  onChange={handleChange}
+                  value={form.password}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute bottom-0 right-3 top-0 flex items-center text-slate-400 transition-colors hover:text-blue-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
-
-            
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-[#0C2C55] py-2.5 text-[13px] font-bold text-white shadow-md shadow-blue-900/20 transition-colors hover:bg-blue-800"
+              disabled={isSubmitting}
+              className={`mt-6 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-bold tracking-wide text-white transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${isSubmitting ? 'cursor-not-allowed opacity-70' : ''}`}
             >
-              Masuk
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <LoaderCircle className="h-4 w-4 animate-spin text-white" />
+                  Memproses...
+                </span>
+              ) : (
+                "Masuk Sekarang"
+              )}
             </button>
 
-            {/* INI BAGIAN BAWAH YANG DIRAPIKAN */}
-            <div className="flex flex-col gap-3 pt-1">
-              {/* Separator */}
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-4 pt-4">
+              <div className="flex items-center gap-4">
                 <div className="h-px w-full bg-slate-200"></div>
-                <p className="text-center text-xs font-semibold text-slate-400 whitespace-nowrap">atau masuk dengan</p>
+                <p className="text-center text-xs font-semibold text-slate-400 whitespace-nowrap">ATAU MASUK DENGAN</p>
                 <div className="h-px w-full bg-slate-200"></div>
               </div>
 
-              {/* GOOGLE BUTTON CONTAINER */}
-              <div className="flex justify-center w-full">
-                {/* Lebarnya dikunci 100% dan overflow disembunyikan agar pas di dalam card putih */}
-                <div id="googleBtn" className="w-full overflow-hidden flex justify-center rounded-lg"></div>
+              <div className="flex w-full justify-center">
+                <div id="googleBtn" className="flex justify-center overflow-hidden rounded-xl"></div>
               </div>
             </div>
             
           </form>
 
-          
-          <p className="mt-4 text-center text-xs font-medium text-slate-500">
+          <p className="mt-8 text-center text-sm text-slate-500">
             Belum memiliki akun?{" "}
-            <a href="/register" className="text-blue-600 font-bold hover:underline">
+            <a href="/register" className="font-semibold text-blue-600 transition-colors hover:text-blue-800">
               Daftar di sini
             </a>
           </p>

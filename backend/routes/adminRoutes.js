@@ -8,7 +8,7 @@ const auth = require("../middleware/auth");
 const superadminAuth = require("../middleware/superadminAuth");
 const upload = require("../middleware/upload");
 const cmsController = require("../controllers/admin/cmsController");
-const { getProdukUnggulan, toggleUnggulan } = require("../controllers/admin/produkController"); // Untuk produk unggulan di beranda publik
+const { getProdukUnggulan, toggleUnggulan } = require("../controllers/admin/produkController");
 
 
 // ==========================================
