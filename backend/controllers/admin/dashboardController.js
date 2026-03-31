@@ -137,9 +137,9 @@ const getDashboardStats = async (req, res) => {
           LIMIT 5`
       ),
 
-      // 8. Pesanan Terbaru (5 terakhir)
+// 8. Pesanan Terbaru (5 terakhir)
       connection.query(
-        `SELECT p.id_pesanan,
+        `SELECT t.id_transaksi AS id_pesanan, 
                 u.nama AS nama_pelanggan,
                 t.total_harga,
                 t.status_order,
@@ -147,10 +147,8 @@ const getDashboardStats = async (req, res) => {
          FROM tr_transaksi t
          LEFT JOIN ms_users u ON u.id_users = t.id_users
          ORDER BY t.created_at DESC
-         LIMIT 5`,
-        []
+         LIMIT 5`
       ),
-
       // 9. Aktivitas Terkini
       connection.query(
         `(SELECT 

@@ -15,7 +15,6 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  // Pelindung Hydration
   const [isMounted, setIsMounted] = useState(false); 
   const [isLogin, setIsLogin] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -38,11 +37,18 @@ export default function Navbar() {
 
       if (!token) {
         setProfile(null);
+        setCartCount(0); // PERBAIKAN 1: Reset angka keranjang jika tidak ada user login
       }
     };
 
     const syncCartCount = () => {
-      setCartCount(getCartCount());
+      const token = localStorage.getItem("token");
+      // Hanya ambil data keranjang kalau user sedang login
+      if (token) {
+        setCartCount(getCartCount());
+      } else {
+        setCartCount(0);
+      }
     };
 
     const fetchProfile = async () => {
@@ -68,25 +74,26 @@ export default function Navbar() {
     };
 
     const handleFocus = () => {
-      syncLoginState();
+      syncAuth();
       fetchProfile();
       syncCartCount();
     };
 
     handleScroll();
     syncAuth();
+    fetchProfile();
+    syncCartCount();
 
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
     window.addEventListener("cart-updated", syncCartCount);
     window.addEventListener("scroll", handleScroll);
-    window.addEventListener("focus", syncAuth);
+    
     return () => {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
       window.removeEventListener("cart-updated", syncCartCount);
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("focus", syncAuth);
     };
   }, []);
 
@@ -119,11 +126,22 @@ export default function Navbar() {
       cancelButtonText: 'Batal',
     }).then((result) => {
       if (result.isConfirmed) {
+        // 1. Hapus semua data di Local Storage & Cookies
         localStorage.removeItem("token");
         localStorage.removeItem("role");
-        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+        localStorage.removeItem("mgcctv-cart"); 
+        localStorage.removeItem("mgcctv-checkout"); 
+        
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";  
         document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
         
+        // 2. LANGSUNG reset tampilan UI (Navbar) detik itu juga!
+        setIsLogin(false);
+        setProfile(null);
+        setCartCount(0);
+        window.dispatchEvent(new Event("cart-updated"));
+
+        // 3. Tampilkan Notifikasi Sukses
         Swal.fire({
           title: 'Berhasil Logout!',
           icon: 'success',
@@ -132,30 +150,21 @@ export default function Navbar() {
           timer: 1500,
           showConfirmButton: false
         }).then(() => {
-          window.location.href = "/beranda";
+          // 4. Paksa browser memuat ulang halaman untuk membersihkan cache Next.js
+          window.location.reload();
         });
       }
     });
   };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
-
-  const profileInitial = profile?.nama?.trim()?.charAt(0)?.toUpperCase() || "P";
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const profileInitial = profile?.nama?.trim()?.charAt(0)?.toUpperCase() || "U";
 
   const handleAddToCart = () => {
     router.push("/keranjang");
   }
 
-  const menuClass =
-    "relative text-[#0C2C55] font-semibold transition-all duration-300 hover:text-blue-600 " +
-    "after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 " +
-    "after:bottom-[-4px] after:left-0 after:bg-blue-600 after:origin-bottom-right " +
-    "after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left";
-
   return (
-    <nav className={`fixed top-0 w-full z-[100] transition-all duration-300 ${
+    <nav suppressHydrationWarning className={`fixed top-0 w-full z-[100] transition-all duration-300 ${
       isScrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 py-3" : "bg-white py-4"
     }`}>
       
@@ -172,23 +181,15 @@ export default function Navbar() {
           </Link>
         </div>
 
-        <button
-          onClick={handleAddToCart}
-          type="button"
-          className="relative p-2 bg-blue-50 rounded-full cursor-pointer hover:bg-blue-100 transition-colors group hidden lg:block"
-          aria-label="Keranjang"
-        >
-          <ShoppingCart
-            size={20}
-            className="text-[#0C2C55] transition-transform group-hover:scale-110"
-          />
-          {cartCount > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold leading-none text-white shadow-sm">
-              {cartCount > 99 ? "99+" : cartCount}
-            </span>
-          ) : null}
-        </button>
-
+        {/* BAGIAN 2: DESKTOP MENU (TENGAH) */}
+        <div className="hidden lg:flex flex-1 justify-center gap-8 xl:gap-12 items-center">
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="text-[#0C2C55] font-semibold hover:text-blue-600 transition-colors whitespace-nowrap">
+              {link.label}
+            </Link>
+          ))}
+        </div>
+        
         {/* BAGIAN 3: DESKTOP ACTIONS (KANAN) */}
         <div className="hidden lg:flex flex-1 justify-end items-center gap-4 xl:gap-6">
           
@@ -197,14 +198,29 @@ export default function Navbar() {
               <Search size={16} />
             </span>
             <input
+              suppressHydrationWarning
               type="text"
               placeholder="Cari perangkat..."
               className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-sm w-44 xl:w-56 focus:w-64 focus:ring-2 focus:ring-blue-500 transition-all duration-300 outline-none"
             />
           </div>
 
-          <button type="button" className="relative p-2 bg-blue-50 rounded-full cursor-pointer hover:bg-blue-100 transition-colors group">
-            <ShoppingCart size={20} className="text-[#0C2C55] transition-transform group-hover:scale-110" />
+          <button
+            suppressHydrationWarning
+            onClick={handleAddToCart}
+            type="button"
+            className="relative p-2 bg-blue-50 rounded-full cursor-pointer hover:bg-blue-100 transition-colors group hidden lg:block"
+            aria-label="Keranjang"
+          >
+            <ShoppingCart
+              size={20}
+              className="text-[#0C2C55] transition-transform group-hover:scale-110"
+            />
+            {cartCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold leading-none text-white shadow-sm">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            ) : null}
           </button>
 
           {/* AUTH PELINDUNG HYDRATION */}
@@ -243,6 +259,7 @@ export default function Navbar() {
         {/* MOBILE MENU TOGGLE */}
         <div className="flex items-center gap-2 lg:hidden">
           <button
+            suppressHydrationWarning
             type="button"
             onClick={handleAddToCart}
             className="relative rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100"
@@ -254,20 +271,20 @@ export default function Navbar() {
               </span>
             ) : null}
           </button>
-          <button type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-full bg-[#0C2C55] p-2 text-white transition-colors hover:bg-blue-700">
+          <button suppressHydrationWarning type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="rounded-full bg-[#0C2C55] p-2 text-white transition-colors hover:bg-blue-700">
             {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
       </div>
 
-      {/* MOBILE DROPDOWN - BERSAHABAT DENGAN HYDRATION */}
+      {/* MOBILE DROPDOWN */}
       <div className={`absolute top-full left-0 w-full bg-white shadow-xl transition-all duration-300 origin-top overflow-hidden lg:hidden ${isMobileMenuOpen ? "max-h-[600px] border-t border-slate-100" : "max-h-0"}`}>
         <div className="px-6 py-6 flex flex-col gap-6">
           
           <div className="relative">
             <Search size={18} className="absolute inset-y-0 left-4 my-auto text-slate-400" />
-            <input type="text" placeholder="Cari perangkat CCTV..." className="w-full bg-slate-50 border border-slate-100 rounded-full py-3 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+            <input suppressHydrationWarning type="text" placeholder="Cari perangkat CCTV..." className="w-full bg-slate-50 border border-slate-100 rounded-full py-3 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
           <div className="flex flex-col gap-2">

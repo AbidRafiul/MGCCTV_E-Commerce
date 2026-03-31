@@ -159,3 +159,9 @@ export const clearCheckoutItems = () => {
   if (!isBrowser()) return;
   localStorage.removeItem(CHECKOUT_STORAGE_KEY);
 };
+
+export const clearCartItems = () => {
+  if (!isBrowser()) return;
+  localStorage.removeItem(CART_STORAGE_KEY);
+  window.dispatchEvent(new Event("cart-updated"));
+};
