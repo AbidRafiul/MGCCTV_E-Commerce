@@ -3,15 +3,15 @@
     import { useState, useEffect } from "react";
     import Image from "next/image";
     import Link from "next/link";
-    import { Search, Plus, Download, Edit3, Trash2, Power, Image as ImageIcon } from "lucide-react";
+    import { Search, Plus, Download, Edit3, Trash2, Power, Image as ImageIcon, Star } from "lucide-react";
     import Swal from "sweetalert2";
     import { exportToExcel } from "@/utils/exportExcel";
 
     export default function DataBarangPage() {
     // STATE UNTUK DATA
-    const [allProduk, setAllProduk] = useState([]); // Menyimpan data asli utuh
-    const [produk, setProduk] = useState([]);       // Menyimpan data yang sudah difilter untuk ditampilkan
-    const [kategoriList, setKategoriList] = useState([]); // Menyimpan daftar Merek
+    const [allProduk, setAllProduk] = useState([]); 
+    const [produk, setProduk] = useState([]);       
+    const [kategoriList, setKategoriList] = useState([]); 
     const [isLoading, setIsLoading] = useState(true);
 
     // STATE UNTUK FILTERING
@@ -28,7 +28,7 @@
         const data = await res.json();
         if (res.ok) {
             setAllProduk(data);
-            setProduk(data); // Awalnya, data yang difilter = semua data
+            setProduk(data); 
         }
         } catch (error) {
         console.error("Gagal menarik data produk:", error);
@@ -37,7 +37,7 @@
         }
     };
 
-    // 2. Fetch Data Kategori (Merek) untuk Dropdown
+    // 2. Fetch Data Kategori (Merek)
     const fetchKategori = async () => {
         try {
         const res = await fetch("http://localhost:3000/api/public/kategori", {
@@ -50,46 +50,32 @@
         }
     };
 
-    // Jalankan saat pertama kali halaman dimuat
     useEffect(() => {
         fetchProduk();
         fetchKategori();
     }, []);
 
-    // 3. LOGIKA FILTERING (Berjalan otomatis setiap kali input filter atau data berubah)
+    // 3. LOGIKA FILTERING 
     useEffect(() => {
         let result = allProduk;
 
-        // Filter berdasarkan Nama Barang (Pencarian)
         if (searchQuery) {
         result = result.filter(item => 
             item.nama_produk.toLowerCase().includes(searchQuery.toLowerCase())
         );
         }
 
-        // Filter berdasarkan Merek
         if (selectedMerek) {
-        // Kita cocokkan ID kategori karena select option mengirimkan value berupa ID
         result = result.filter(item => item.ms_kategori_id_kategori.toString() === selectedMerek);
         }
 
-        // Filter berdasarkan Status & Stok
         if (selectedStatus) {
         switch(selectedStatus) {
-            case "aktif":
-            result = result.filter(item => item.status_produk === 1);
-            break;
-            case "nonaktif":
-            result = result.filter(item => item.status_produk === 0);
-            break;
-            case "tipis":
-            result = result.filter(item => item.stok > 0 && item.stok <= 5);
-            break;
-            case "habis":
-            result = result.filter(item => item.stok === 0);
-            break;
-            default:
-            break;
+            case "aktif": result = result.filter(item => item.status_produk === 1); break;
+            case "nonaktif": result = result.filter(item => item.status_produk === 0); break;
+            case "tipis": result = result.filter(item => item.stok > 0 && item.stok <= 5); break;
+            case "habis": result = result.filter(item => item.stok === 0); break;
+            default: break;
         }
         }
 
@@ -129,7 +115,7 @@
         });
     };
 
-    // FUNGSI AKSI: Ganti Status
+    // FUNGSI AKSI: Ganti Status Aktif/Nonaktif
     const handleToggleStatus = async (id_produk, currentStatus) => {
         const newStatus = currentStatus === 1 ? 0 : 1;
         const statusText = newStatus === 1 ? "Aktifkan" : "Nonaktifkan";
@@ -169,6 +155,57 @@
         });
     };
 
+    // ==========================================
+    // FUNGSI BARU: Ganti Status Unggulan (Beranda)
+    // ==========================================
+    const handleToggleUnggulan = async (id_produk, currentUnggulan) => {
+        const newUnggulan = currentUnggulan === 1 ? 0 : 1;
+        const statusText = newUnggulan === 1 ? "Jadikan Produk Unggulan?" : "Hapus dari Beranda?";
+        const descText = newUnggulan === 1 
+        ? "Produk ini akan langsung ditampilkan di halaman utama (Beranda) pelanggan." 
+        : "Produk ini akan dihilangkan dari tampilan halaman utama.";
+
+        Swal.fire({
+        title: statusText,
+        text: descText,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: newUnggulan === 1 ? '#eab308' : '#64748b', // Kuning/Abu
+        cancelButtonColor: '#0C2C55',
+        confirmButtonText: newUnggulan === 1 ? 'Ya, Tampilkan!' : 'Ya, Sembunyikan',
+        cancelButtonText: 'Batal'
+        }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+            const res = await fetch(`http://localhost:3000/api/admin/produk/${id_produk}/unggulan`, {
+                method: "PATCH",
+                headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}` 
+                },
+                body: JSON.stringify({ is_unggulan: newUnggulan })
+            });
+            
+            if (res.ok) {
+                Swal.fire({
+                title: 'Berhasil!',
+                text: newUnggulan === 1 ? 'Produk sekarang tampil di Beranda.' : 'Produk dilepas dari Beranda.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+                });
+                fetchProduk(); 
+            } else {
+                const data = await res.json();
+                Swal.fire('Error!', data.message, 'error');
+            }
+            } catch (error) {
+            Swal.fire('Error!', 'Gagal menghubungi server.', 'error');
+            }
+        }
+        });
+    };
+
     const formatRupiah = (angka) => {
         return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
     };
@@ -180,29 +217,27 @@
         return <span className="bg-green-100 text-green-600 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide whitespace-nowrap">Aktif</span>;
     };
 
-    // --- FUNGSI EXPORT EXCEL (DATA BARANG) ---
-const handleExportExcel = () => {
-    if (produk.length === 0) {
-      Swal.fire('Data Kosong', 'Tidak ada produk yang bisa diekspor.', 'warning'); return;
-    }
+    {/* FUNGSI: Export ke Excel */}
+    const handleExportExcel = () => {
+        if (produk.length === 0) {
+        Swal.fire('Data Kosong', 'Tidak ada produk yang bisa diekspor.', 'warning'); return;
+        }
 
-    const dataToExport = produk.map((item, index) => ({
-      "No": index + 1,
-      "SKU": `PRD-${String(item.id_produk).padStart(4, '0')}`,
-      "Nama Produk": item.nama_produk,
-      "Merek": item.merek || "-",
-      "Harga Jual": item.harga_produk,
-      "Sisa Stok": item.stok,
-      "Status": item.status_produk === 1 ? "Aktif" : "Nonaktif"
-    }));
+        const dataToExport = produk.map((item, index) => ({
+        "No": index + 1,
+        "SKU": `PRD-${String(item.id_produk).padStart(4, '0')}`,
+        "Nama Produk": item.nama_produk,
+        "Merek": item.merek || "-",
+        "Harga Jual": item.harga_produk,
+        "Sisa Stok": item.stok,
+        "Status": item.status_produk === 1 ? "Aktif" : "Nonaktif",
+        "Di Beranda": item.is_unggulan === 1 ? "Ya" : "Tidak" // Info tambahan untuk Excel
+        }));
 
-    const columnWidths = [
-      { wch: 5 }, { wch: 15 }, { wch: 45 }, { wch: 20 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
-    ];
+        const columnWidths = [{ wch: 5 }, { wch: 15 }, { wch: 45 }, { wch: 20 }, { wch: 18 }, { wch: 12 }, { wch: 15 }, { wch: 12 }];
 
-    // Panggil pabrik Excel kita!
-    exportToExcel(dataToExport, "Laporan_Data_Barang_MGCCTV", "Data Barang", columnWidths);
-  };
+        exportToExcel(dataToExport, "Laporan_Data_Barang_MGCCTV", "Data Barang", columnWidths);
+    };
 
     return (
         <div className="space-y-4 md:space-y-6">
@@ -266,9 +301,9 @@ const handleExportExcel = () => {
                 </p>
             </div>
             <button 
-            onClick={handleExportExcel} 
-            className="flex items-center gap-2 px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs md:text-sm font-medium hover:bg-slate-50 transition-colors shrink-0 shadow-sm">
-            <Download size={16} /> <span className="hidden sm:inline">Export Excel</span>
+                onClick={handleExportExcel} 
+                className="flex items-center gap-2 px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs md:text-sm font-medium hover:bg-slate-50 transition-colors shrink-0 shadow-sm">
+                <Download size={16} /> <span className="hidden sm:inline">Export Excel</span>
             </button>
             </div>
 
@@ -281,7 +316,7 @@ const handleExportExcel = () => {
             ) : (
                 <div className="space-y-4">
                 {produk.map((item) => (
-                    <div key={item.id_produk} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3 relative transition-all duration-150 hover:border-blue-100 hover:shadow-blue-900/5">
+                    <div key={item.id_produk} className={`bg-white p-4 rounded-xl border shadow-sm space-y-3 relative transition-all duration-150 ${item.is_unggulan === 1 ? 'border-amber-200' : 'border-slate-100'}`}>
                     <div className="flex items-start gap-3">
                         <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden relative">
                         {item.gambar_produk && (item.gambar_produk.startsWith('http') || item.gambar_produk.startsWith('/')) ? (
@@ -295,7 +330,15 @@ const handleExportExcel = () => {
                             <h3 className="font-bold text-slate-800 text-sm leading-tight truncate-multiline-2">{item.nama_produk}</h3>
                             <span className="shrink-0 absolute top-4 right-4">{getStatusBadge(item.stok, item.status_produk)}</span>
                         </div>
-                        <p className="text-[11px] font-medium text-slate-400">SKU: PRD-{String(item.id_produk).padStart(4, '0')}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-[11px] font-medium text-slate-400">SKU: PRD-{String(item.id_produk).padStart(4, '0')}</p>
+                            {/* Lencana Unggulan di Mobile */}
+                            {item.is_unggulan === 1 && (
+                            <span className="flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                                <Star size={10} className="fill-amber-500" /> Beranda
+                            </span>
+                            )}
+                        </div>
                         </div>
                     </div>
 
@@ -313,6 +356,16 @@ const handleExportExcel = () => {
                     <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-3">
                         <span className="font-bold text-slate-800 text-base">{formatRupiah(item.harga_produk)}</span>
                         <div className="flex items-center gap-2">
+                        
+                        {/* TOMBOL BINTANG UNTUK MOBILE */}
+                        <button 
+                            onClick={() => handleToggleUnggulan(item.id_produk, item.is_unggulan)} 
+                            className={`p-2 rounded-lg border transition-colors shadow-sm ${item.is_unggulan === 1 ? 'border-amber-200 text-amber-500 bg-amber-50' : 'border-slate-200 text-slate-400 bg-white hover:bg-slate-50'}`} 
+                            title={item.is_unggulan === 1 ? "Hapus dari Beranda" : "Jadikan Unggulan"}
+                        >
+                            <Star size={16} className={item.is_unggulan === 1 ? "fill-amber-500" : ""} />
+                        </button>
+
                         <button onClick={() => handleToggleStatus(item.id_produk, item.status_produk)} className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors bg-white shadow-sm" title={item.status_produk === 1 ? "Nonaktifkan" : "Aktifkan"}>
                             <Power size={16} />
                         </button>
@@ -372,6 +425,16 @@ const handleExportExcel = () => {
                         <td className="px-4 md:px-6 py-3 md:py-4">{getStatusBadge(item.stok, item.status_produk)}</td>
                         <td className="px-4 md:px-6 py-3 md:py-4">
                         <div className="flex items-center justify-center gap-2">
+                            
+                            {/* TOMBOL BINTANG UNTUK DESKTOP */}
+                            <button 
+                            onClick={() => handleToggleUnggulan(item.id_produk, item.is_unggulan)} 
+                            className={`p-1.5 md:p-2 rounded-lg border transition-colors shadow-sm ${item.is_unggulan === 1 ? 'border-amber-200 text-amber-500 bg-amber-50 hover:bg-amber-100' : 'border-slate-200 text-slate-400 bg-white hover:bg-slate-50'}`} 
+                            title={item.is_unggulan === 1 ? "Hapus dari Beranda" : "Jadikan Unggulan"}
+                            >
+                            <Star size={14} className={`md:w-4 md:h-4 ${item.is_unggulan === 1 ? "fill-amber-500" : ""}`} />
+                            </button>
+
                             <button onClick={() => handleToggleStatus(item.id_produk, item.status_produk)} className="p-1.5 md:p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors bg-white shadow-sm" title={item.status_produk === 1 ? "Nonaktifkan" : "Aktifkan"}>
                             <Power size={14} className="md:w-4 md:h-4" />
                             </button>

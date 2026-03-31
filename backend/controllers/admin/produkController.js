@@ -220,5 +220,56 @@
     }
     };
 
-    // Export semua fungsi
-module.exports = { getAllProduk, addProduk, getProdukById, updateProduk, deleteProduk, updateStatusProduk };
+// ==========================================
+// 8. FUNGSI GET (Mengambil Produk Unggulan)
+// ==========================================
+const getProdukUnggulan = async (req, res) => {
+  try {
+    const query = `
+      SELECT p.*, k.nama_kategori AS merek 
+      FROM ms_produk p
+      LEFT JOIN ms_kategori k ON p.ms_kategori_id_kategori = k.id_kategori 
+      WHERE p.is_unggulan = 1 
+      ORDER BY p.updated_at DESC
+      LIMIT 6
+    `; 
+    
+    const [results] = await connection.query(query);
+    res.status(200).json(results);
+  } catch (error) {
+    res.status(500).json({ message: "Gagal mengambil produk unggulan", error: error.message });
+  }
+};
+
+// ==========================================
+// 9. FUNGSI PATCH (Mengubah Status Unggulan)
+// ==========================================
+const toggleUnggulan = async (req, res) => {
+try {
+    const { id } = req.params;
+    const { is_unggulan } = req.body; 
+    
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    await connection.query(
+"UPDATE ms_produk SET is_unggulan = ?, updated_at = ? WHERE id_produk = ?",
+[is_unggulan, now, id]
+    );
+
+    res.status(200).json({ message: "Status unggulan berhasil diperbarui!" });
+} catch (error) {
+    res.status(500).json({ message: "Gagal memperbarui status unggulan", error: error.message });
+}
+};
+
+// Export semua fungsi
+module.exports = { 
+  getAllProduk, 
+  addProduk, 
+  getProdukById, 
+  updateProduk, 
+  deleteProduk, 
+  updateStatusProduk,
+  getProdukUnggulan, // <--- Sudah ditambahkan
+  toggleUnggulan     // <--- Sudah ditambahkan
+};

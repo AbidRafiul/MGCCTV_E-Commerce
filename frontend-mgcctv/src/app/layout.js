@@ -7,7 +7,7 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  title: "MGCCTV Dashboard",
+  title: "MGCCTV",
   description: "Admin Dashboard for MGCCTV",
 };
 

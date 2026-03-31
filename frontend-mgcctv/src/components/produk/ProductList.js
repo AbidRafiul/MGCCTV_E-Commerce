@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Star, ChevronLeft, ChevronRight, Loader2, PackageSearch } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Star, ChevronLeft, ChevronRight, Loader2, PackageSearch, ChevronDown } from "lucide-react";
 import { getAllProducts, getAllCategories } from "@/services/produkService";
 import Link from "next/link";
 
@@ -11,10 +11,16 @@ export default function ProductList() {
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   
-  // Batas maksimal produk per slide/halaman
+  // State untuk deteksi ukuran layar (Biar responsive)
+  const [maxVisible, setMaxVisible] = useState(6);
+  const [isMounted, setIsMounted] = useState(false);
+
   const produkPerHalaman = 9; 
 
+  // Ambil data API
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -30,6 +36,38 @@ export default function ProductList() {
       setLoading(false);
     };
     loadData();
+  }, []);
+
+  // Event Listener untuk Responsive Dropdown & Click Outside
+  useEffect(() => {
+    setIsMounted(true); // Mencegah error hydration di Next.js
+
+    // Fungsi deteksi klik di luar dropdown
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    // Fungsi deteksi ukuran layar (HP vs Laptop)
+    function handleResize() {
+      if (window.innerWidth < 640) {
+        setMaxVisible(2); // Di HP cuma nampil 2 kategori + tombol Lainnya
+      } else if (window.innerWidth < 1024) {
+        setMaxVisible(4); // Di Tablet nampil 4 kategori
+      } else {
+        setMaxVisible(6); // Di Laptop nampil 6 kategori
+      }
+    }
+
+    handleResize(); // Cek saat pertama kali web dibuka
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", handleResize);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   const filteredProducts = allProducts.filter((p) => {
@@ -67,11 +105,22 @@ export default function ProductList() {
     return pages;
   };
 
+  // LOGIKA PEMISAH KATEGORI (Menggunakan maxVisible yang sudah responsive)
+  const currentMaxVisible = isMounted ? maxVisible : 6;
+  const visibleCategories = categories.slice(0, currentMaxVisible);
+  const hiddenCategories = categories.slice(currentMaxVisible);
+
+  const handleSelectCategory = (cat) => {
+    setActiveCategory(cat);
+    setCurrentPage(1);
+    setIsDropdownOpen(false);
+  };
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-32">
-        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-        <p className="text-gray-500 font-medium">Sinkronisasi gudang MG CCTV...</p>
+      <div className="flex flex-col items-center justify-center py-32 px-6">
+        <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-500 font-medium text-sm md:text-base text-center">Sinkronisasi gudang MG CCTV...</p>
       </div>
     );
   }
@@ -94,6 +143,45 @@ export default function ProductList() {
             {cat}
           </button>
         ))}
+
+        {/* Dropdown "Lainnya" */}
+        {hiddenCategories.length > 0 && (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={`flex items-center gap-1 md:gap-2 px-4 py-2 md:px-8 md:py-2.5 rounded-full text-xs md:text-sm font-bold border transition-all duration-300 ${
+                hiddenCategories.includes(activeCategory)
+                  ? "bg-[#0C2C55] text-white border-[#0C2C55] shadow-lg shadow-blue-900/20"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600"
+              }`}
+            >
+              <span className="truncate max-w-[80px] md:max-w-none">
+                {hiddenCategories.includes(activeCategory) ? activeCategory : "Lainnya"}
+              </span>
+              <ChevronDown size={16} className={`transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {/* Menu Isi Dropdown */}
+            {isDropdownOpen && (
+              <div className="absolute top-full right-0 md:left-0 mt-2 md:mt-3 w-40 md:w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col py-2 animate-in fade-in slide-in-from-top-2">
+                {hiddenCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => handleSelectCategory(cat)}
+                    className={`text-left px-4 md:px-5 py-2.5 md:py-3 text-xs md:text-sm font-bold transition-colors ${
+                      activeCategory === cat
+                        ? "bg-blue-50 text-[#0C2C55]"
+                        : "text-gray-500 hover:bg-slate-50 hover:text-[#0C2C55]"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* GRID PRODUK */}
@@ -109,7 +197,7 @@ export default function ProductList() {
                 <img 
                   src={product.gambar_produk || "/images/placeholder.jpg"} 
                   alt={product.nama_produk} 
-                  className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" 
+                  className="w-[90%] h-[90%] md:w-[80%] md:h-[80%] object-contain group-hover:scale-110 transition-transform duration-700" 
                 />
               </div>
               <div className="space-y-1.5 sm:space-y-2">
@@ -146,8 +234,8 @@ export default function ProductList() {
             <ChevronLeft size={18} className="stroke-[3px] sm:h-5 sm:w-5" />
           </button>
           
-          {/* Angka-angka */}
-          <div className="flex">
+          {/* Angka Halaman (Bisa di-scroll di HP tanpa scrollbar) */}
+          <div className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {getPageNumbers().map((page, i) => (
               <button 
                 key={i}
@@ -164,7 +252,7 @@ export default function ProductList() {
             ))}
           </div>
 
-          {/* Tombol Selanjutnya */}
+          {/* Tombol Kanan (Fixed) */}
           <button 
             disabled={currentPage === jumlahHalaman || filteredProducts.length === 0}
             onClick={() => pindahHalaman(currentPage + 1)}
@@ -172,6 +260,7 @@ export default function ProductList() {
           >
             <ChevronRight size={18} className="stroke-[3px] sm:h-5 sm:w-5" />
           </button>
+
         </div>
       </div>
 

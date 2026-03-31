@@ -123,48 +123,43 @@ const getDashboardStats = async (req, res) => {
          LIMIT 5`,
         []
       ),
-      detailTable && quantityColumn
-        ? safeQuery(
-            "kategori-terlaris",
-            `SELECT k.nama_kategori,
-                    COALESCE(SUM(dt.${quantityColumn}), 0) AS total_terjual
-             FROM ms_kategori k
-             LEFT JOIN ms_produk p ON p.ms_kategori_id_kategori = k.id_kategori
-             LEFT JOIN ${detailTable} dt ON dt.id_produk = p.id_produk
-             GROUP BY k.id_kategori, k.nama_kategori
-             ORDER BY total_terjual DESC
-             LIMIT 5`,
-            []
-          )
-        : Promise.resolve([]),
-      safeQuery(
-        "pesanan-terbaru",
-        `SELECT t.id_transaksi AS id_pesanan,
-                COALESCE(u.nama, 'Pelanggan') AS nama_pelanggan,
-                COALESCE(t.total_harga, 0) AS total_harga,
-                COALESCE(t.status_order, 'pending') AS status_order,
+
+      // 7. Kategori Terlaris (DI SINI PERBAIKANNYA)
+      connection.query(
+        `SELECT k.nama_kategori,
+                COALESCE(SUM(dt.quantity), 0) AS total_terjual
+          FROM ms_kategori k
+          LEFT JOIN ms_produk p ON p.ms_kategori_id_kategori = k.id_kategori
+          -- Perbaikan: Menggunakan 'id_product' sesuai skema di image_7b3c3c.png
+          LEFT JOIN ms_detail_transaction dt ON dt.id_product = p.id_produk
+          GROUP BY k.id_kategori, k.nama_kategori
+          ORDER BY total_terjual DESC
+          LIMIT 5`
+      ),
+
+// 8. Pesanan Terbaru (5 terakhir)
+      connection.query(
+        `SELECT t.id_transaksi AS id_pesanan, 
+                u.nama AS nama_pelanggan,
+                t.total_harga,
+                t.status_order,
                 t.created_at
          FROM tr_transaksi t
          LEFT JOIN ms_users u ON u.id_users = t.id_users
          ORDER BY t.created_at DESC
-         LIMIT 5`,
-        []
+         LIMIT 5`
       ),
-      safeQuery(
-        "aktivitas-terkini",
-        `(SELECT
-            CONCAT(
-              'Pesanan #ORD-',
-              LPAD(t.id_transaksi, 4, '0'),
-              CASE t.status_order
-                WHEN 'pending' THEN ' menunggu konfirmasi pembayaran'
-                WHEN 'paid' THEN ' telah dibayar'
-                WHEN 'failed' THEN ' dibatalkan oleh pelanggan'
-                WHEN 'expired' THEN ' selesai'
-                ELSE CONCAT(' status: ', t.status_order)
-              END
-            ) AS keterangan,
-            COALESCE(u.nama, 'Pelanggan') AS aktor,
+      // 9. Aktivitas Terkini
+      connection.query(
+        `(SELECT 
+            CONCAT('Pesanan #ORD-', LPAD(t.id_transaksi, 4, '0'), 
+                    CASE t.status_order
+                    WHEN 'pending' THEN ' menunggu konfirmasi pembayaran'
+                    WHEN 'paid' THEN ' telah dibayar'
+                    WHEN 'failed' THEN ' dibatalkan oleh pelanggan'
+                    ELSE CONCAT(' status: ', t.status_order)
+                    END) AS keterangan,
+            u.nama AS aktor,
             t.created_at AS waktu,
             CASE
               WHEN t.status_order = 'failed' THEN 'batal'
@@ -207,30 +202,22 @@ const getDashboardStats = async (req, res) => {
       ),
     ]);
 
-    const kategoriSource =
-      kategoriTerlarisRows.length > 0
-        ? kategoriTerlarisRows
-        : kategoriRows.map((kategori) => ({
-            nama_kategori: kategori.nama_kategori,
-            total_terjual: 0,
-          }));
-
-    const totalTerjual =
-      kategoriSource.reduce((acc, item) => acc + Number(item.total_terjual || 0), 0) || 1;
-
-    const kategoriWithPercent = kategoriSource.map((item) => ({
-      nama: item.nama_kategori,
-      total: Number(item.total_terjual || 0),
-      persen: Math.round((Number(item.total_terjual || 0) / totalTerjual) * 100),
+    // Format data kategori
+    const kategoriData = kategoriTerlarisResult[0];
+    const totalTerjual = kategoriData.reduce((acc, k) => acc + Number(k.total_terjual), 0) || 1;
+    const kategoriWithPercent = kategoriData.map((k) => ({
+      nama: k.nama_kategori,
+      total: Number(k.total_terjual),
+      persen: Math.round((Number(k.total_terjual) / totalTerjual) * 100),
     }));
 
-    const maxHarian =
-      Math.max(...pendapatanHarianRows.map((item) => Number(item.total || 0)), 1);
-
-    const harianWithRatio = pendapatanHarianRows.map((item) => ({
-      tanggal: item.tanggal,
-      total: Number(item.total || 0),
-      rasio: Math.round((Number(item.total || 0) / maxHarian) * 100),
+    // Format data harian
+    const harianData = pendapatanHarianResult[0];
+    const maxHarian = Math.max(...harianData.map((d) => Number(d.total)), 1);
+    const harianWithRatio = harianData.map((d) => ({
+      tanggal: d.tanggal,
+      total: Number(d.total),
+      rasio: Math.round((Number(d.total) / maxHarian) * 100),
     }));
 
     return res.status(200).json({

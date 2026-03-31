@@ -7,31 +7,21 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const superadminAuth = require("../middleware/superadminAuth");
 const upload = require("../middleware/upload");
+const cmsController = require("../controllers/admin/cmsController");
+const { getProdukUnggulan, toggleUnggulan } = require("../controllers/admin/produkController"); // Untuk produk unggulan di beranda publik
+
 
 // ==========================================
 // 2. IMPORT CONTROLLERS
 // ==========================================
 const { getDashboardStats } = require("../controllers/admin/dashboardController");
 const { getAllKategori, addKategori, updateKategori, deleteKategori } = require("../controllers/admin/kategoriController");
-const { 
-  getAllUsers, 
-  addAdmin, 
-  updateAdmin, 
-  deleteAdmin 
-} = require("../controllers/admin/userController");
-const { 
-  getAllProduk, 
-  addProduk, 
-  getProdukById, 
-  updateProduk, 
-  deleteProduk, 
-  updateStatusProduk // <--- FIX: Fungsi sudah ditambahkan di sini!
-} = require("../controllers/admin/produkController");
+const { getAllUsers, addAdmin, updateAdmin, deleteAdmin } = require("../controllers/admin/userController");
+const { getAllProduk, addProduk, getProdukById, updateProduk, deleteProduk, updateStatusProduk } = require("../controllers/admin/produkController");
 
 // ==========================================
 // 3. MIDDLEWARE HELPER
 // ==========================================
-// Menyatukan penanganan error upload gambar agar tidak ditulis berulang-ulang
 const handleUploadGambar = (req, res, next) => {
   upload.single("gambar")(req, res, (err) => {
     if (err) {
@@ -45,25 +35,30 @@ const handleUploadGambar = (req, res, next) => {
 };
 
 // ==========================================
-// 4. DAFTAR ROUTES
+// 4. DAFTAR ROUTES PUBLIK (Tidak perlu auth)
 // ==========================================
 
+// --- RUTE CMS TENTANG KAMI PUBLIK ---
+router.get("/cms/tentang", cmsController.getTentangContent);
+router.get("/cms/galeri", cmsController.getGallery);
+router.get("/cms/unggulan", getProdukUnggulan);
 
 
-// GLOBAL MIDDLEWARE: Pastikan semua yang masuk rute di bawah ini sudah login
+// ==========================================
+// 5. GLOBAL MIDDLEWARE: Auth Required
+// ==========================================
+// Semua rute di bawah baris ini wajib login
 router.use(auth);
 
 
 // --- RUTE DASHBOARD ---
 router.get("/dashboard", getDashboardStats);
 
-
 // --- RUTE KATEGORI (MEREK) ---
-// router.get("/kategori", getAllKategori);
+router.get("/kategori", getAllKategori);
 router.post("/kategori", addKategori);
 router.put("/kategori/:id", updateKategori);
 router.delete("/kategori/:id", deleteKategori);
-
 
 // --- RUTE PRODUK ---
 // router.get("/produk", getAllProduk);
@@ -73,6 +68,15 @@ router.put("/produk/:id", handleUploadGambar, updateProduk);
 router.patch("/produk/:id/status", updateStatusProduk);
 router.delete("/produk/:id", deleteProduk);
 
+// --- RUTE BERANDA (PRODUK UNGGULAN SAJA) ---
+router.patch("/produk/:id/unggulan", toggleUnggulan);
+
+// --- RUTE CMS TENTANG KAMI (UPDATE) ---
+router.put("/cms/tentang/:id", upload.single("gambar"), cmsController.updateTentangContent);
+
+// --- RUTE CMS GALERI (ADD & DELETE) ---
+router.post("/cms/galeri", upload.single("gambar"), cmsController.addGallery);
+router.delete("/cms/galeri/:id", cmsController.deleteGallery);
 
 // --- RUTE PENGGUNA (HANYA SUPERADMIN) ---
 router.get("/users", superadminAuth, getAllUsers);

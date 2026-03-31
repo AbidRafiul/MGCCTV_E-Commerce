@@ -71,6 +71,12 @@ export default function LoginPage() {
         document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
         document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
 
+        // === PERBAIKAN: Bersihkan keranjang sisa saat login Google ===
+        localStorage.removeItem("mgcctv-cart");
+        localStorage.removeItem("mgcctv-checkout");
+        window.dispatchEvent(new Event("cart-updated"));
+        // =============================================================
+
         if (userRole === "admin" || userRole === "superadmin") {
           router.push("/admin");
         } else {
@@ -85,7 +91,6 @@ export default function LoginPage() {
 
   // GOOGLE INIT
   useEffect(() => {
-    // Ubah pengecekan menggunakan localToken
     if (localToken) {
       return;
     }
@@ -111,7 +116,7 @@ export default function LoginPage() {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [handleGoogleLogin, localToken]); // Dependency diubah ke localToken
+  }, [handleGoogleLogin, localToken]);
 
   const handleChange = (e) => {
     setForm({
@@ -147,6 +152,12 @@ export default function LoginPage() {
       localStorage.setItem("role", userRole);
       document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
       document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
+
+      // === PERBAIKAN: Bersihkan keranjang sisa saat login Manual ===
+      localStorage.removeItem("mgcctv-cart");
+      localStorage.removeItem("mgcctv-checkout");
+      window.dispatchEvent(new Event("cart-updated"));
+      // =============================================================
 
       if (userRole === "admin" || userRole === "superadmin") {
         router.push("/admin");
@@ -217,17 +228,7 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* GOOGLE BUTTON */}
-            <div className="flex justify-center pt-2">
-              <div id="googleBtn" className="w-full overflow-hidden rounded-lg"></div>
-            </div>
-
-            {/* Separator */}
-            <div className="flex items-center gap-3 py-2">
-              <div className="h-px w-full bg-slate-200"></div>
-              <p className="text-center text-xs font-semibold text-slate-400">atau</p>
-              <div className="h-px w-full bg-slate-200"></div>
-            </div>
+            
 
             <button
               type="submit"
@@ -235,8 +236,26 @@ export default function LoginPage() {
             >
               Masuk
             </button>
+
+            {/* INI BAGIAN BAWAH YANG DIRAPIKAN */}
+            <div className="flex flex-col gap-3 pt-1">
+              {/* Separator */}
+              <div className="flex items-center gap-3">
+                <div className="h-px w-full bg-slate-200"></div>
+                <p className="text-center text-xs font-semibold text-slate-400 whitespace-nowrap">atau masuk dengan</p>
+                <div className="h-px w-full bg-slate-200"></div>
+              </div>
+
+              {/* GOOGLE BUTTON CONTAINER */}
+              <div className="flex justify-center w-full">
+                {/* Lebarnya dikunci 100% dan overflow disembunyikan agar pas di dalam card putih */}
+                <div id="googleBtn" className="w-full overflow-hidden flex justify-center rounded-lg"></div>
+              </div>
+            </div>
+            
           </form>
 
+          
           <p className="mt-4 text-center text-xs font-medium text-slate-500">
             Belum memiliki akun?{" "}
             <a href="/register" className="text-blue-600 font-bold hover:underline">
