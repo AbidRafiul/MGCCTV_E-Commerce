@@ -123,7 +123,6 @@ const getDashboardStats = async (req, res) => {
          LIMIT 5`,
         []
       ),
-<<<<<<< HEAD
 
       // 7. Kategori Terlaris (DI SINI PERBAIKANNYA)
       connection.query(
@@ -144,28 +143,6 @@ const getDashboardStats = async (req, res) => {
                 u.nama AS nama_pelanggan,
                 t.total_harga,
                 t.status_order,
-=======
-      detailTable && quantityColumn
-        ? safeQuery(
-            "kategori-terlaris",
-            `SELECT k.nama_kategori,
-                    COALESCE(SUM(dt.${quantityColumn}), 0) AS total_terjual
-             FROM ms_kategori k
-             LEFT JOIN ms_produk p ON p.ms_kategori_id_kategori = k.id_kategori
-             LEFT JOIN ${detailTable} dt ON dt.id_produk = p.id_produk
-             GROUP BY k.id_kategori, k.nama_kategori
-             ORDER BY total_terjual DESC
-             LIMIT 5`,
-            []
-          )
-        : Promise.resolve([]),
-      safeQuery(
-        "pesanan-terbaru",
-        `SELECT t.id_transaksi AS id_pesanan,
-                COALESCE(u.nama, 'Pelanggan') AS nama_pelanggan,
-                COALESCE(t.total_harga, 0) AS total_harga,
-                COALESCE(t.status_order, 'pending') AS status_order,
->>>>>>> main
                 t.created_at
          FROM tr_transaksi t
          LEFT JOIN ms_users u ON u.id_users = t.id_users
@@ -173,7 +150,6 @@ const getDashboardStats = async (req, res) => {
          LIMIT 5`,
         []
       ),
-<<<<<<< HEAD
 
       // 9. Aktivitas Terkini
       connection.query(
@@ -186,23 +162,6 @@ const getDashboardStats = async (req, res) => {
                     ELSE CONCAT(' status: ', t.status_order)
                     END) AS keterangan,
             u.nama AS aktor,
-=======
-      safeQuery(
-        "aktivitas-terkini",
-        `(SELECT
-            CONCAT(
-              'Pesanan #ORD-',
-              LPAD(t.id_transaksi, 4, '0'),
-              CASE t.status_order
-                WHEN 'pending' THEN ' menunggu konfirmasi pembayaran'
-                WHEN 'paid' THEN ' telah dibayar'
-                WHEN 'failed' THEN ' dibatalkan oleh pelanggan'
-                WHEN 'expired' THEN ' selesai'
-                ELSE CONCAT(' status: ', t.status_order)
-              END
-            ) AS keterangan,
-            COALESCE(u.nama, 'Pelanggan') AS aktor,
->>>>>>> main
             t.created_at AS waktu,
             CASE
               WHEN t.status_order = 'failed' THEN 'batal'
@@ -245,7 +204,6 @@ const getDashboardStats = async (req, res) => {
       ),
     ]);
 
-<<<<<<< HEAD
     // Format data kategori
     const kategoriData = kategoriTerlarisResult[0];
     const totalTerjual = kategoriData.reduce((acc, k) => acc + Number(k.total_terjual), 0) || 1;
@@ -262,32 +220,6 @@ const getDashboardStats = async (req, res) => {
       tanggal: d.tanggal,
       total: Number(d.total),
       rasio: Math.round((Number(d.total) / maxHarian) * 100),
-=======
-    const kategoriSource =
-      kategoriTerlarisRows.length > 0
-        ? kategoriTerlarisRows
-        : kategoriRows.map((kategori) => ({
-            nama_kategori: kategori.nama_kategori,
-            total_terjual: 0,
-          }));
-
-    const totalTerjual =
-      kategoriSource.reduce((acc, item) => acc + Number(item.total_terjual || 0), 0) || 1;
-
-    const kategoriWithPercent = kategoriSource.map((item) => ({
-      nama: item.nama_kategori,
-      total: Number(item.total_terjual || 0),
-      persen: Math.round((Number(item.total_terjual || 0) / totalTerjual) * 100),
-    }));
-
-    const maxHarian =
-      Math.max(...pendapatanHarianRows.map((item) => Number(item.total || 0)), 1);
-
-    const harianWithRatio = pendapatanHarianRows.map((item) => ({
-      tanggal: item.tanggal,
-      total: Number(item.total || 0),
-      rasio: Math.round((Number(item.total || 0) / maxHarian) * 100),
->>>>>>> main
     }));
 
     return res.status(200).json({
