@@ -1,12 +1,32 @@
-import { ShoppingCart, Send } from "lucide-react";
+"use client";
+
+import { ShoppingCart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ensureCheckoutProfileComplete } from "@/services/checkoutProfileService";
+import { addCartItem, saveCheckoutItems } from "@/services/cartService";
 
 export default function DetailContent({ product }) {
-  const handleWA = () => {
-    const message = `Halo Admin MG CCTV, saya tertarik dengan produk:\n\n*${product.nama_produk}*\n\nApakah stok masih tersedia?`;
-    window.open(
-      `https://wa.me/6281234567890?text=${encodeURIComponent(message)}`,
-      "_blank",
-    );
+  const router = useRouter();
+
+  const handleAddToCart = () => {
+    addCartItem(product);
+    router.push("/keranjang");
+  };
+
+  const handleBuyNow = async () => {
+    const canContinue = await ensureCheckoutProfileComplete();
+
+    if (!canContinue) {
+      return;
+    }
+
+    saveCheckoutItems([
+      {
+        ...product,
+        quantity: 1,
+      },
+    ]);
+    router.push("/checkout");
   };
 
   return (
@@ -42,11 +62,14 @@ export default function DetailContent({ product }) {
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">
-            <button className="bg-[#0C2C55] text-white py-2.5 px-5 rounded-md font-bold text-xs flex items-center gap-2 hover:bg-blue-900 transition-all shadow-md">
+            <button
+              onClick={handleAddToCart}
+              className="bg-[#0C2C55] text-white py-2.5 px-5 rounded-md font-bold text-xs flex items-center gap-2 hover:bg-blue-900 transition-all shadow-md"
+            >
               Masukan ke Keranjang <ShoppingCart size={16} />
             </button>
             <button
-              onClick={handleWA}
+              onClick={handleBuyNow}
               className="bg-[#28a745] text-white py-2.5 px-8 rounded-md font-bold text-xs hover:bg-green-700 transition-all shadow-md"
             >
               Beli Sekarang

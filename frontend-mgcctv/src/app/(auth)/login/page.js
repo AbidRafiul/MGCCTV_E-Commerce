@@ -161,7 +161,7 @@ export default function LoginPage() {
   // LOADING STATE
   if (!isMounted || localToken) {
     return (
-      <div className="flex min-h-screen items-center justify-center gap-3 bg-[#f5f6f8] text-slate-500">
+      <div className=" flex min-h-screen items-center justify-center gap-3 bg-[#f5f6f8] text-slate-500">
         <LoaderCircle className="animate-spin" size={20} />
         <span className="font-medium">Memuat halaman...</span>
       </div>
@@ -169,23 +169,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:py-12">
       {/* BACKGROUND */}
       <img
         src="/images/bg login.jpg"
         alt="bg"
-        className="absolute top-1/2 left-1/2 h-[210%] -translate-x-1/2 -translate-y-1/2 rotate-90 object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
       />
 
       {/* OVERLAY */}
       <div className="absolute inset-0 bg-black/40"></div>
 
       {/* CONTENT */}
-      <div className="relative z-10 flex flex-col items-center">
-        <h1 className="text-white text-3xl font-bold mb-6">Login</h1>
+      <div className="relative z-10 flex w-full max-w-[320px] flex-col items-center justify-center sm:max-w-[340px]">
+        <h1 className="mb-4 text-center text-xl font-bold text-white sm:text-2xl">Login</h1>
 
-        <div className="bg-white/95 backdrop-blur-md w-[350px] p-8 rounded-2xl shadow-2xl text-[#0C2C55]">
-          <form onSubmit={handleLogin} className="space-y-4" suppressHydrationWarning>
+        <div className="w-full rounded-xl bg-white/95 p-4 text-[#0C2C55] shadow-2xl backdrop-blur-md sm:p-5">
+          <form onSubmit={handleLogin} className="space-y-3" suppressHydrationWarning>
             {/* ERROR */}
             {error && (
               <div className="bg-red-50 text-red-500 text-xs text-center font-bold py-2 rounded-lg border border-red-100">
@@ -199,7 +199,7 @@ export default function LoginPage() {
                 type="text"
                 name="email"
                 placeholder="Masukkan username/email"
-                className="w-full border border-slate-200 px-3 py-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-slate-50/50"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-[13px] outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 onChange={handleChange}
                 required
               />
@@ -211,7 +211,7 @@ export default function LoginPage() {
                 type="password"
                 name="password"
                 placeholder="Masukkan password"
-                className="w-full border border-slate-200 px-3 py-2.5 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-slate-50/50"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-[13px] outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 onChange={handleChange}
                 required
               />
@@ -219,7 +219,7 @@ export default function LoginPage() {
 
             {/* GOOGLE BUTTON */}
             <div className="flex justify-center pt-2">
-              <div id="googleBtn" className="overflow-hidden rounded-lg"></div>
+              <div id="googleBtn" className="w-full overflow-hidden rounded-lg"></div>
             </div>
 
             {/* Separator */}
@@ -231,13 +231,13 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-[#0C2C55] hover:bg-blue-800 transition-colors text-white py-2.5 rounded-lg font-bold shadow-md shadow-blue-900/20"
+              className="w-full rounded-lg bg-[#0C2C55] py-2.5 text-[13px] font-bold text-white shadow-md shadow-blue-900/20 transition-colors hover:bg-blue-800"
             >
               Masuk
             </button>
           </form>
 
-          <p className="text-center text-xs font-medium text-slate-500 mt-6">
+          <p className="mt-4 text-center text-xs font-medium text-slate-500">
             Belum memiliki akun?{" "}
             <a href="/register" className="text-blue-600 font-bold hover:underline">
               Daftar di sini

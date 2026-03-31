@@ -126,17 +126,15 @@ export default function ProductList() {
   }
 
   return (
-    <section className="px-4 md:px-6 pb-20 max-w-6xl mx-auto min-h-[500px]">
+    <section className="mx-auto min-h-[500px] max-w-6xl px-4 pb-14 sm:px-6 sm:pb-20">
       
       {/* FILTER KATEGORI */}
-      <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-8 md:mb-12 relative">
-        
-        {/* Tombol Kategori Utama */}
-        {visibleCategories.map((cat) => (
+      <div className="mb-8 flex flex-wrap gap-2.5 sm:mb-12 sm:gap-4">
+        {categories.map((cat) => (
           <button
             key={cat}
-            onClick={() => handleSelectCategory(cat)}
-            className={`px-4 py-2 md:px-8 md:py-2.5 rounded-full text-xs md:text-sm font-bold border transition-all duration-300 ${
+            onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}
+            className={`rounded-full border px-4 py-2 text-sm font-bold transition-all duration-300 sm:px-6 sm:py-2.5 ${
               activeCategory === cat
                 ? "bg-[#0C2C55] text-white border-[#0C2C55] shadow-lg shadow-blue-900/20"
                 : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600"
@@ -187,62 +185,53 @@ export default function ProductList() {
       </div>
 
       {/* GRID PRODUK */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8 mb-12 md:mb-16">
+      <div className="mb-12 grid grid-cols-2 gap-3 sm:mb-16 sm:gap-6 lg:grid-cols-3 lg:gap-8">
         {produkTampil.length > 0 ? (
           produkTampil.map((product) => (
             <Link 
               href={`/produk/${product.id_produk}`} 
               key={product.id_produk} 
-              // Padding dikecilkan (p-3 untuk HP, p-6 untuk laptop), radius dikecilkan
-              className="group bg-white rounded-[16px] md:rounded-[32px] p-3 md:p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-500 flex flex-col"
+              className="group rounded-[22px] border border-gray-100 bg-white p-3 shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-xl sm:rounded-[28px] sm:p-5 lg:rounded-[32px] lg:p-6 lg:hover:-translate-y-2"
             >
-              {/* Kotak gambar diperkecil margin dan padding-nya */}
-              <div className="aspect-square bg-slate-50 rounded-[12px] md:rounded-[24px] mb-3 md:mb-6 flex items-center justify-center p-2 md:p-6 overflow-hidden relative">
+              <div className="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-[16px] bg-slate-50 p-3 sm:mb-5 sm:rounded-[20px] sm:p-5 lg:mb-6 lg:rounded-[24px] lg:p-6">
                 <img 
                   src={product.gambar_produk || "/images/placeholder.jpg"} 
                   alt={product.nama_produk} 
                   className="w-[90%] h-[90%] md:w-[80%] md:h-[80%] object-contain group-hover:scale-110 transition-transform duration-700" 
                 />
               </div>
-              
-              <div className="space-y-1 flex-grow flex flex-col justify-between">
-                <div>
-                  {/* Teks Judul dikecilkan ke text-xs di HP */}
-                  <h3 className="font-bold text-xs md:text-lg text-[#0C2C55] line-clamp-2 leading-snug md:leading-normal">
-                    {product.nama_produk}
-                  </h3>
-                  {/* Teks Harga dikecilkan ke text-sm di HP */}
-                  <p className="text-blue-600 font-black text-sm md:text-2xl mt-1 md:mt-2">
-                    {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(product.harga_produk)}
-                  </p>
-                </div>
-                {/* Badge Rating dikecilkan */}
-                <div className="flex items-center gap-1 bg-yellow-50 w-fit px-2 py-0.5 md:px-2.5 md:py-1 rounded-full mt-1.5 md:mt-2">
-                  <span className="text-[#0C2C55] font-bold text-[9px] md:text-xs">4.8</span>
+              <div className="space-y-1.5 sm:space-y-2">
+                <h3 className="line-clamp-2 text-sm font-bold text-[#0C2C55] sm:text-base lg:text-lg">
+                  {product.nama_produk}
+                </h3>
+                <p className="text-base font-black text-blue-600 sm:text-xl lg:text-2xl">
+                  {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(product.harga_produk)}
+                </p>
+                <div className="flex w-fit items-center gap-1 rounded-full bg-yellow-50 px-2 py-1 sm:gap-1.5 sm:px-3">
+                  <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 sm:h-4 sm:w-4" />
+                  <span className="text-[#0C2C55] font-bold text-xs">4.8</span>
                 </div>
               </div>
             </Link>
           ))
         ) : (
-          <div className="col-span-full text-center py-16 md:py-20 bg-white rounded-[24px] md:rounded-[40px] border border-dashed border-gray-200 mx-2 md:mx-0">
-            <PackageSearch size={40} className="mx-auto text-gray-300 mb-3 md:mb-4 md:w-12 md:h-12" />
-            <p className="text-gray-400 text-sm md:text-base px-4">Belum ada produk untuk kategori <span className="font-bold">"{activeCategory}"</span></p>
+          <div className="col-span-full rounded-[28px] border border-dashed border-gray-200 bg-white py-16 text-center sm:rounded-[40px] sm:py-20">
+            <PackageSearch size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-400">Belum ada produk untuk kategori "{activeCategory}"</p>
           </div>
         )}
       </div>
 
-      {/* PAGINATION BOX */}
-      {/* PAGINATION BOX (100% RESPONSIVE) */}
-      <div className="flex justify-center mt-8 md:mt-10 px-4 w-full">
-        <div className="inline-flex items-center bg-white border border-gray-200 rounded-lg md:rounded-xl shadow-sm max-w-full">
-          
-          {/* Tombol Kiri (Fixed) */}
+      {/* PAGINATION BOX - SEKARANG SELALU MUNCUL */}
+      <div className="mt-8 flex justify-center sm:mt-10">
+        <div className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          {/* Tombol Sebelumnya */}
           <button 
             disabled={currentPage === 1}
             onClick={() => pindahHalaman(currentPage - 1)}
-            className="p-2 md:p-3 text-[#0C2C55] hover:bg-gray-50 border-r border-gray-200 disabled:opacity-30 disabled:hover:bg-white transition-all shrink-0 rounded-l-lg md:rounded-l-xl"
+            className="border-r border-gray-200 p-2 text-[#0C2C55] transition-all hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white sm:p-3"
           >
-            <ChevronLeft size={18} className="stroke-[3px] md:w-5 md:h-5" />
+            <ChevronLeft size={18} className="stroke-[3px] sm:h-5 sm:w-5" />
           </button>
           
           {/* Angka Halaman (Bisa di-scroll di HP tanpa scrollbar) */}
@@ -251,7 +240,7 @@ export default function ProductList() {
               <button 
                 key={i}
                 onClick={() => pindahHalaman(page)}
-                className={`px-3 py-2 md:px-5 md:py-3 text-[11px] md:text-sm font-bold transition-all border-r border-gray-100 last:border-r-0 shrink-0 snap-center ${
+                className={`border-r border-gray-100 px-3 py-2 text-xs font-bold transition-all last:border-r-0 sm:px-5 sm:py-3 sm:text-sm ${
                   page === "..." ? "cursor-default text-gray-400" : 
                   currentPage === page 
                   ? "bg-[#0C2C55] text-white" 
@@ -267,9 +256,9 @@ export default function ProductList() {
           <button 
             disabled={currentPage === jumlahHalaman || filteredProducts.length === 0}
             onClick={() => pindahHalaman(currentPage + 1)}
-            className="p-2 md:p-3 text-[#0C2C55] hover:bg-gray-50 border-l border-gray-200 disabled:opacity-30 disabled:hover:bg-white transition-all shrink-0 rounded-r-lg md:rounded-r-xl"
+            className="border-l border-gray-200 p-2 text-[#0C2C55] transition-all hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white sm:p-3"
           >
-            <ChevronRight size={18} className="stroke-[3px] md:w-5 md:h-5" />
+            <ChevronRight size={18} className="stroke-[3px] sm:h-5 sm:w-5" />
           </button>
 
         </div>
