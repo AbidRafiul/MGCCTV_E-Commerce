@@ -35,9 +35,6 @@ export default function Navbar() {
     const syncAuth = async () => {
       const token = localStorage.getItem("token");
       setIsLogin(!!token);
-<<<<<<< HEAD
-      if (!token) return setProfile(null);
-=======
 
       if (!token) {
         setProfile(null);
@@ -55,7 +52,6 @@ export default function Navbar() {
         setProfile(null);
         return;
       }
->>>>>>> main
 
       try {
         const res = await fetch(`${AUTH_API_URL}/profile`, {
@@ -71,33 +67,24 @@ export default function Navbar() {
       }
     };
 
-<<<<<<< HEAD
-=======
     const handleFocus = () => {
       syncLoginState();
       fetchProfile();
       syncCartCount();
     };
 
->>>>>>> main
     handleScroll();
     syncAuth();
 
-<<<<<<< HEAD
-=======
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
     window.addEventListener("cart-updated", syncCartCount);
->>>>>>> main
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("focus", syncAuth);
     return () => {
-<<<<<<< HEAD
-=======
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
       window.removeEventListener("cart-updated", syncCartCount);
->>>>>>> main
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("focus", syncAuth);
     };
@@ -151,10 +138,6 @@ export default function Navbar() {
     });
   };
 
-<<<<<<< HEAD
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
-  const profileInitial = profile?.nama?.trim()?.charAt(0)?.toUpperCase() || "U";
-=======
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
@@ -170,7 +153,6 @@ export default function Navbar() {
     "after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 " +
     "after:bottom-[-4px] after:left-0 after:bg-blue-600 after:origin-bottom-right " +
     "after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left";
->>>>>>> main
 
   return (
     <nav className={`fixed top-0 w-full z-[100] transition-all duration-300 ${
@@ -190,16 +172,6 @@ export default function Navbar() {
           </Link>
         </div>
 
-<<<<<<< HEAD
-        {/* BAGIAN 2: DESKTOP MENU (TENGAH) */}
-        <div className="hidden lg:flex flex-1 justify-center gap-8 xl:gap-12 items-center">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="text-[#0C2C55] font-semibold hover:text-blue-600 transition-colors whitespace-nowrap">
-              {link.label}
-            </Link>
-          ))}
-        </div>
-=======
         <button
           onClick={handleAddToCart}
           type="button"
@@ -216,7 +188,6 @@ export default function Navbar() {
             </span>
           ) : null}
         </button>
->>>>>>> main
 
         {/* BAGIAN 3: DESKTOP ACTIONS (KANAN) */}
         <div className="hidden lg:flex flex-1 justify-end items-center gap-4 xl:gap-6">
@@ -269,11 +240,6 @@ export default function Navbar() {
           </div>
         </div>
 
-<<<<<<< HEAD
-        {/* MOBILE TOGGLE */}
-        <div className="flex items-center gap-3 lg:hidden z-50">
-          <button type="button" className="rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100">
-=======
         {/* MOBILE MENU TOGGLE */}
         <div className="flex items-center gap-2 lg:hidden">
           <button
@@ -281,7 +247,6 @@ export default function Navbar() {
             onClick={handleAddToCart}
             className="relative rounded-full bg-blue-50 p-2 text-[#0C2C55] transition-colors hover:bg-blue-100"
           >
->>>>>>> main
             <ShoppingCart size={20} />
             {cartCount > 0 ? (
               <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm">
