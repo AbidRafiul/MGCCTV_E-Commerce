@@ -52,3 +52,36 @@ body {
   font-family: var(--font-inter), var(--font-sans), Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+@media (max-width: 639px) {
+  .checkout-profile-popup-mobile {
+    border-radius: 16px !important;
+  }
+
+  .checkout-profile-popup-mobile .swal2-html-container {
+    margin: 0.25rem 0 0 !important;
+    font-size: 0.78rem !important;
+  }
+
+  .checkout-profile-popup-mobile .swal2-icon {
+    margin: 0.15rem auto 0.3rem !important;
+    transform: scale(0.72);
+  }
+
+  .checkout-profile-title-mobile {
+    font-size: 0.92rem !important;
+    line-height: 1.25 !important;
+    padding: 0 !important;
+  }
+
+  .checkout-profile-button-mobile {
+    min-width: 84px !important;
+    font-size: 0.74rem !important;
+    padding: 0.42rem 0.65rem !important;
+  }
+
+  .checkout-profile-popup-mobile .swal2-input,
+  .checkout-profile-popup-mobile .swal2-textarea {
+    border-radius: 10px !important;
+  }
+}

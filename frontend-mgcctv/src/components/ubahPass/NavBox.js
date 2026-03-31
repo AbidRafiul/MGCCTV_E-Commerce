@@ -25,11 +25,15 @@ const navItems = [
   },
 ];
 
-export default function NavBox({ activeItem = "profile", onNavigate }) {
+export default function NavBox({ activeItem = "profile", onNavigate, canAccessPassword = true }) {
+  const visibleItems = navItems.filter(
+    (item) => canAccessPassword || item.key !== "password",
+  );
+
   return (
     <aside className="w-full max-w-[210px] rounded-xl bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
       <nav className="space-y-1">
-        {navItems.map(({ key, label, icon: Icon }) => {
+        {visibleItems.map(({ key, label, icon: Icon }) => {
           const isActive = key === activeItem;
 
           return (

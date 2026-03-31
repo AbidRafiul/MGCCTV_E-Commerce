@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { API_BASE_URL } from "@/lib/api";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const formatRupiah = (num) =>
@@ -73,19 +72,34 @@ export default function AdminPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { setError("Token tidak ditemukan."); setLoading(false); return; }
+    const fetchDashboard = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Token tidak ditemukan.");
 
-    fetch(`${API_URL}/api/admin/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.message && !d.stats) throw new Error(d.message);
-        setData(d);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+        const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(payload?.message || "Gagal mengambil data dashboard");
+        }
+
+        if (!payload?.stats) {
+          throw new Error("Data dashboard tidak valid");
+        }
+
+        setData(payload);
+      } catch (fetchError) {
+        setError(fetchError.message || "Gagal memuat dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
   }, []);
 
   if (loading) {

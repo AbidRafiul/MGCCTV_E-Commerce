@@ -70,11 +70,15 @@ export default function AdminLayout({ children }) {
   }, [pathname, router]);
 
   const handleLogout = () => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
     Swal.fire({
       title: 'Keluar dari Sistem?',
       text: "Sesi Anda akan diakhiri.",
       icon: 'warning',
       showCancelButton: true,
+      width: isMobile ? 320 : 420,
+      padding: isMobile ? "1.25rem" : "1.75rem",
       confirmButtonColor: '#d33', 
       cancelButtonColor: '#3085d6', 
       confirmButtonText: 'Ya, Keluar',
@@ -92,6 +96,8 @@ export default function AdminLayout({ children }) {
         Swal.fire({
           title: 'Berhasil Logout!',
           icon: 'success',
+          width: isMobile ? 300 : 380,
+          padding: isMobile ? "1.1rem" : "1.5rem",
           timer: 1500,
           showConfirmButton: false
         }).then(() => {
