@@ -228,8 +228,6 @@ export default function LoginPage() {
               />
             </div>
 
-            
-
             <button
               type="submit"
               className="w-full rounded-lg bg-[#0C2C55] py-2.5 text-[13px] font-bold text-white shadow-md shadow-blue-900/20 transition-colors hover:bg-blue-800"
