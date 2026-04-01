@@ -1,4 +1,4 @@
-const authModel = require("../../models/authModel");
+const authModel = require("../../models/AuthModel");
 
 const handleLogoutError = (res, error, fallbackMessage) => {
   console.error(fallbackMessage, error);

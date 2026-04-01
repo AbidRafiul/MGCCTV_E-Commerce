@@ -1,4 +1,4 @@
-const cmsModel = require("../../models/cmsModel");
+const cmsModel = require("../../models/CmsModel");
 
 const handleCmsError = (res, error, fallbackMessage) => {
   console.error(fallbackMessage, error);
@@ -7,74 +7,122 @@ const handleCmsError = (res, error, fallbackMessage) => {
   });
 };
 
-const getTentangContent = async (req, res) => {
-  try {
-    const content = await cmsModel.getTentangContent();
-    return res.status(200).json(content);
-  } catch (error) {
-    return handleCmsError(res, error, "Gagal mengambil konten CMS");
-  }
-};
-
+// ==========================================
+// 1. GALERI TENTANG KAMI (tr_cms_galleries)
+// ==========================================
 const getGallery = async (req, res) => {
   try {
-    const gallery = await cmsModel.getGallery();
-    return res.status(200).json(gallery);
-  } catch (error) {
-    return handleCmsError(res, error, "Gagal mengambil galeri CMS");
-  }
-};
-
-const updateTentangContent = async (req, res) => {
-  try {
-    const updatedContent = await cmsModel.updateTentangContent({
-      id: req.params.id,
-      sectionName: req.body.section_name,
-      contentValue: req.body.content_value,
-      urlGambar: req.body.url_gambar,
-      file: req.file,
-    });
-
-    return res.status(200).json({
-      message: "Konten CMS berhasil diperbarui",
-      data: updatedContent,
-    });
-  } catch (error) {
-    return handleCmsError(res, error, "Gagal memperbarui konten CMS");
+    const results = await CmsModel.getAllGalleries();
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: "Error server", error: err.message });
   }
 };
 
 const addGallery = async (req, res) => {
-  try {
-    const galleryItem = await cmsModel.addGallery({
-      sectionName: req.body.section_name,
-      file: req.file,
-    });
+  const { section_name } = req.body; 
 
-    return res.status(201).json({
-      message: "Foto galeri berhasil ditambahkan",
-      data: galleryItem,
-    });
+  if (!req.file) {
+    return res.status(400).json({ message: "Gambar wajib diupload!" });
+  }
+
+  try {
+    // 1. Upload ke Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer, 'CMS_Galeri');
+    const url_gambar = result.secure_url;
+
+    // 2. Simpan ke Database
+    const dbResult = await CmsModel.insertGallery(section_name, url_gambar);
+    
+    res.status(201).json({ message: "Galeri berhasil ditambahkan", id: dbResult.insertId, url_gambar });
   } catch (error) {
-    return handleCmsError(res, error, "Gagal menambahkan foto galeri");
+    res.status(500).json({ message: "Gagal menyimpan galeri", error: error.message });
   }
 };
 
 const deleteGallery = async (req, res) => {
   try {
-    await cmsModel.deleteGallery(req.params.id);
-    return res.status(200).json({
-      message: "Foto galeri berhasil dihapus",
-    });
+    const { id } = req.params;
+
+    // 1. Cari URL gambar di database
+    const results = await CmsModel.getGalleryImageUrl(id);
+    if (results.length === 0) return res.status(404).json({ message: "Galeri tidak ditemukan" });
+
+    const imageUrl = results[0].url_gambar;
+    
+    // 2. Hapus dari Cloudinary
+    if (imageUrl && imageUrl.includes("cloudinary")) {
+      const urlParts = imageUrl.split('/');
+      const fileName = urlParts.pop().split('.')[0]; 
+      const folderPath = `MGCCTV/CMS_Galeri/${fileName}`;
+      
+      // Abaikan error jika foto di cloudinary sudah terhapus manual
+      try {
+         await cloudinary.uploader.destroy(folderPath);
+      } catch(err) {
+         console.log("Gambar Cloudinary tidak ditemukan, lanjut hapus di DB.");
+      }
+    }
+
+    // 3. Hapus dari database
+    await CmsModel.deleteGalleryById(id);
+    res.json({ message: "Foto galeri berhasil dihapus!" });
+
   } catch (error) {
-    return handleCmsError(res, error, "Gagal menghapus foto galeri");
+    res.status(500).json({ message: "Gagal menghapus galeri", error: error.message });
+  }
+};
+
+// ==========================================
+// 2. KONTEN TENTANG KAMI (tr_cms_konten)
+// ==========================================
+const getTentangContent = async (req, res) => {
+  try {
+    const results = await CmsModel.getAllTentangContent();
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: "Error server", error: err.message });
+  }
+};
+
+const updateTentangContent = async (req, res) => {
+  const { id } = req.params;
+  const { section_name, content_value } = req.body;
+  
+  try {
+    let url_gambar = req.body.url_gambar || null; 
+
+    // Jika admin mengupload gambar baru
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, 'CMS_Tentang');
+      url_gambar = result.secure_url;
+    }
+
+    // Cek apakah ID sudah ada di database
+    const check = await CmsModel.checkTentangContentExists(id);
+    
+    if (check.length === 0) {
+       // JIKA BELUM ADA (INSERT)
+       await CmsModel.insertTentangContent(id, section_name, content_value, url_gambar);
+    } else {
+       // JIKA SUDAH ADA (UPDATE)
+       if (url_gambar) {
+         await CmsModel.updateTentangContentWithImage(id, section_name, content_value, url_gambar);
+       } else {
+         await CmsModel.updateTentangContentWithoutImage(id, section_name, content_value);
+       }
+    }
+    
+    res.json({ message: "Konten Tentang Kami berhasil diupdate!" });
+  } catch (error) {
+    res.status(500).json({ message: "Gagal update konten", error: error.message });
   }
 };
 
 module.exports = {
-  getTentangContent,
   getGallery,
-  updateTentangContent,
   addGallery,
   deleteGallery,
+  getTentangContent,
+  updateTentangContent
 };

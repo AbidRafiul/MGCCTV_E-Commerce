@@ -1,16 +1,27 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 export default function ProductHeader() {
   return (
-    <div className="mx-auto mb-8 max-w-6xl px-4 pt-6 sm:mb-10 sm:px-6 sm:pt-10">
-      <h1 className="mb-2 text-2xl font-extrabold text-[#0C2C55] sm:text-3xl">
-        Katalog Produk
-      </h1>
-      <nav className="text-sm text-gray-500 font-medium">
-        <Link href="/beranda" className="hover:text-blue-600">Beranda</Link>
-        <span className="mx-2">/</span>
-        <span className="text-[#0C2C55]">Produk</span>
-      </nav>
+    <div className="relative mx-auto max-w-7xl px-4 pt-10 pb-6 sm:px-6 sm:pt-14 overflow-hidden">
+      {/* Ambient Glow */}
+      <div className="absolute top-0 left-10 w-64 h-64 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+      <div className="relative z-10 flex flex-col items-start gap-4">
+        <span className="inline-block rounded-full bg-blue-100/80 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-blue-700 backdrop-blur-md">
+          Katalog Lengkap
+        </span>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+          Eksplorasi <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Produk MGCCTV</span>
+        </h1>
+        
+        {/* Breadcrumb Modern */}
+        <nav className="flex items-center text-xs sm:text-sm font-medium text-slate-500 mt-2">
+          <Link href="/beranda" className="hover:text-blue-600 transition-colors">Beranda</Link>
+          <ChevronRight size={14} className="mx-1.5 text-slate-400" />
+          <span className="text-slate-900 font-semibold shadow-sm">Produk</span>
+        </nav>
+      </div>
     </div>
   );
 }
