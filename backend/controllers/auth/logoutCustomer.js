@@ -1,17 +1,19 @@
-const logoutCustomer = async (req, res) => {
+const authModel = require("../../models/authModel");
 
-  try {
-
-    res.json({
-      message: "Logout berhasil"
-    });
-
-  } catch (error) {
-
-    res.status(500).json(error);
-
-  }
-
+const handleLogoutError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+  return res.status(error.status || 500).json({
+    message: error.message || fallbackMessage,
+  });
 };
 
-module.exports = logoutCustomer;
+const logoutCustomerController = async (req, res) => {
+  try {
+    const result = await authModel.logoutCustomer();
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleLogoutError(res, error, "Logout gagal");
+  }
+};
+
+module.exports = logoutCustomerController;

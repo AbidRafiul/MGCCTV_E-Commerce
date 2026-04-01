@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { CircleUserRound, LoaderCircle } from "lucide-react";
+import { BadgeCheck, CircleUserRound, LoaderCircle, ShieldCheck, UserCog } from "lucide-react";
 import NavBox from "./NavBox";
 import { AUTH_API_URL } from "@/lib/api";
 
@@ -261,7 +261,9 @@ export default function ProfileHero() {
       return;
     }
 
-    window.alert();
+    if (!isGoogleAccount) {
+      router.push("/ubah-password");
+    }
   };
 
   const handleNavigate = (key) => {
@@ -279,7 +281,7 @@ export default function ProfileHero() {
     }
 
     if (key === "orders") {
-      window.alert("Halaman pesanan saya belum tersedia.");
+      router.push("/riwayat");
     }
   };
 
@@ -330,18 +332,60 @@ export default function ProfileHero() {
               </div>
             ) : (
               <>
-                <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-200 text-slate-600">
-                    <CircleUserRound size={32} />
-                  </div>
+                <div className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0C2C55_0%,#123e74_55%,#1d5ca2_100%)] px-5 py-6 md:px-7 md:py-7">
+                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+                  <div className="absolute bottom-0 right-20 h-20 w-20 rounded-full bg-sky-300/10 blur-2xl" />
 
-                  <div>
-                    <h3 className="text-2xl font-semibold text-slate-900">
-                      {profile?.nama || "Pengguna"}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Terdaftar Sejak: {formatJoinDate(profile?.created_at)}
-                    </p>
+                  <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-sm">
+                        <CircleUserRound size={32} />
+                      </div>
+
+                      <div>
+                        <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">
+                          Akun Saya
+                        </span>
+                        <h3 className="mt-3 text-2xl font-semibold text-white md:text-[30px]">
+                          {profile?.nama || "Pengguna"}
+                        </h3>
+                        <p className="mt-1 text-sm text-blue-100/85">
+                          Terdaftar Sejak: {formatJoinDate(profile?.created_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-sky-100">
+                          <UserCog size={16} />
+                          <span className="text-[11px] uppercase tracking-[0.18em]">Status Akun</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-white">
+                          {isGoogleAccount ? "Google Account" : "Akun Reguler"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-sky-100">
+                          <ShieldCheck size={16} />
+                          <span className="text-[11px] uppercase tracking-[0.18em]">Keamanan</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-white">
+                          {isGoogleAccount ? "Terverifikasi Google" : "Password Aktif"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-sky-100">
+                          <BadgeCheck size={16} />
+                          <span className="text-[11px] uppercase tracking-[0.18em]">Profil</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-white">
+                          {profile?.email || "-"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

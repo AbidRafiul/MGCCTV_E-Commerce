@@ -21,11 +21,23 @@ export default function CartList() {
   const popupWidth = isMobile ? 280 : 360;
   const popupPadding = isMobile ? "1rem" : "1.25rem";
 
+  const showCartError = (message) => {
+    Swal.fire({
+      title: "Keranjang Gagal Diperbarui",
+      text: message || "Terjadi kesalahan saat memproses keranjang.",
+      icon: "error",
+      width: popupWidth,
+      padding: popupPadding,
+      confirmButtonColor: "#0C2C55",
+      confirmButtonText: "Oke",
+    });
+  };
+
   useEffect(() => {
-    const syncCartItems = () => {
+    const syncCartItems = async () => {
       setLoading(true);
       try {
-        const items = getCartItems();
+        const items = await getCartItems();
         setCartItems(items);
         setSelectedIds((prev) =>
           prev.filter((id) => items.some((item) => item.id_produk === id)),
@@ -45,7 +57,7 @@ export default function CartList() {
     };
   }, []);
 
-  const handleIncrease = (productId, currentQuantity) => {
+  const handleIncrease = async (productId, currentQuantity) => {
     const targetItem = cartItems.find((item) => item.id_produk === productId);
 
     if (
@@ -65,22 +77,40 @@ export default function CartList() {
       return;
     }
 
-    const updatedItems = updateCartItemQuantity(productId, currentQuantity + 1);
-    setCartItems(updatedItems);
+    try {
+      const updatedItems = await updateCartItemQuantity(
+        productId,
+        currentQuantity + 1,
+      );
+      setCartItems(updatedItems);
+    } catch (error) {
+      showCartError(error?.message);
+    }
   };
 
-  const handleDecrease = (productId, currentQuantity) => {
-    const updatedItems = updateCartItemQuantity(productId, currentQuantity - 1);
-    setCartItems(updatedItems);
-    setSelectedIds((prev) =>
-      prev.filter((id) => updatedItems.some((item) => item.id_produk === id)),
-    );
+  const handleDecrease = async (productId, currentQuantity) => {
+    try {
+      const updatedItems = await updateCartItemQuantity(
+        productId,
+        currentQuantity - 1,
+      );
+      setCartItems(updatedItems);
+      setSelectedIds((prev) =>
+        prev.filter((id) => updatedItems.some((item) => item.id_produk === id)),
+      );
+    } catch (error) {
+      showCartError(error?.message);
+    }
   };
 
-  const handleRemove = (productId) => {
-    const updatedItems = removeCartItem(productId);
-    setCartItems(updatedItems);
-    setSelectedIds((prev) => prev.filter((id) => id !== productId));
+  const handleRemove = async (productId) => {
+    try {
+      const updatedItems = await removeCartItem(productId);
+      setCartItems(updatedItems);
+      setSelectedIds((prev) => prev.filter((id) => id !== productId));
+    } catch (error) {
+      showCartError(error?.message);
+    }
   };
 
   const toggleSelectItem = (productId) => {

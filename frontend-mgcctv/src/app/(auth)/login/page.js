@@ -71,11 +71,7 @@ export default function LoginPage() {
         document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
         document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
 
-        // === PERBAIKAN: Bersihkan keranjang sisa saat login Google ===
-        localStorage.removeItem("mgcctv-cart");
-        localStorage.removeItem("mgcctv-checkout");
         window.dispatchEvent(new Event("cart-updated"));
-        // =============================================================
 
         if (userRole === "admin" || userRole === "superadmin") {
           router.push("/admin");
@@ -153,11 +149,7 @@ export default function LoginPage() {
       document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
       document.cookie = `role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
 
-      // === PERBAIKAN: Bersihkan keranjang sisa saat login Manual ===
-      localStorage.removeItem("mgcctv-cart");
-      localStorage.removeItem("mgcctv-checkout");
       window.dispatchEvent(new Event("cart-updated"));
-      // =============================================================
 
       if (userRole === "admin" || userRole === "superadmin") {
         router.push("/admin");

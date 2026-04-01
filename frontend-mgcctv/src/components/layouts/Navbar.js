@@ -42,13 +42,21 @@ export default function Navbar() {
     };
 
     const syncCartCount = () => {
-      const token = localStorage.getItem("token");
-      // Hanya ambil data keranjang kalau user sedang login
-      if (token) {
-        setCartCount(getCartCount());
-      } else {
-        setCartCount(0);
-      }
+      const updateCartCount = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setCartCount(0);
+          return;
+        }
+
+        try {
+          setCartCount(await getCartCount());
+        } catch {
+          setCartCount(0);
+        }
+      };
+
+      updateCartCount();
     };
 
     const fetchProfile = async () => {
@@ -126,11 +134,9 @@ export default function Navbar() {
       cancelButtonText: 'Batal',
     }).then((result) => {
       if (result.isConfirmed) {
-        // 1. Hapus semua data di Local Storage & Cookies
+        // 1. Hapus sesi login, tapi pertahankan keranjang per user di browser
         localStorage.removeItem("token");
         localStorage.removeItem("role");
-        localStorage.removeItem("mgcctv-cart"); 
-        localStorage.removeItem("mgcctv-checkout"); 
         
         document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";  
         document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";

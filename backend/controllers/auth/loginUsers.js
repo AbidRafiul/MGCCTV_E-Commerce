@@ -1,63 +1,18 @@
-const connection = require("../../config/database");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const authModel = require("../../models/authModel");
+
+const handleAuthError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+  return res.status(error.status || 500).json({
+    message: error.message || fallbackMessage,
+  });
+};
 
 const loginUsers = async (req, res) => {
   try {
-    let { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Email dan password wajib diisi",
-      });
-    }
-
-    const emailClean = email.trim().toLowerCase();
-
-    const [user] = await connection.query(
-      "SELECT * FROM ms_users WHERE email = ?",
-      [emailClean]
-    );
-
-    if (user.length === 0) {
-      return res.status(401).json({
-        message: "Email atau password salah",
-      });
-    }
-
-    const checkPassword = await bcrypt.compare(
-      password,
-      user[0].password
-    );
-
-    if (!checkPassword) {
-      return res.status(401).json({
-        message: "Email atau password salah",
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user[0].id_users,
-        role: user[0].role,
-        username: user[0].username,
-        email: user[0].email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    return res.status(200).json({
-      message: "Login berhasil",
-      token: token,
-      role: user[0].role,
-    });
-
+    const result = await authModel.loginUsers(req.body);
+    return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    return handleAuthError(res, error, "Server error");
   }
 };
 

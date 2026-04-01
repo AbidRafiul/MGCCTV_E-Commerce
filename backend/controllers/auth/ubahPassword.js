@@ -1,70 +1,24 @@
-const connection = require ('../../config/database');
-const bcrypt = require ('bcrypt');
+const authModel = require("../../models/authModel");
+
+const handleUbahPassError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+  return res.status(error.status || 500).json({
+    message: error.message || fallbackMessage,
+  });
+};
 
 const ubahPassword = async (req, res) => {
   try {
-    const { passwordLama, passwordBaru, konfirmasiPassword } = req.body;
-
-    if (!passwordLama || !passwordBaru || !konfirmasiPassword) {
-      return res.status(400).json({
-        message: "Password lama, password baru, dan konfirmasi password wajib diisi",
-      });
-    }
-
-    if (passwordBaru !== konfirmasiPassword) {
-      return res.status(400).json({
-        message: "Konfirmasi password tidak sama dengan password baru",
-      });
-    }
-
-    if (passwordBaru.length < 8) {
-      return res.status(400).json({
-        message: "Password baru minimal 8 karakter",
-      });
-    }
-
-    const [user] = await connection.query(
-      "SELECT password FROM ms_users WHERE id_users = ?",
-      [req.user.id],
-    );
-
-    if (user.length === 0) {
-      return res.status(404).json({
-        message: "Customer tidak ditemukan",
-      });
-    }
-
-    const isCurrentPasswordValid = await bcrypt.compare(
-      passwordLama,
-      user[0].password,
-    );
-
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({
-        message: "Password saat ini tidak sesuai",
-      });
-    }
-
-    const isSamePassword = await bcrypt.compare(passwordBaru, user[0].password);
-
-    if (isSamePassword) {
-      return res.status(400).json({
-        message: "Password baru tidak boleh sama dengan password lama",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(passwordBaru, 10);
-
-    await connection.query(
-      "UPDATE ms_users SET password = ? WHERE id_users = ?",
-      [hashedPassword, req.user.id],
-    );
-
-    return res.json({
-      message: "Password berhasil diubah",
+    const result = await authModel.updatePassword({
+      userId: req.user?.id || req.user?.id_users,
+      currentPassword: req.body?.currentPassword || req.body?.passwordLama,
+      newPassword: req.body?.newPassword || req.body?.passwordBaru,
+      confirmPassword: req.body?.confirmPassword || req.body?.konfirmasiPassword,
     });
+
+    return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json(error);
+    return handleUbahPassError(res, error, "Gagal mengubah password");
   }
 };
 

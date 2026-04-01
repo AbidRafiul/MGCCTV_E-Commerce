@@ -1,9 +1,28 @@
 "use client";
 
-const CART_STORAGE_KEY = "mgcctv-cart";
+import { AUTH_API_URL } from "@/lib/api";
+
 const CHECKOUT_STORAGE_KEY = "mgcctv-checkout";
 
 const isBrowser = () => typeof window !== "undefined";
+
+const getToken = () =>
+  isBrowser() ? localStorage.getItem("token") || "" : "";
+
+const getAuthHeaders = () => {
+  const token = getToken();
+
+  if (!token) {
+    const error = new Error("Silakan login terlebih dahulu");
+    error.status = 401;
+    throw error;
+  }
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+};
 
 const normalizeStock = (value) => {
   const parsedValue = Number(value);
@@ -35,104 +54,109 @@ const normalizeCartItems = (items) => {
         gambar_produk: item.gambar_produk || "/images/placeholder.jpg",
         stok_tersedia: stokTersedia,
         quantity: normalizeQuantity(item.quantity, stokTersedia),
+        subtotal:
+          Number(item.subtotal) ||
+          (Number(item.harga_produk) || 0) *
+            normalizeQuantity(item.quantity, stokTersedia),
       };
     });
 };
 
-const saveCartItems = (items) => {
-  if (!isBrowser()) return [];
-
-  const normalizedItems = normalizeCartItems(items);
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(normalizedItems));
+const emitCartUpdated = () => {
+  if (!isBrowser()) return;
   window.dispatchEvent(new Event("cart-updated"));
-  return normalizedItems;
 };
 
-export const getCartItems = () => {
-  if (!isBrowser()) return [];
+const parseCartResponse = async (response, fallbackMessage) => {
+  const data = await response.json().catch(() => ({}));
 
-  try {
-    const storedCart = localStorage.getItem(CART_STORAGE_KEY);
-    return storedCart ? normalizeCartItems(JSON.parse(storedCart)) : [];
-  } catch (error) {
-    console.error("Gagal membaca data keranjang:", error);
-    return [];
-  }
-};
-
-export const getCartCount = () => {
-  const items = getCartItems();
-  return items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
-};
-
-export const addCartItem = (product) => {
-  const currentItems = getCartItems();
-  const productId = product?.id_produk;
-  const stokTersedia = normalizeStock(
-    product?.stok_tersedia ?? product?.stok_produk ?? product?.stok,
-  );
-
-  if (!productId) return currentItems;
-  if (stokTersedia !== null && stokTersedia <= 0) return currentItems;
-
-  const existingItemIndex = currentItems.findIndex(
-    (item) => item.id_produk === productId,
-  );
-
-  if (existingItemIndex >= 0) {
-    const existingItem = currentItems[existingItemIndex];
-    const updatedStock =
-      stokTersedia ?? existingItem.stok_tersedia ?? null;
-
-    currentItems[existingItemIndex] = {
-      ...existingItem,
-      gambar_produk:
-        existingItem.gambar_produk || product.gambar_produk || "/images/placeholder.jpg",
-      stok_tersedia: updatedStock,
-      quantity: normalizeQuantity(existingItem.quantity + 1, updatedStock),
-    };
-
-    return saveCartItems(currentItems);
+  if (!response.ok) {
+    const error = new Error(data?.message || fallbackMessage);
+    error.status = response.status;
+    throw error;
   }
 
-  return saveCartItems([
-    ...currentItems,
-    {
-      id_produk: product.id_produk,
-      merek: product.merek || product.nama_kategori || "-",
-      nama_produk: product.nama_produk,
-      harga_produk: product.harga_produk,
-      gambar_produk: product.gambar_produk || "/images/placeholder.jpg",
-      stok_tersedia: stokTersedia,
-      quantity: normalizeQuantity(1, stokTersedia),
+  return data;
+};
+
+export const getCartItems = async () => {
+  const response = await fetch(`${AUTH_API_URL}/cart`, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
     },
-  ]);
+  });
+
+  const data = await parseCartResponse(response, "Gagal mengambil keranjang");
+  return normalizeCartItems(data.items);
 };
 
-export const updateCartItemQuantity = (productId, nextQuantity) => {
-  const currentItems = getCartItems();
+export const getCartCount = async () => {
+  const response = await fetch(`${AUTH_API_URL}/cart/count`, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
 
-  const updatedItems = currentItems
-    .map((item) =>
-      item.id_produk === productId
-        ? {
-            ...item,
-            quantity:
-              Number(nextQuantity) <= 0
-                ? 0
-                : normalizeQuantity(nextQuantity, item.stok_tersedia ?? null),
-          }
-        : item,
-    )
-    .filter((item) => item.quantity > 0);
+  const data = await parseCartResponse(
+    response,
+    "Gagal mengambil jumlah keranjang",
+  );
 
-  return saveCartItems(updatedItems);
+  return Number(data.totalItems || 0);
 };
 
-export const removeCartItem = (productId) => {
-  const currentItems = getCartItems();
-  const filteredItems = currentItems.filter((item) => item.id_produk !== productId);
-  return saveCartItems(filteredItems);
+export const addCartItem = async (product, quantity = 1) => {
+  const response = await fetch(`${AUTH_API_URL}/cart/items`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      id_produk: product?.id_produk,
+      quantity,
+    }),
+  });
+
+  const data = await parseCartResponse(
+    response,
+    "Gagal menambahkan produk ke keranjang",
+  );
+
+  emitCartUpdated();
+  return normalizeCartItems(data.items);
+};
+
+export const updateCartItemQuantity = async (productId, nextQuantity) => {
+  const response = await fetch(`${AUTH_API_URL}/cart/items/${productId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      quantity: nextQuantity,
+    }),
+  });
+
+  const data = await parseCartResponse(
+    response,
+    "Gagal memperbarui jumlah produk",
+  );
+
+  emitCartUpdated();
+  return normalizeCartItems(data.items);
+};
+
+export const removeCartItem = async (productId) => {
+  const response = await fetch(`${AUTH_API_URL}/cart/items/${productId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await parseCartResponse(
+    response,
+    "Gagal menghapus produk dari keranjang",
+  );
+
+  emitCartUpdated();
+  return normalizeCartItems(data.items);
 };
 
 export const saveCheckoutItems = (items) => {
@@ -161,7 +185,5 @@ export const clearCheckoutItems = () => {
 };
 
 export const clearCartItems = () => {
-  if (!isBrowser()) return;
-  localStorage.removeItem(CART_STORAGE_KEY);
-  window.dispatchEvent(new Event("cart-updated"));
+  emitCartUpdated();
 };
