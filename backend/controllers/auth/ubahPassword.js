@@ -69,8 +69,6 @@ const ubahPassword = async (req, res) => {
     return res.json({
       message: "Password berhasil diubah",
     });
-
-    return res.status(200).json(result);
   } catch (error) {
     console.error("Ubah Password Error:", error);
     return res.status(500).json({

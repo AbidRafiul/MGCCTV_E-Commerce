@@ -12,6 +12,8 @@ import {
   ReceiptText,
   ShoppingBag,
   Truck,
+  Home,
+  ChevronRight
 } from "lucide-react";
 import NavBox from "../profile/NavBox";
 
@@ -114,27 +116,30 @@ export default function HistoryCard() {
 
   return (
     <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 px-5 py-2 sm:py-4">
-          <h2 className="mb-2 text-2xl font-extrabold text-[#0C2C55] sm:text-3xl">Pesanan Saya</h2>
-          <nav aria-label="Breadcrumb" className="mt-2">
-            <ol className="flex items-center gap-2 text-sm text-slate-500">
-              <li>
-                <Link href="/beranda" className="transition hover:text-slate-800">
-                  Beranda
-                </Link>
-              </li>
-              <li>/</li>
-              <li>
-                <Link href="/profile" className="transition hover:text-slate-800">
-                  Profile Saya
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="font-medium text-slate-700">Pesanan Saya</li>
-            </ol>
-          </nav>
-        </div>
+           <div className="mx-auto max-w-5xl relative">
+                {/* Ambient Glow */}
+                <div className="absolute -top-20 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        
+                <div className="relative z-10 mb-10 px-2 sm:px-4 flex flex-col items-start gap-4">
+                  <span className="inline-block rounded-full bg-blue-100/80 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-blue-700 backdrop-blur-md shadow-sm">
+                    Riwayat Pesanan
+                  </span>
+                  <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+                    Pesanan <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Saya</span>
+                  </h1>
+                  
+                  {/* Breadcrumb Modern */}
+                  <nav className="flex items-center text-xs sm:text-sm font-bold text-slate-500 bg-white/80 px-4 py-2.5 rounded-full backdrop-blur-md ring-1 ring-slate-200 shadow-sm w-full sm:w-auto overflow-x-auto [&::-webkit-scrollbar]:hidden mt-2">
+                    <Link href="/beranda" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors shrink-0">
+                      <Home size={14} className="mb-[1px]" />
+                      Beranda
+                    </Link>
+                    <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
+                    <Link href="/riwayat" className="hover:text-blue-600 transition-colors shrink-0">
+                      Riwayat Pesanan
+                    </Link>
+                  </nav>
+                </div>
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
           <NavBox activeItem="orders" onNavigate={handleNavigate} canAccessPassword />

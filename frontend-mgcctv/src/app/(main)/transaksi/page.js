@@ -9,6 +9,8 @@ import {
   CreditCard,
   ReceiptText,
   ShieldCheck,
+  Home,
+  ChevronRight
 } from "lucide-react";
 import Swal from "sweetalert2";
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -49,12 +51,24 @@ export default function TransaksiPage() {
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [shippingProfile, setShippingProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [orderId, setOrderId] = useState("");
+  const [paymentDeadline, setPaymentDeadline] = useState("");
 
   useEffect(() => {
     const loadTransactionPreview = async () => {
       setIsLoading(true);
 
       try {
+        setOrderId(generateOrderId());
+
+        const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        setPaymentDeadline(
+          deadline.toLocaleString("id-ID", {
+            dateStyle: "full",
+            timeStyle: "short",
+          }),
+        );
+
         setCheckoutItems(getCheckoutItems());
 
         const token =
@@ -97,15 +111,7 @@ export default function TransaksiPage() {
     [checkoutItems],
   );
 
-  const orderId = useMemo(() => generateOrderId(), []);
   const virtualAccount = useMemo(() => "8808123412345678", []);
-  const paymentDeadline = useMemo(() => {
-    const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    return deadline.toLocaleString("id-ID", {
-      dateStyle: "full",
-      timeStyle: "short",
-    });
-  }, []);
 
   const handleCopy = async (value, label) => {
     try {
@@ -130,30 +136,35 @@ export default function TransaksiPage() {
     <AuthGuard>
       <Navbar />
       <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-24 sm:px-6 sm:pb-12 sm:pt-28 lg:px-12 lg:pb-16 lg:pt-32">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 px-5 py-2 sm:py-4">
-            <h2 className="mt-2 text-2xl font-extrabold leading-tight text-[#0C2C55] sm:text-3xl lg:text-4xl">
-              Transaksi
-            </h2>
-            <nav aria-label="Breadcrumb" className="mt-4">
-              <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
-                <li>
-                  <Link href="/beranda" className="transition hover:text-slate-800">
-                    Beranda
-                  </Link>
-                </li>
-                <li>/</li>
-                <li>
-                  <Link href="/checkout" className="transition hover:text-slate-800">
-                    Checkout
-                  </Link>
-                </li>
-                <li>/</li>
-                <li className="font-medium text-slate-700">Transaksi</li>
-              </ol>
-            </nav>
-          </div>
-
+        <div className="mx-auto max-w-5xl relative">
+                        {/* Ambient Glow */}
+                        <div className="absolute -top-20 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+                
+                        <div className="relative z-10 mb-10 px-2 sm:px-4 flex flex-col items-start gap-4">
+                          <span className="inline-block rounded-full bg-blue-100/80 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-blue-700 backdrop-blur-md shadow-sm">
+                            Pesanan Anda
+                          </span>
+                          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+                            Detail <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Transaksi</span>
+                          </h1>
+                          
+                          {/* Breadcrumb Modern */}
+                          <nav className="flex items-center text-xs sm:text-sm font-bold text-slate-500 bg-white/80 px-4 py-2.5 rounded-full backdrop-blur-md ring-1 ring-slate-200 shadow-sm w-full sm:w-auto overflow-x-auto [&::-webkit-scrollbar]:hidden mt-2">
+                            <Link href="/beranda" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors shrink-0">
+                              <Home size={14} className="mb-[1px]" />
+                              Beranda
+                            </Link>
+                            <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
+                            <Link href="/produk" className="hover:text-blue-600 transition-colors shrink-0">
+                              Produk
+                            </Link>
+                            <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
+                            <span className="text-slate-900 truncate max-w-[120px] sm:max-w-[300px] shrink-0">
+                              Transaksi
+                            </span>
+                          </nav>
+                        </div>
+                
           {isLoading ? (
             <div className="rounded-[24px] bg-white p-6 text-center shadow-sm sm:rounded-[28px] sm:p-8">
               <p className="text-sm font-medium text-slate-500 sm:text-base">

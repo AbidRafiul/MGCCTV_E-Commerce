@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Home } from "lucide-react";
 
 export default function ProductHeader() {
   return (
@@ -16,10 +16,15 @@ export default function ProductHeader() {
         </h1>
         
         {/* Breadcrumb Modern */}
-        <nav className="flex items-center text-xs sm:text-sm font-medium text-slate-500 mt-2">
-          <Link href="/beranda" className="hover:text-blue-600 transition-colors">Beranda</Link>
-          <ChevronRight size={14} className="mx-1.5 text-slate-400" />
-          <span className="text-slate-900 font-semibold shadow-sm">Produk</span>
+        <nav className="flex items-center text-xs sm:text-sm font-bold text-slate-500 bg-white/80 px-4 py-2.5 rounded-full backdrop-blur-md ring-1 ring-slate-200 shadow-sm w-full sm:w-auto overflow-x-auto [&::-webkit-scrollbar]:hidden mt-2">
+        <Link href="/beranda" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors shrink-0">
+        <Home size={14} className="mb-[1px]" />
+        Beranda
+        </Link>
+        <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
+        <Link href="/profile" className="hover:text-blue-600 transition-colors shrink-0">
+         Produk
+        </Link> 
         </nav>
       </div>
     </div>

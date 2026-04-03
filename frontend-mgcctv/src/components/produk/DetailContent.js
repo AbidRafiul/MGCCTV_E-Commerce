@@ -1,7 +1,8 @@
 "use client";
 
 import { ShoppingCart, Zap, ShieldCheck, Truck, CheckCircle2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 import { ensureCheckoutProfileComplete } from "@/services/checkoutProfileService";
 import { addCartItem, saveCheckoutItems } from "@/services/cartService";
 import { motion } from "framer-motion";

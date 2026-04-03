@@ -17,23 +17,35 @@ export default function CartList() {
   const [cartItems, setCartItems] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-  const popupWidth = isMobile ? 280 : 360;
-  const popupPadding = isMobile ? "1rem" : "1.25rem";
+  const [popupConfig, setPopupConfig] = useState({
+    width: 360,
+    padding: "1.25rem",
+  });
 
   const showCartError = (message) => {
     Swal.fire({
       title: "Keranjang Gagal Diperbarui",
       text: message || "Terjadi kesalahan saat memproses keranjang.",
       icon: "error",
-      width: popupWidth,
-      padding: popupPadding,
+      width: popupConfig.width,
+      padding: popupConfig.padding,
       confirmButtonColor: "#0C2C55",
       confirmButtonText: "Oke",
     });
   };
 
   useEffect(() => {
+    const updatePopupConfig = () => {
+      const isMobile = window.innerWidth < 640;
+      setPopupConfig({
+        width: isMobile ? 280 : 360,
+        padding: isMobile ? "1rem" : "1.25rem",
+      });
+    };
+
+    updatePopupConfig();
+    window.addEventListener("resize", updatePopupConfig);
+
     const syncCartItems = async () => {
       setLoading(true);
       try {
@@ -53,6 +65,7 @@ export default function CartList() {
     window.addEventListener("cart-updated", syncCartItems);
 
     return () => {
+      window.removeEventListener("resize", updatePopupConfig);
       window.removeEventListener("cart-updated", syncCartItems);
     };
   }, []);
@@ -69,8 +82,8 @@ export default function CartList() {
         title: "Stok Maksimal Tercapai",
         text: `Jumlah maksimal untuk produk ini adalah ${targetItem.stok_tersedia}.`,
         icon: "warning",
-        width: popupWidth,
-        padding: popupPadding,
+        width: popupConfig.width,
+        padding: popupConfig.padding,
         confirmButtonColor: "#0C2C55",
         confirmButtonText: "Mengerti",
       });
@@ -140,8 +153,8 @@ export default function CartList() {
         title: "Pilih Produk Dulu",
         text: "Centang minimal satu produk dari keranjang sebelum checkout.",
         icon: "warning",
-        width: popupWidth,
-        padding: popupPadding,
+        width: popupConfig.width,
+        padding: popupConfig.padding,
         confirmButtonColor: "#0C2C55",
         confirmButtonText: "Oke",
       });

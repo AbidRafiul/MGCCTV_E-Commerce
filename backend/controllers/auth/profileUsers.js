@@ -1,36 +1,29 @@
-const AuthModel = require("../../models/AuthModel"); // Panggil si Koki
+const AuthModel = require("../../models/AuthModel");
 
 const profileUsers = async (req, res) => {
   try {
-    // 1. Ambil data profil user saat ini (via Model)
-    const user = await AuthModel.getProfileById(req.user.id);
+    const userRows = await AuthModel.getProfileById(req.user.id);
 
-    if (user.length === 0) {
+    if (userRows.length === 0) {
       return res.status(404).json({
         message: "Customer tidak ditemukan",
       });
     }
 
-    // =====================================
-    // HANDLE REQUEST: GET PROFILE
-    // =====================================
+    const currentUser = userRows[0];
+
     if (req.method === "GET") {
-      const user = await authModel.findProfileByUserId(req.user.id);
       return res.json({
         message: "Profile berhasil diambil",
-        user,
+        user: currentUser,
       });
     }
 
-    // =====================================
-    // HANDLE REQUEST: UPDATE PROFILE
-    // =====================================
     if (req.method === "PUT" || req.method === "PATCH") {
       const isPutRequest = req.method === "PUT";
       const { nama, username, email, no_hp, alamat } = req.body;
-      const isGoogleAccount = Boolean(user[0].is_google_account);
+      const isGoogleAccount = Boolean(currentUser.is_google_account);
 
-      // --- Validasi Kelengkapan ---
       if (isPutRequest && (!nama || !username || !email || !no_hp || !alamat)) {
         return res.status(400).json({
           message: "Nama, username, email, no_hp, dan alamat wajib diisi",
@@ -43,23 +36,22 @@ const profileUsers = async (req, res) => {
         });
       }
 
-      // --- Validasi Khusus Akun Google ---
       if (isGoogleAccount && (username !== undefined || email !== undefined)) {
         return res.status(400).json({
           message: "Akun Google hanya dapat mengubah nama lengkap, no handphone, dan alamat",
         });
       }
 
-      // --- Siapkan Data Terbaru ---
       const updatedProfile = {
-        nama: nama ?? user[0].nama,
-        username: isGoogleAccount ? user[0].username : (username ?? user[0].username),
-        email: isGoogleAccount ? user[0].email : (email ?? user[0].email),
-        no_hp: no_hp ?? user[0].no_hp,
-        alamat: alamat ?? user[0].alamat,
+        nama: nama ?? currentUser.nama,
+        username: isGoogleAccount
+          ? currentUser.username
+          : (username ?? currentUser.username),
+        email: isGoogleAccount ? currentUser.email : (email ?? currentUser.email),
+        no_hp: no_hp ?? currentUser.no_hp,
+        alamat: alamat ?? currentUser.alamat,
       };
 
-      // --- Pengecekan Duplikasi Email & Username (Selain milik sendiri) ---
       const duplicateConditions = [];
       const duplicateParams = [];
 
@@ -74,11 +66,10 @@ const profileUsers = async (req, res) => {
       }
 
       if (duplicateConditions.length > 0) {
-        const conditionsStr = duplicateConditions.join(" OR ");
-        const paramsForModel = [...duplicateParams, req.user.id];
-        
-        // Panggil Model
-        const duplicateUser = await AuthModel.checkDuplicateForUpdate(conditionsStr, paramsForModel);
+        const duplicateUser = await AuthModel.checkDuplicateForUpdate(
+          duplicateConditions.join(" OR "),
+          [...duplicateParams, req.user.id],
+        );
 
         if (duplicateUser.length > 0) {
           return res.status(400).json({
@@ -87,15 +78,12 @@ const profileUsers = async (req, res) => {
         }
       }
 
-      // --- Eksekusi Update ke Database (via Model) ---
       await AuthModel.updateProfile(req.user.id, updatedProfile);
-
-      // --- Ambil Data Terbaru untuk dikembalikan ke Frontend ---
-      const updatedUser = await AuthModel.getProfileById(req.user.id);
+      const updatedUserRows = await AuthModel.getProfileById(req.user.id);
 
       return res.json({
         message: "Profile berhasil diperbarui",
-        user,
+        user: updatedUserRows[0],
       });
     }
 
@@ -104,9 +92,8 @@ const profileUsers = async (req, res) => {
     });
   } catch (error) {
     console.error("Profile Error:", error);
-    return res.status(500).json({
-      message: "Terjadi kesalahan pada server",
-      error: error.message
+    return res.status(error.status || 500).json({
+      message: error.message || "Terjadi kesalahan pada server",
     });
   }
 };
