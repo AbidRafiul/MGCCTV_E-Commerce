@@ -1,20 +1,48 @@
 "use client";
 
 import { ShoppingCart, Zap, ShieldCheck, Truck, CheckCircle2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 import { ensureCheckoutProfileComplete } from "@/services/checkoutProfileService";
 import { addCartItem, saveCheckoutItems } from "@/services/cartService";
 import { motion } from "framer-motion";
 
 export default function DetailContent({ product }) {
   const router = useRouter();
+  const pathname = usePathname();
 
-  const handleAddToCart = () => {
-    addCartItem(product);
-    router.push("/keranjang");
+  const redirectToLogin = () => {
+    router.push(`/login?redirect=${encodeURIComponent(pathname || "/produk")}`);
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      await addCartItem(product);
+      router.push("/keranjang");
+    } catch (error) {
+      if (error?.status === 401) {
+        redirectToLogin();
+        return;
+      }
+
+      Swal.fire({
+        title: "Keranjang Gagal Diperbarui",
+        text: error?.message || "Terjadi kesalahan saat menambahkan produk.",
+        icon: "error",
+        confirmButtonColor: "#0C2C55",
+      });
+    }
   };
 
   const handleBuyNow = async () => {
+    if (
+      typeof window !== "undefined" &&
+      !localStorage.getItem("token")
+    ) {
+      redirectToLogin();
+      return;
+    }
+
     const canContinue = await ensureCheckoutProfileComplete();
 
     if (!canContinue) {

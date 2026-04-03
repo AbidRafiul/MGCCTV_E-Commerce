@@ -57,11 +57,7 @@ const getDashboardStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Dashboard error:", error);
-    return res.status(500).json({
-      message: "Gagal mengambil data dashboard",
-      error: error.message,
-    });
+    return handleDashboardError(res, error, "Gagal mengambil data dashboard");
   }
 };
 

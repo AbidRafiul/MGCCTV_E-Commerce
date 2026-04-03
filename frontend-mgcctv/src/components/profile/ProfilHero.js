@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { CircleUserRound, LoaderCircle } from "lucide-react";
+import { BadgeCheck,
+   CircleUserRound, 
+   LoaderCircle, 
+   ShieldCheck, 
+   UserCog, 
+   Home, 
+   ChevronRight } from "lucide-react";
 import NavBox from "./NavBox";
 import { AUTH_API_URL } from "@/lib/api";
 
@@ -261,7 +267,9 @@ export default function ProfileHero() {
       return;
     }
 
-    window.alert();
+    if (!isGoogleAccount) {
+      router.push("/ubah-password");
+    }
   };
 
   const handleNavigate = (key) => {
@@ -279,7 +287,7 @@ export default function ProfileHero() {
     }
 
     if (key === "orders") {
-      window.alert("Halaman pesanan saya belum tersedia.");
+      router.push("/riwayat");
     }
   };
 
@@ -299,21 +307,31 @@ export default function ProfileHero() {
 
   return (
     <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 px-5 py-2 sm:py-4">
-          <h2 className="mb-2 text-2xl font-extrabold text-[#0C2C55] sm:text-3xl">Profile Saya</h2>
-          <nav aria-label="Breadcrumb" className="mt-2">
-            <ol className="flex items-center gap-2 text-sm text-slate-500">
-              <li>
-                <Link href="/beranda" className="transition hover:text-slate-800">
-                  Beranda
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="font-medium text-slate-700">Profile Saya</li>
-            </ol>
-          </nav>
-        </div>
+      <div className="mx-auto max-w-5xl relative">
+                {/* Ambient Glow */}
+                <div className="absolute -top-20 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        
+                <div className="relative z-10 mb-10 px-2 sm:px-4 flex flex-col items-start gap-4">
+                  <span className="inline-block rounded-full bg-blue-100/80 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-blue-700 backdrop-blur-md shadow-sm">
+                    Profile
+                  </span>
+                  <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+                    Detail <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Profile</span>
+                  </h1>
+                  
+                  {/* Breadcrumb Modern */}
+                  <nav className="flex items-center text-xs sm:text-sm font-bold text-slate-500 bg-white/80 px-4 py-2.5 rounded-full backdrop-blur-md ring-1 ring-slate-200 shadow-sm w-full sm:w-auto overflow-x-auto [&::-webkit-scrollbar]:hidden mt-2">
+                    <Link href="/beranda" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors shrink-0">
+                      <Home size={14} className="mb-[1px]" />
+                      Beranda
+                    </Link>
+                    <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
+                    <Link href="/profile" className="hover:text-blue-600 transition-colors shrink-0">
+                      Profile Saya
+                    </Link>
+                  </nav>
+                </div>
+        
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
           <NavBox
@@ -330,18 +348,60 @@ export default function ProfileHero() {
               </div>
             ) : (
               <>
-                <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-200 text-slate-600">
-                    <CircleUserRound size={32} />
-                  </div>
+                <div className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0C2C55_0%,#123e74_55%,#1d5ca2_100%)] px-5 py-6 md:px-7 md:py-7">
+                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+                  <div className="absolute bottom-0 right-20 h-20 w-20 rounded-full bg-sky-300/10 blur-2xl" />
 
-                  <div>
-                    <h3 className="text-2xl font-semibold text-slate-900">
-                      {profile?.nama || "Pengguna"}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Terdaftar Sejak: {formatJoinDate(profile?.created_at)}
-                    </p>
+                  <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-sm">
+                        <CircleUserRound size={32} />
+                      </div>
+
+                      <div>
+                        <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">
+                          Akun Saya
+                        </span>
+                        <h3 className="mt-3 text-2xl font-semibold text-white md:text-[30px]">
+                          {profile?.nama || "Pengguna"}
+                        </h3>
+                        <p className="mt-1 text-sm text-blue-100/85">
+                          Terdaftar Sejak: {formatJoinDate(profile?.created_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-sky-100">
+                          <UserCog size={16} />
+                          <span className="text-[11px] uppercase tracking-[0.18em]">Status Akun</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-white">
+                          {isGoogleAccount ? "Google Account" : "Akun Reguler"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-sky-100">
+                          <ShieldCheck size={16} />
+                          <span className="text-[11px] uppercase tracking-[0.18em]">Keamanan</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-white">
+                          {isGoogleAccount ? "Terverifikasi Google" : "Password Aktif"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-sky-100">
+                          <BadgeCheck size={16} />
+                          <span className="text-[11px] uppercase tracking-[0.18em]">Profil</span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-white">
+                          {profile?.email || "-"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

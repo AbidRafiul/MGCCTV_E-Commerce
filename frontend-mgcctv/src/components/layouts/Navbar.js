@@ -43,11 +43,17 @@ export default function Navbar() {
       }
     };
 
-    const syncCartCount = () => {
+    const syncCartCount = async () => {
       const token = localStorage.getItem("token");
 
       if (token) {
-        setCartCount(getCartCount());
+        try {
+          const count = await getCartCount();
+          setCartCount(count);
+        } catch (error) {
+          console.error("Gagal mengambil jumlah keranjang:", error);
+          setCartCount(0);
+        }
       } else {
         setCartCount(0);
       }

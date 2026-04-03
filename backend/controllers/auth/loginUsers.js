@@ -1,6 +1,13 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const AuthModel = require("../../models/AuthModel"); // Memanggil Koki Auth kita!
+const AuthModel = require("../../models/AuthModel");
+
+const handleAuthError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+  return res.status(error.status || 500).json({
+    message: error.message || fallbackMessage,
+  });
+};
 
 const loginUsers = async (req, res) => {
   try {
@@ -12,11 +19,9 @@ const loginUsers = async (req, res) => {
       });
     }
 
-    const emailClean = email.trim().toLowerCase();
+    email = email.trim().toLowerCase();
 
-    // Panggil Model yang sudah kita buat sebelumnya
-    const existingUser = await AuthModel.findUserByEmail(emailClean);
-
+    const existingUser = await AuthModel.findUserByEmail(email);
     if (existingUser.length === 0) {
       return res.status(401).json({
         message: "Email atau password salah",
@@ -25,19 +30,13 @@ const loginUsers = async (req, res) => {
 
     const user = existingUser[0];
 
-    // BONUS KEAMANAN: Jika akun dibuat via Google (password di DB kosong)
     if (!user.password) {
-       return res.status(401).json({
-         message: "Akun ini terdaftar menggunakan Google. Silakan login dengan tombol Google.",
-       });
+      return res.status(401).json({
+        message: "Akun ini terdaftar menggunakan Google. Silakan login dengan tombol Google.",
+      });
     }
 
-    // Controller murni mengurus logika enkripsi dan bisnis
-    const checkPassword = await bcrypt.compare(
-      password,
-      user.password
-    );
-
+    const checkPassword = await bcrypt.compare(password, user.password);
     if (!checkPassword) {
       return res.status(401).json({
         message: "Email atau password salah",
@@ -52,20 +51,16 @@ const loginUsers = async (req, res) => {
         email: user.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     return res.status(200).json({
       message: "Login berhasil",
-      token: token,
+      token,
       role: user.role,
     });
-
   } catch (error) {
-    return res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    return handleAuthError(res, error, "Server error");
   }
 };
 

@@ -1,17 +1,9 @@
-const CmsModel = require('../../models/CmsModel'); 
-const cloudinary = require('cloudinary').v2;
+const cmsModel = require("../../models/CmsModel");
 
-// Fungsi pembantu untuk melempar buffer memori ke Cloudinary
-const uploadToCloudinary = (buffer, folderName) => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: `MGCCTV/${folderName}` },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
-    );
-    uploadStream.end(buffer);
+const handleCmsError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+  return res.status(error.status || 500).json({
+    message: error.message || fallbackMessage,
   });
 };
 

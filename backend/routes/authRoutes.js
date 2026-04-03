@@ -6,8 +6,10 @@ const{ROLE} = require("../utils/role");
 const loginUsers = require("../controllers/auth/loginUsers");
 const registerCustomer = require("../controllers/auth/registerCustomer");
 const googleLogin = require("../controllers/auth/googleLogin");
+const logoutCustomer = require("../controllers/auth/logoutCustomer");
 const profileUsers = require("../controllers/auth/profileUsers");
 const ubahPassword = require("../controllers/auth/ubahPassword");
+const cartController = require("../controllers/auth/cartController");
 
 const auth = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
@@ -15,10 +17,16 @@ const authorize = require("../middleware/authorize");
 router.post("/login", loginUsers);
 router.post("/register", registerCustomer);
 router.post("/google", googleLogin);
+router.post("/logout", auth, logoutCustomer);
 router.get("/profile", auth, profileUsers);
 router.put("/profile", auth, profileUsers);
 router.patch("/profile", auth, profileUsers);
 router.put("/ubah-password", auth, ubahPassword);
+router.get("/cart", auth, cartController.getCartItems);
+router.get("/cart/count", auth, cartController.getCartCount);
+router.post("/cart/items", auth, cartController.addCartItem);
+router.patch("/cart/items/:productId", auth, cartController.updateCartItemQuantity);
+router.delete("/cart/items/:productId", auth, cartController.removeCartItem);
 
 
 //Menggunakan konstanta untuk validasi role

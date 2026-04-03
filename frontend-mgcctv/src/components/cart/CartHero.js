@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React from "react";
 import { ChevronRight, Home } from "lucide-react";
-import CartList from "./CartList";
+import CartList from "@/components/keranjang/CartList";
 
 export default function CartHero() {
   return (
