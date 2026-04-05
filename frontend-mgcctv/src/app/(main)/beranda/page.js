@@ -12,7 +12,7 @@ async function getCmsBeranda() {
     return await res.json();
   } catch (error) {
     console.error("Gagal mengambil data CMS Beranda:", error);
-    return []; // Kembalikan array kosong
+    return [];
   }
 }
 

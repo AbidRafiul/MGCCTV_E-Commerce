@@ -1,7 +1,6 @@
 const UserModel = require("../../models/UserModel"); // Memanggil si Koki
 const bcrypt = require("bcrypt");
 
-// Get all users
 const getAllUsers = async (req, res) => {
   try {
     const { role, status, search } = req.query;
@@ -10,11 +9,10 @@ const getAllUsers = async (req, res) => {
     
     res.json(users);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    return handleUserError(res, error, "Gagal mengambil data pengguna");
   }
 };
 
-// Add new Admin
 const addAdmin = async (req, res) => {
   try {
     const { nama, username, email, password, no_hp, alamat, role, status } = req.body;
@@ -36,15 +34,16 @@ const addAdmin = async (req, res) => {
 
     res.status(201).json({ message: "Admin berhasil ditambahkan" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    return handleUserError(res, error, "Gagal menambahkan pengguna");
   }
 };
 
-// Update Admin
 const updateAdmin = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { nama, username, email, no_hp, alamat, role, status, password } = req.body;
+    const result = await userModel.updateAdmin({
+      id: req.params.id,
+      body: req.body,
+    });
 
     const existing = await UserModel.getById(id);
     if (existing.length === 0) {
@@ -62,11 +61,10 @@ const updateAdmin = async (req, res) => {
 
     res.json({ message: "User berhasil diupdate" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    return handleUserError(res, error, "Gagal memperbarui pengguna");
   }
 };
 
-// Delete Admin
 const deleteAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -96,9 +94,9 @@ const deleteAdmin = async (req, res) => {
       throw dbError; 
     }
 
+    return res.status(200).json(result);
   } catch (error) {
-    console.error("Error Delete User:", error);
-    res.status(500).json({ message: "Gagal memproses penghapusan", error: error.message });
+    return handleUserError(res, error, "Gagal menghapus pengguna");
   }
 };
 

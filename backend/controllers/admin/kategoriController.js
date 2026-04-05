@@ -13,8 +13,7 @@ const getAllKategori = async (req, res) => {
     const kategori = await KategoriModel.getAll();
     res.status(200).json(kategori);
   } catch (error) {
-    console.error("Error GetKategori:", error);
-    res.status(500).json({ message: "Gagal mengambil data kategori", error: error.message });
+    return handleKategoriError(res, error, "Gagal mengambil data kategori");
   }
 };
 
@@ -36,11 +35,10 @@ const addKategori = async (req, res) => {
 
     return res.status(201).json({
       message: "Kategori berhasil ditambahkan",
-      kategori: newKategori[0],
+      kategori,
     });
   } catch (error) {
-    console.error("Error AddKategori:", error);
-    return res.status(500).json({ message: "Gagal menambahkan kategori", error: error.message });
+    return handleKategoriError(res, error, "Gagal menambahkan kategori");
   }
 };
 
@@ -72,11 +70,10 @@ const updateKategori = async (req, res) => {
 
     return res.status(200).json({
       message: "Kategori berhasil diperbarui",
-      kategori: updatedKategori[0],
+      kategori,
     });
   } catch (error) {
-    console.error("Error UpdateKategori:", error);
-    return res.status(500).json({ message: "Gagal memperbarui kategori", error: error.message });
+    return handleKategoriError(res, error, "Gagal memperbarui kategori");
   }
 };
 
@@ -106,8 +103,7 @@ const deleteKategori = async (req, res) => {
       message: `Kategori "${existingKategori[0].nama_kategori}" berhasil dihapus`,
     });
   } catch (error) {
-    console.error("Error DeleteKategori:", error);
-    return res.status(500).json({ message: "Gagal menghapus kategori", error: error.message });
+    return handleKategoriError(res, error, "Gagal menghapus kategori");
   }
 };
 

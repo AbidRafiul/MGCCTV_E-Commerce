@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, PackageSearch, ChevronDown, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, PackageSearch, ChevronDown, MapPin } from "lucide-react";
 import { getAllProducts, getAllCategories } from "@/services/produkService";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,7 +18,7 @@ export default function ProductList() {
   const [maxVisible, setMaxVisible] = useState(6);
   const [isMounted, setIsMounted] = useState(false);
 
-  const produkPerHalaman = 9; 
+  const produkPerHalaman = 12; // Dibuat 12 agar pas dengan grid padat
 
   useEffect(() => {
     const loadData = async () => {
@@ -104,10 +104,6 @@ export default function ProductList() {
     setActiveCategory(cat);
     setCurrentPage(1);
     setIsDropdownOpen(false);
-  };
-
-  const formatRupiah = (angka) => {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
   };
 
   // Variants untuk Animasi Framer Motion
@@ -198,51 +194,47 @@ export default function ProductList() {
       <div className="mb-12">
         {produkTampil.length > 0 ? (
           <motion.div 
-            key={activeCategory + currentPage} // Trigger re-animate saat ganti kategori/page
+            key={activeCategory + currentPage}
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 lg:gap-8"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5"
           >
             {produkTampil.map((product) => (
               <motion.div variants={cardVariants} key={product.id_produk}>
                 <Link 
                   href={`/produk/${product.id_produk}`} 
-                  className="group flex flex-col h-full bg-white rounded-3xl p-3.5 md:p-4 shadow-sm ring-1 ring-slate-100 hover:shadow-2xl hover:shadow-blue-900/5 hover:ring-blue-100 transition-all duration-500"
+                  className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg ring-1 ring-slate-200 transition-all duration-300 h-full flex flex-col font-sans hover:-translate-y-1"
                 >
-                  {/* Gambar */}
-                  <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-50 flex items-center justify-center p-4">
-                    <div className="absolute top-3 left-3 z-10">
-                      <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
-                        {product.merek || "Best Seller"}
-                      </span>
+                  {/* Gambar Persegi */}
+                  <div className="relative aspect-square overflow-hidden bg-white border-b border-slate-100 flex items-center justify-center p-2">
+                    <div className="absolute top-2 left-0 bg-[#0C2C55] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-r-md shadow-sm z-10 flex items-center gap-0.5">
+                      {product.merek || "CCTV"}
                     </div>
                     <img 
                       src={product.gambar_produk || "/images/placeholder.jpg"} 
-                      alt={product.nama_produk} 
-                      className="w-[85%] h-[85%] object-contain transition-transform duration-700 group-hover:scale-110" 
+                      alt={product.nama_produk}
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" 
                     />
                   </div>
                   
-                  {/* Info Produk */}
-                  <div className="mt-4 md:mt-5 flex-grow flex flex-col">
-                    <h3 className="font-bold text-sm md:text-base text-slate-900 leading-snug group-hover:text-blue-600 transition-colors mb-2 line-clamp-2">
+                  {/* Detail Informasi */}
+                  <div className="p-2.5 flex flex-col flex-grow gap-1 bg-white">
+                    <h3 className="text-[12px] sm:text-[13px] font-medium text-slate-800 line-clamp-2 leading-snug">
                       {product.nama_produk}
                     </h3>
-                    <div className="flex items-end justify-between mt-auto pt-3 border-t border-slate-100">
-                      <div>
-                        <p className="text-[10px] md:text-xs text-slate-400 font-medium mb-1">Harga</p>
-                        <p className="text-blue-600 font-extrabold text-base md:text-lg">
-                          {formatRupiah(product.harga_produk)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tombol Hover Action */}
-                  <div className="mt-4 w-full flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-700 font-bold rounded-xl ring-1 ring-slate-200 hover:bg-blue-600 hover:text-white hover:ring-blue-600 transition-all duration-300 text-xs md:text-sm">
-                    Lihat Detail
-                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                    
+                    {/* Deskripsi Singkat */}
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 line-clamp-1 sm:line-clamp-2 mt-0.5 leading-relaxed">
+                      {product.deskripsi_produk || "Produk keamanan original MGCCTV."}
+                    </p>
+                    
+                    <div className="flex-grow"></div>
+                    
+                    {/* Harga */}
+                    <p className="text-sm sm:text-base font-extrabold text-[#ee4d2d] truncate mt-1">
+                      {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(product.harga_produk)}
+                    </p>
                   </div>
                 </Link>
               </motion.div>

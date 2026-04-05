@@ -8,10 +8,12 @@ const AuthModel = {
   },
 
   // 2. Daftarkan user baru otomatis dari Google Login
-  registerGoogleUser: async (nama, email, role) => {
+  registerGoogleUser: async (nama, username, email, role) => {
     const [result] = await connection.query(
-      "INSERT INTO ms_users (nama, email, role, created_at) VALUES (?, ?, ?, NOW())",
-      [nama, email, role]
+      `INSERT INTO ms_users 
+      (nama, username, password, email, no_hp, alamat, role, created_at) 
+      VALUES (?, ?, "", ?, "-", "-", ?, NOW())`,
+      [nama, username, email, role]
     );
     return result;
   },
