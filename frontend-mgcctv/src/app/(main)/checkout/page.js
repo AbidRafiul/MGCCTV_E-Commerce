@@ -11,9 +11,10 @@ import Navbar from "@/components/layouts/Navbar";
 import { AUTH_API_URL } from "@/lib/api";
 import {
   ensureCheckoutProfileComplete,
-  openCheckoutProfileEditor,
+  saveProfileCompletion, // Import fungsi save
 } from "@/services/checkoutProfileService";
 import { getCheckoutItems } from "@/services/cartService";
+import CheckoutProfileDialog from "@/components/modals/CheckoutProfileDialog"; // Import Modal Shadcn
 
 const normalizeProfile = (user) => {
   if (!user || typeof user !== "object") return null;
@@ -36,6 +37,13 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [shippingProfile, setShippingProfile] = useState(null);
+  
+  // =======================================================
+  // STATE UNTUK MODAL SHADCN
+  // =======================================================
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileToEdit, setProfileToEdit] = useState(null);
+  
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   useEffect(() => {
@@ -57,9 +65,16 @@ export default function CheckoutPage() {
         const data = await response.json();
 
         if (response.ok) {
-          setShippingProfile(
-            normalizeProfile(data?.user ?? data?.data?.user ?? data?.data ?? null),
-          );
+          const fetchedProfile = normalizeProfile(data?.user ?? data?.data?.user ?? data?.data ?? null);
+          setShippingProfile(fetchedProfile);
+
+          // === LOGIKA AUTO POP-UP JIKA DATA KOSONG/"-" ===
+          const isInvalid = (text) => !text?.trim() || text?.trim() === "-" || text?.trim() === "null";
+          
+          if (isInvalid(fetchedProfile.no_hp) || isInvalid(fetchedProfile.alamat)) {
+            setProfileToEdit(fetchedProfile);
+            setIsProfileModalOpen(true); // Langsung tembak buka modal!
+          }
         }
       } catch (error) {
         console.error("Gagal mengambil profil pengiriman:", error);
@@ -83,41 +98,59 @@ export default function CheckoutPage() {
     [checkoutItems],
   );
 
-  const handleEditShippingProfile = async () => {
-    const updatedProfile = await openCheckoutProfileEditor();
+  // =======================================================
+  // FUNGSI MEMBUKA MODAL SAAT TOMBOL "UBAH" DIKLIK
+  // =======================================================
+  const handleEditShippingProfile = () => {
+    setProfileToEdit(shippingProfile); // Masukkan data saat ini ke form modal
+    setIsProfileModalOpen(true);
+  };
 
-    if (!updatedProfile) {
+  // =======================================================
+  // FUNGSI MENYIMPAN DATA DARI MODAL
+  // =======================================================
+  const handleSaveProfile = async (updatedData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const savedProfile = await saveProfileCompletion({ token, ...updatedData });
+      
+      // Update UI langsung tanpa perlu refresh
+      setShippingProfile(normalizeProfile(savedProfile));
+      setIsProfileModalOpen(false); 
+      return true;
+    } catch (error) {
+      return false; 
+    }
+  };
+
+  // =======================================================
+  // FUNGSI CHECKOUT & VALIDASI
+  // =======================================================
+  const handleFinishCheckout = async () => {
+    if (checkoutItems.length === 0) {
+      Swal.fire({
+        title: "Checkout Kosong",
+        text: "Belum ada produk yang dipilih untuk checkout.",
+        icon: "warning",
+        width: isMobile ? 280 : 360,
+        padding: isMobile ? "1rem" : "1.25rem",
+        confirmButtonColor: "#0C2C55",
+        confirmButtonText: "Oke",
+      });
       return;
     }
 
-    setShippingProfile(normalizeProfile(updatedProfile));
-  };
+    // Pengecekan keamanan terakhir
+    const { isComplete, profile } = await ensureCheckoutProfileComplete();
 
-  const handleFinishCheckout = () => {
-    const proceed = async () => {
-      if (checkoutItems.length === 0) {
-        Swal.fire({
-          title: "Checkout Kosong",
-          text: "Belum ada produk yang dipilih untuk checkout.",
-          icon: "warning",
-          width: isMobile ? 280 : 360,
-          padding: isMobile ? "1rem" : "1.25rem",
-          confirmButtonColor: "#0C2C55",
-          confirmButtonText: "Oke",
-        });
-        return;
-      }
+    if (!isComplete) {
+      // Jika ternyata alamatnya dihapus/kosong, paksa buka modal
+      setProfileToEdit(profile || shippingProfile);
+      setIsProfileModalOpen(true);
+      return;
+    }
 
-      const canContinue = await ensureCheckoutProfileComplete();
-
-      if (!canContinue) {
-        return;
-      }
-
-      router.push("/transaksi");
-    };
-
-    proceed();
+    router.push("/transaksi");
   };
 
   return (
@@ -125,33 +158,33 @@ export default function CheckoutPage() {
       <Navbar />
       <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-24 sm:px-6 sm:pb-12 sm:pt-28 lg:px-12 lg:pb-16 lg:pt-32">
         <div className="mx-auto max-w-5xl relative">
-                {/* Ambient Glow */}
-                <div className="absolute -top-20 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+          {/* Ambient Glow */}
+          <div className="absolute -top-20 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
         
-                <div className="relative z-10 mb-10 px-2 sm:px-4 flex flex-col items-start gap-4">
-                  <span className="inline-block rounded-full bg-blue-100/80 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-blue-700 backdrop-blur-md shadow-sm">
-                    Pesanan Anda
-                  </span>
-                  <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
-                    Detail <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Pesanan</span>
-                  </h1>
-                  
-                  {/* Breadcrumb Modern */}
-                  <nav className="flex items-center text-xs sm:text-sm font-bold text-slate-500 bg-white/80 px-4 py-2.5 rounded-full backdrop-blur-md ring-1 ring-slate-200 shadow-sm w-full sm:w-auto overflow-x-auto [&::-webkit-scrollbar]:hidden mt-2">
-                    <Link href="/beranda" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors shrink-0">
-                      <Home size={14} className="mb-[1px]" />
-                      Beranda
-                    </Link>
-                    <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
-                    <Link href="/produk" className="hover:text-blue-600 transition-colors shrink-0">
-                      Produk
-                    </Link>
-                    <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
-                    <span className="text-slate-900 truncate max-w-[120px] sm:max-w-[300px] shrink-0">
-                      Pesanan 
-                    </span>
-                  </nav>
-                </div>
+          <div className="relative z-10 mb-10 px-2 sm:px-4 flex flex-col items-start gap-4">
+            <span className="inline-block rounded-full bg-blue-100/80 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-blue-700 backdrop-blur-md shadow-sm">
+              Pesanan Anda
+            </span>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+              Detail <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Pesanan</span>
+            </h1>
+            
+            {/* Breadcrumb Modern */}
+            <nav className="flex items-center text-xs sm:text-sm font-bold text-slate-500 bg-white/80 px-4 py-2.5 rounded-full backdrop-blur-md ring-1 ring-slate-200 shadow-sm w-full sm:w-auto overflow-x-auto [&::-webkit-scrollbar]:hidden mt-2">
+              <Link href="/beranda" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors shrink-0">
+                <Home size={14} className="mb-[1px]" />
+                Beranda
+              </Link>
+              <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
+              <Link href="/produk" className="hover:text-blue-600 transition-colors shrink-0">
+                Produk
+              </Link>
+              <ChevronRight size={14} className="mx-2 text-slate-400 shrink-0" />
+              <span className="text-slate-900 truncate max-w-[120px] sm:max-w-[300px] shrink-0">
+                Pesanan 
+              </span>
+            </nav>
+          </div>
         
 
           {checkoutItems.length === 0 ? (
@@ -365,6 +398,14 @@ export default function CheckoutPage() {
         </div>
       </section>
       <Footer />
+
+      {/* RENDER MODAL SHADCN */}
+      <CheckoutProfileDialog 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        profile={profileToEdit}
+        onSave={handleSaveProfile}
+      />
     </AuthGuard>
   );
 }

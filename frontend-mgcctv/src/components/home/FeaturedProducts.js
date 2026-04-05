@@ -59,7 +59,7 @@ export default function FeaturedProducts({ data }) {
   };
 
   return (
-    <section className="relative px-4 py-16 md:px-6 md:py-24 bg-slate-50 overflow-hidden font-sans">
+   <section className="relative px-4 pb-16 pt-8 md:px-6 md:pb-24 md:pt-10 bg-slate-50 overflow-hidden font-sans">
       
       <div className="absolute top-1/2 left-0 w-72 h-72 bg-blue-400/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
       

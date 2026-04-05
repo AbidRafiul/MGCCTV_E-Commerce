@@ -50,6 +50,8 @@ const googleLogin = async (req, res) => {
 
     const email = payload.email.toLowerCase().trim();
     const nama = payload.name;
+    const google_id = payload.sub; // MENGAMBIL GOOGLE ID DARI PAYLOAD
+
     const existingUser = await AuthModel.findUserByEmail(email);
 
     let userData;
@@ -57,11 +59,14 @@ const googleLogin = async (req, res) => {
     if (existingUser.length === 0) {
       const generatedUsername = await generateUniqueUsername(email);
       const role = ROLE.KUSTOMER || "Pelanggan";
+      
+      // MENGIRIM GOOGLE ID KE MODEL
       const result = await AuthModel.registerGoogleUser(
         nama,
         generatedUsername,
         email,
         role,
+        google_id 
       );
 
       userData = {

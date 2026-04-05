@@ -55,7 +55,7 @@ export default function WhyUs({ data }) {
   };
 
   return (
-    <section className="relative px-4 py-20 md:px-6 md:py-32 bg-slate-50 overflow-hidden font-sans">
+   <section className="relative px-4 pt-20 pb-10 md:px-6 md:pt-32 md:pb-16 bg-slate-50 overflow-hidden font-sans">
       {/* Dekorasi Ambient Glow Background */}
       <div className="absolute top-0 left-0 md:-left-20 w-64 md:w-96 h-64 md:h-96 bg-blue-600/5 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-0 right-0 md:-right-20 w-64 md:w-96 h-64 md:h-96 bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none"></div>
