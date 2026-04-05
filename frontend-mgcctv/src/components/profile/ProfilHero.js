@@ -392,12 +392,16 @@ export default function ProfileHero() {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                      <div className="min-w-0 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
                         <div className="flex items-center gap-2 text-sky-100">
                           <BadgeCheck size={16} />
                           <span className="text-[11px] uppercase tracking-[0.18em]">Profil</span>
                         </div>
-                        <p className="mt-2 text-sm font-semibold text-white">
+                        {/* Tambahkan truncate dan title */}
+                        <p 
+                          className="mt-2 text-sm font-semibold text-white truncate"
+                          title={profile?.email || ""}
+                        >
                           {profile?.email || "-"}
                         </p>
                       </div>

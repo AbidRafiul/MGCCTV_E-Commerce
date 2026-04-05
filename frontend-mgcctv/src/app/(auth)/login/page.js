@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircle, Eye, EyeOff } from "lucide-react"; 
+import Link from "next/link"; // Tambahkan import Link
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,8 +17,9 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false); 
   const [showPassword, setShowPassword] = useState(false); 
 
+  // UBAH STATE: email -> identifier (bisa username atau email)
   const [form, setForm] = useState({
-    email: "",
+    identifier: "", 
     password: "",
   });
 
@@ -99,9 +101,11 @@ export default function LoginPage() {
         window.google.accounts.id.renderButton(
           document.getElementById("googleBtn"),
           {
-            theme: "outline",
+            theme: "filled_blue",
             size: "large",
-            width: 320, 
+            width: 320,
+            text: "continue_with",
+            shape: "pill", 
           }
         );
 
@@ -173,17 +177,13 @@ export default function LoginPage() {
   }
 
   return (
-    // Tambahan overflow-hidden dan relative di kontainer utama agar "cahaya" tidak luber
     <div className="relative flex min-h-screen items-center justify-center bg-slate-50 p-0 font-sans sm:p-8 overflow-hidden">
       
-      {/* --- DEKORASI BACKGROUND (Menghilangkan kesan kopong) --- */}
       <div className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-blue-500/10 blur-[100px] hidden sm:block"></div>
       <div className="pointer-events-none absolute -bottom-20 -right-20 h-[30rem] w-[30rem] rounded-full bg-indigo-500/10 blur-[120px] hidden sm:block"></div>
-      {/* --------------------------------------------------------- */}
 
       <div className="relative z-10 flex w-full max-w-[1000px] flex-col overflow-hidden bg-white sm:rounded-3xl sm:shadow-2xl sm:ring-1 sm:ring-slate-200 lg:flex-row">
         
-        {/* BAGIAN KIRI: Gambar & Teks (Rata Kiri) */}
         <div className="relative hidden w-full bg-slate-900 lg:block lg:w-5/12 xl:w-1/2">
           <img
             className="absolute inset-0 h-full w-full object-cover opacity-60"
@@ -192,10 +192,7 @@ export default function LoginPage() {
           />
           <div className="absolute inset-0 bg-slate-900/40 mix-blend-multiply" />
           
-          {/* PERBAIKAN: items-start (rata kiri), text-left */}
           <div className="absolute inset-0 flex flex-col items-start justify-center p-12 text-left text-white">
-            
-            {/* PERBAIKAN BADGE: w-fit agar tidak melar seperti pita */}
             <span className="mb-5 inline-flex w-fit items-center rounded-full border border-blue-400/30 bg-blue-500/20 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-100 backdrop-blur-md">
               Selamat Datang Kembali
             </span>
@@ -209,14 +206,13 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* BAGIAN KANAN: Form */}
         <div className="flex w-full flex-col justify-center px-6 py-10 sm:p-10 lg:w-7/12 xl:w-1/2 lg:p-12">
           <div className="mb-8">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
               Log In
             </h1>
             <p className="mt-1.5 text-sm text-slate-500">
-              Masukkan email dan password Anda untuk masuk.
+              Masukkan username atau email dan password Anda.
             </p>
           </div>
 
@@ -235,17 +231,23 @@ export default function LoginPage() {
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">Username / Email</label>
               <input
                 type="text"
-                name="email"
+                name="identifier" // UBAH NAME JADI IDENTIFIER
                 placeholder="Masukkan username atau email"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
                 onChange={handleChange}
-                value={form.email}
+                value={form.identifier}
                 required
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="block text-sm font-semibold text-slate-700">Password</label>
+                {/* TAMBAHAN LINK LUPA PASSWORD */}
+                <Link href="/lupa-password" className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                  Lupa Password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -288,8 +290,8 @@ export default function LoginPage() {
                 <div className="h-px w-full bg-slate-200"></div>
               </div>
 
-              <div className="flex w-full justify-center">
-                <div id="googleBtn" className="flex justify-center overflow-hidden rounded-xl"></div>
+              <div className="flex w-full justify-center px-4 py-2 transition-all hover:opacity-90">
+                <div id="googleBtn" className="shadow-sm hover:shadow-md transition-shadow rounded-full"></div>
               </div>
             </div>
             
@@ -297,9 +299,9 @@ export default function LoginPage() {
 
           <p className="mt-8 text-center text-sm text-slate-500">
             Belum memiliki akun?{" "}
-            <a href="/register" className="font-semibold text-blue-600 transition-colors hover:text-blue-800">
+            <Link href="/register" className="font-semibold text-blue-600 transition-colors hover:text-blue-800">
               Daftar di sini
-            </a>
+            </Link>
           </p>
         </div>
       </div>

@@ -11,20 +11,24 @@ const handleAuthError = (res, error, fallbackMessage) => {
 
 const loginUsers = async (req, res) => {
   try {
-    let { email, password } = req.body;
+    // 1. Ubah dari email menjadi identifier
+    let { identifier, password } = req.body;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({
-        message: "Email dan password wajib diisi",
+        message: "Username/Email dan password wajib diisi",
       });
     }
 
-    email = email.trim().toLowerCase();
+    // Bersihkan spasi kosong
+    identifier = identifier.trim() .toLowerCase()           ;
 
-    const existingUser = await AuthModel.findUserByEmail(email);
+    // 2. Gunakan fungsi baru yang akan kita buat di Model
+    const existingUser = await AuthModel.findUserByIdentifier(identifier);
+    
     if (existingUser.length === 0) {
       return res.status(401).json({
-        message: "Email atau password salah",
+        message: "Username/Email atau password salah",
       });
     }
 
@@ -39,7 +43,7 @@ const loginUsers = async (req, res) => {
     const checkPassword = await bcrypt.compare(password, user.password);
     if (!checkPassword) {
       return res.status(401).json({
-        message: "Email atau password salah",
+        message: "Username/Email atau password salah",
       });
     }
 

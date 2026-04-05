@@ -114,6 +114,8 @@ export default function RegisterPage() {
             theme: "outline",
             size: "large",
             width: 320, 
+            text: "signup_with",
+            logo_alignment: "left",
           }
         );
 
@@ -366,8 +368,8 @@ export default function RegisterPage() {
                 <div className="h-px w-full bg-slate-200"></div>
               </div>
 
-              <div className="flex w-full justify-center">
-                <div id="googleBtnRegister" className="flex justify-center overflow-hidden rounded-xl"></div>
+            <div className="flex w-full justify-center px-4 py-2 transition-all hover:opacity-90">
+                <div id="googleBtnRegister" className="shadow-sm hover:shadow-md transition-shadow rounded-full"></div>
               </div>
             </div>
             {/* ------------------------------------------- */}
