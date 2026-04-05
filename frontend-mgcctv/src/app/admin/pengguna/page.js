@@ -41,7 +41,7 @@ export default function DataPenggunaPage() {
         const res = await fetch(`${API_URL}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: "superadmin@mgcctv.com", password: "superadmin123" })
+          body: JSON.stringify({ identifier: "superadmin@mgcctv.com", password: "superadmin123" })
         });
         if (res.ok) {
           const data = await res.json();

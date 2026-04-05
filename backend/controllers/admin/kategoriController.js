@@ -8,6 +8,14 @@ const getKategoriName = (value) => {
   return value.trim();
 };
 
+const handleKategoriError = (res, error, message) => {
+  console.error(error);
+  return res.status(500).json({
+    message: message || "Terjadi kesalahan server",
+    error: error.message,
+  });
+};
+
 const getAllKategori = async (req, res) => {
   try {
     const kategori = await KategoriModel.getAll();
@@ -35,7 +43,7 @@ const addKategori = async (req, res) => {
 
     return res.status(201).json({
       message: "Kategori berhasil ditambahkan",
-      kategori,
+      kategori: newKategori[0],
     });
   } catch (error) {
     return handleKategoriError(res, error, "Gagal menambahkan kategori");
@@ -70,7 +78,7 @@ const updateKategori = async (req, res) => {
 
     return res.status(200).json({
       message: "Kategori berhasil diperbarui",
-      kategori,
+      kategori: updatedKategori[0],
     });
   } catch (error) {
     return handleKategoriError(res, error, "Gagal memperbarui kategori");

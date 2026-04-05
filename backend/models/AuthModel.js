@@ -7,13 +7,22 @@ const AuthModel = {
     return rows;
   },
 
-  // 2. Daftarkan user baru otomatis dari Google Login
-  registerGoogleUser: async (nama, username, email, role) => {
+  // Fungsi baru untuk Login (Bisa pakai Email ATAU Username)
+  findUserByIdentifier: async (identifier) => {
+    const [rows] = await connection.query(
+      "SELECT * FROM ms_users WHERE email = ? OR username = ? LIMIT 1",
+      [identifier, identifier] // identifier dikirim 2x untuk mengisi kedua tanda tanya (?)
+    );
+    return rows;
+  },
+
+  // 2. Daftarkan user baru otomatis dari Google Login (Menyimpan google_id, set NULL untuk data yg kosong)
+  registerGoogleUser: async (nama, username, email, role, google_id) => {
     const [result] = await connection.query(
       `INSERT INTO ms_users 
-      (nama, username, password, email, no_hp, alamat, role, created_at) 
-      VALUES (?, ?, "", ?, "-", "-", ?, NOW())`,
-      [nama, username, email, role]
+      (nama, username, password, email, no_hp, alamat, google_id, role, created_at) 
+      VALUES (?, ?, "-", ?, "-", "-", ?, ?, NOW())`,
+      [nama, username, email, google_id, role]
     );
     return result;
   },
@@ -43,13 +52,13 @@ const AuthModel = {
       nama,
       username,
       email,
-      no_hp,  
+      no_hp,
       alamat,
-      updated_at,
-      last_login,
+      created_at,
       password_updated_at,
+      last_login,
       CASE
-        WHEN password IS NULL OR password = '' THEN TRUE
+        WHEN google_id IS NOT NULL THEN TRUE
         ELSE FALSE
       END AS is_google_account,
       DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
@@ -71,13 +80,13 @@ const AuthModel = {
   updateProfile: async (id, data) => {
     const { nama, username, email, no_hp, alamat } = data;
     const [result] = await connection.query(
-      `UPDATE ms_users SET nama = ?, username = ?, email = ?, no_hp = ?, alamat = ?, updated_at = NOW() WHERE id_users = ?`,
+      `UPDATE ms_users SET nama = ?, username = ?, email = ?, no_hp = ?, alamat = ? WHERE id_users = ?`,
       [nama, username, email, no_hp, alamat, id]
     );
     return result;
   },
 
-// 8. Ambil password user berdasarkan ID (Untuk Ubah Password)
+  // 8. Ambil password user berdasarkan ID (Untuk Ubah Password)
   getPasswordById: async (id) => {
     const [rows] = await connection.query("SELECT password FROM ms_users WHERE id_users = ?", [id]);
     return rows;
@@ -85,14 +94,13 @@ const AuthModel = {
 
   // 9. Update password baru ke database
   updatePassword: async (id, hashedPassword) => {
-    const [result] = await connection.query("UPDATE ms_users SET password = ?, password_updated_at = NOW() WHERE id_users = ?", [hashedPassword, id]);
+    const [result] = await connection.query("UPDATE ms_users SET password = ?,password_updated_at = NOW() WHERE id_users = ?", [hashedPassword, id]);
     return result;
   },
 
-// 10. Catat waktu login terakhir (INI FUNGSI BARU)
   updateLastLogin: async (id) => {
     const [result] = await connection.query(
-      "UPDATE ms_users SET last_login = NOW() WHERE id_users = ?", 
+      "UPDATE ms_users SET last_login = NOW() WHERE id_users = ?",
       [id]
     );
     return result;

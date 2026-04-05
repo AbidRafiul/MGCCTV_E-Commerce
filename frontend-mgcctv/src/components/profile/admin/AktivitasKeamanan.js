@@ -30,11 +30,11 @@ function AktivitasKeamanan({ profile }) {
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-slate-800 mb-1">Ganti Password</p>
+            <p className="text-sm font-bold text-slate-800 mb-1">Password Diubah</p>
             <p className="text-xs text-slate-500">{timeAgo(profile?.password_updated_at)}</p>
           </div>
           <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full border border-slate-200">
-            {profile?.updated_at ? "Diperbarui" : "Perbarui"}
+            {profile?.updated_at ? "Perbarui" : "Diperbarui"}
           </span>
         </div>
       </div>

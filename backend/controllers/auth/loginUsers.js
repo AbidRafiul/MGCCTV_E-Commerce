@@ -20,9 +20,12 @@ const loginUsers = async (req, res) => {
       });
     }
 
-    email = email.trim().toLowerCase();
+    // Bersihkan spasi kosong
+    identifier = identifier.trim() .toLowerCase()           ;
 
-    const existingUser = await AuthModel.findUserByEmail(email);
+    // 2. Gunakan fungsi baru yang akan kita buat di Model
+    const existingUser = await AuthModel.findUserByIdentifier(identifier);
+    
     if (existingUser.length === 0) {
       return res.status(401).json({
         message: "Username/Email atau password salah",
@@ -43,8 +46,6 @@ const loginUsers = async (req, res) => {
         message: "Username/Email atau password salah",
       });
     }
-
-    await AuthModel.updateLastLogin(user.id_users);
 
     const token = jwt.sign(
       {
