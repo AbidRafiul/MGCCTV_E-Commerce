@@ -41,8 +41,11 @@ const AuthModel = {
       nama,
       username,
       email,
-      no_hp,
+      no_hp,  
       alamat,
+      updated_at,
+      last_login,
+      password_updated_at,
       CASE
         WHEN password IS NULL OR password = '' THEN TRUE
         ELSE FALSE
@@ -66,7 +69,7 @@ const AuthModel = {
   updateProfile: async (id, data) => {
     const { nama, username, email, no_hp, alamat } = data;
     const [result] = await connection.query(
-      `UPDATE ms_users SET nama = ?, username = ?, email = ?, no_hp = ?, alamat = ? WHERE id_users = ?`,
+      `UPDATE ms_users SET nama = ?, username = ?, email = ?, no_hp = ?, alamat = ?, updated_at = NOW() WHERE id_users = ?`,
       [nama, username, email, no_hp, alamat, id]
     );
     return result;
@@ -80,7 +83,16 @@ const AuthModel = {
 
   // 9. Update password baru ke database
   updatePassword: async (id, hashedPassword) => {
-    const [result] = await connection.query("UPDATE ms_users SET password = ? WHERE id_users = ?", [hashedPassword, id]);
+    const [result] = await connection.query("UPDATE ms_users SET password = ?, password_updated_at = NOW() WHERE id_users = ?", [hashedPassword, id]);
+    return result;
+  },
+
+// 10. Catat waktu login terakhir (INI FUNGSI BARU)
+  updateLastLogin: async (id) => {
+    const [result] = await connection.query(
+      "UPDATE ms_users SET last_login = NOW() WHERE id_users = ?", 
+      [id]
+    );
     return result;
   }
 };

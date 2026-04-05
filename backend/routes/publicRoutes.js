@@ -9,4 +9,4 @@ router.get("/produk", getAllProduk);
 router.get("/kategori", getAllKategori);
 router.get("/produk/:id", getProdukById);
 
-module.exports = router;
+module.exports = router;    

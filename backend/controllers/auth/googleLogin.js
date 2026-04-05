@@ -27,7 +27,7 @@ const googleLogin = async (req, res) => {
     const existingUser = await AuthModel.findUserByEmail(email);
 
     let userData;
-    if (user.length === 0) {
+    if (existingUser.length === 0) {
       const role = ROLE.KUSTOMER;
 
       const [result] = await connection.query(
