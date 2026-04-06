@@ -80,7 +80,7 @@ const AuthModel = {
   updateProfile: async (id, data) => {
     const { nama, username, email, no_hp, alamat } = data;
     const [result] = await connection.query(
-      `UPDATE ms_users SET nama = ?, username = ?, email = ?, no_hp = ?, alamat = ? WHERE id_users = ?`,
+      `UPDATE ms_users SET nama = ?, username = ?, email = ?, no_hp = ?, alamat = ?, updated_at = NOW() WHERE id_users = ?`,
       [nama, username, email, no_hp, alamat, id]
     );
     return result;

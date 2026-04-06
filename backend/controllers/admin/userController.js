@@ -1,6 +1,13 @@
 const UserModel = require("../../models/UserModel"); // Memanggil si Koki
 const bcrypt = require("bcrypt");
 
+const handleUserError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+  return res.status(error.status || 500).json({
+    message: error.message || fallbackMessage,
+  });
+};
+
 const getAllUsers = async (req, res) => {
   try {
     const { role, status, search } = req.query;
@@ -40,10 +47,8 @@ const addAdmin = async (req, res) => {
 
 const updateAdmin = async (req, res) => {
   try {
-    const result = await userModel.updateAdmin({
-      id: req.params.id,
-      body: req.body,
-    });
+    const { id } = req.params;
+    const { nama, username, email, no_hp, alamat, role, status, password } = req.body;
 
     const existing = await UserModel.getById(id);
     if (existing.length === 0) {

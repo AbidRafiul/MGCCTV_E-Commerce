@@ -21,11 +21,12 @@ const loginUsers = async (req, res) => {
     }
 
     // Bersihkan spasi kosong
-    identifier = identifier.trim() .toLowerCase()           ;
+    identifier = identifier.trim().toLowerCase();
 
     // 2. Gunakan fungsi baru yang akan kita buat di Model
     const existingUser = await AuthModel.findUserByIdentifier(identifier);
-    
+
+
     if (existingUser.length === 0) {
       return res.status(401).json({
         message: "Username/Email atau password salah",
@@ -36,7 +37,8 @@ const loginUsers = async (req, res) => {
 
     if (!user.password) {
       return res.status(401).json({
-        message: "Akun ini terdaftar menggunakan Google. Silakan login dengan tombol Google.",
+        message:
+          "Akun ini terdaftar menggunakan Google. Silakan login dengan tombol Google.",
       });
     }
 

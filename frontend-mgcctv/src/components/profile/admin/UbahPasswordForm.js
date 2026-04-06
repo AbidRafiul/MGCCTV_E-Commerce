@@ -15,7 +15,11 @@ function UbahPasswordForm({ onSuccess }) {
     e.preventDefault();
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      return Swal.fire("Oops!", "Konfirmasi password tidak sama dengan password baru", "error");
+      return Swal.fire(
+        "Oops!",
+        "Konfirmasi password tidak sama dengan password baru",
+        "error",
+      );
     }
     if (passwordForm.newPassword.length < 8) {
       return Swal.fire("Oops!", "Password baru minimal 8 karakter", "warning");
@@ -39,9 +43,17 @@ function UbahPasswordForm({ onSuccess }) {
       const data = await res.json();
 
       if (res.ok) {
-        Swal.fire("Berhasil!", data.message || "Password berhasil diubah", "success");
-        setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
-        onSuccess(); // Memanggil fetchProfile dari parent
+        Swal.fire(
+          "Berhasil!",
+          data.message || "Password berhasil diubah",
+          "success",
+        );
+
+        localStorage.removeItem("token");
+
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1500);
       } else {
         Swal.fire("Gagal", data.message || "Gagal mengubah password", "error");
       }
@@ -57,29 +69,50 @@ function UbahPasswordForm({ onSuccess }) {
       </h2>
       <form onSubmit={handlePasswordChange} className="space-y-5">
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-2">Password Lama</label>
+          <label className="block text-xs font-bold text-slate-700 mb-2">
+            Password Lama
+          </label>
           <input
-            type="password" required placeholder="••••••••"
+            type="password"
+            required
+            placeholder="••••••••"
             value={passwordForm.oldPassword}
-            onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+            onChange={(e) =>
+              setPasswordForm({ ...passwordForm, oldPassword: e.target.value })
+            }
             className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-2">Password Baru</label>
+          <label className="block text-xs font-bold text-slate-700 mb-2">
+            Password Baru
+          </label>
           <input
-            type="password" required placeholder="Min. 8 karakter"
+            type="password"
+            required
+            placeholder="Min. 8 karakter"
             value={passwordForm.newPassword}
-            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+            onChange={(e) =>
+              setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+            }
             className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-2">Konfirmasi Password Baru</label>
+          <label className="block text-xs font-bold text-slate-700 mb-2">
+            Konfirmasi Password Baru
+          </label>
           <input
-            type="password" required placeholder="Ulangi password baru"
+            type="password"
+            required
+            placeholder="Ulangi password baru"
             value={passwordForm.confirmPassword}
-            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+            onChange={(e) =>
+              setPasswordForm({
+                ...passwordForm,
+                confirmPassword: e.target.value,
+              })
+            }
             className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </div>
@@ -96,4 +129,4 @@ function UbahPasswordForm({ onSuccess }) {
   );
 }
 
-export default UbahPasswordForm
+export default UbahPasswordForm;
