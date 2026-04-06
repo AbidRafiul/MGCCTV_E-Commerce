@@ -11,7 +11,4 @@ router.get("/produk", getAllProduk);
 router.get("/kategori", getAllKategori);
 router.get("/produk/:id", getProdukById);
 
-// NOTIFIKASI: Login dibutuhkan
-router.get("/notifications", auth, getNotifications);
-router.put("/notifications/read", auth, markAsRead);
-module.exports = router;
+module.exports = router;    

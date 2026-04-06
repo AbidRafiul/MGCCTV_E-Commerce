@@ -81,7 +81,7 @@ export default function EditBarangPage() {
         if (resKategori.ok) setKategoriList(await resKategori.json());
 
         // Ambil data produk berdasarkan ID dari API Admin
-        const resProduk = await fetch(`http://localhost:3000/api/admin/produk/${id}`, {
+        const resProduk = await fetch(`http://localhost:3000/api/public/produk/${id}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         

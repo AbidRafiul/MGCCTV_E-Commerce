@@ -57,24 +57,14 @@ const googleLogin = async (req, res) => {
     let userData;
 
     if (existingUser.length === 0) {
-      const generatedUsername = await generateUniqueUsername(email);
-      const role = ROLE.KUSTOMER || "Pelanggan";
-      
-      // MENGIRIM GOOGLE ID KE MODEL
-      const result = await AuthModel.registerGoogleUser(
-        nama,
-        generatedUsername,
-        email,
-        role,
-        google_id 
+      const role = ROLE.KUSTOMER;
+
+      const [result] = await connection.query(
+        `INSERT INTO ms_users (nama, email, role, created_at) VALUES (?,?,?, NOW())`,
+        [nama, email, role]
       );
 
-      userData = {
-        id_users: result.insertId,
-        role,
-        username: generatedUsername,
-        email,
-      };
+      userData = { id_users: result.insertId, role };
     } else {
       userData = existingUser[0];
     }
