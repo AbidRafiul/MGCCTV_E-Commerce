@@ -289,26 +289,7 @@ export default function CMSAdminPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-            <Map className="text-blue-600" size={20} /> <h2 className="font-bold text-slate-700">Lokasi & Peta</h2>
-          </div>
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="text-sm font-bold text-slate-700 block mb-2">Alamat Lengkap</label>
-              <input type="text" value={konten[3].content_value} onChange={(e) => handleKontenChange(3, "content_value", e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="text-sm font-bold text-slate-700 block mb-2">URL Embed Google Maps</label>
-              <input type="text" value={konten[3].url_gambar} onChange={(e) => handleKontenChange(3, "url_gambar", e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={() => saveKonten(3)} disabled={isSaving === 3} className="flex items-center gap-2 bg-[#0C2C55] hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all">
-                {isSaving === 3 ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Simpan Lokasi
-              </button>
-            </div>
-          </div>
-        </div>
+        
 
         {/* ================================================= */}
         {/* KARTU 4: GALERI INSTALASI */}

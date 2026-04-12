@@ -494,13 +494,15 @@ export default function ProfileHero() {
                         : "Edit Profil"}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleSecondaryAction}
-                    className="min-w-[140px] rounded-full bg-[#9d9d9d] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#858585]"
-                  >
-                    {isEditing ? "Batal" : "Ubah Password"}
-                  </button>
+                  {isGoogleAccount && !isEditing ? null : (
+                    <button
+                      type="button"
+                      onClick={handleSecondaryAction}
+                      className="min-w-[140px] rounded-full bg-[#9d9d9d] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#858585]"
+                    >
+                      {isEditing ? "Batal" : "Ubah Password"}
+                    </button>
+                  )}
                 </div>
               </>
             )}

@@ -172,7 +172,7 @@ export default function KategoriPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Kelola Kategori</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Isikan kategori merk CCTV.
+              Isikan kategori CCTV.
             </p>
           </div>
         </div>

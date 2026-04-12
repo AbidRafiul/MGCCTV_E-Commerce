@@ -4,7 +4,7 @@ import { KeyRound } from "lucide-react";
 import { AUTH_API_URL } from "@/lib/api";
 import Swal from "sweetalert2";
 
-function UbahPasswordForm({ onSuccess }) {
+function UbahPasswordForm({ onSuccess, isGoogleAccount = false }) {
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: "",
     newPassword: "",
@@ -61,6 +61,25 @@ function UbahPasswordForm({ onSuccess }) {
       Swal.fire("Error", "Terjadi kesalahan pada server", "error");
     }
   };
+
+  if (isGoogleAccount) {
+    return (
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
+          <KeyRound size={18} className="text-slate-500" /> Pengaturan Password
+        </h2>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4">
+          <p className="text-sm font-semibold text-amber-900 mb-1">
+            Akun Google tidak menggunakan password lokal
+          </p>
+          <p className="text-xs leading-5 text-amber-800">
+            Password untuk akun ini dikelola langsung oleh Google, jadi form ubah
+            password tidak ditampilkan di sini.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">

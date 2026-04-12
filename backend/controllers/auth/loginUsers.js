@@ -60,6 +60,8 @@ const loginUsers = async (req, res) => {
       { expiresIn: "1d" },
     );
 
+    await AuthModel.updateLastLogin(user.id_users);
+
     return res.status(200).json({
       message: "Login berhasil",
       token,

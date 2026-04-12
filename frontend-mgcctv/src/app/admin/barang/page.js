@@ -280,8 +280,7 @@
                 <option value="">Semua Status</option>
                 <option value="aktif">Aktif</option>
                 <option value="nonaktif">Nonaktif</option>
-                <option value="tipis">Stok Tipis</option>
-                <option value="habis">Stok Habis</option>
+                
                 </select>
             </div>
 
@@ -344,8 +343,8 @@
 
                     <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
                         <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Merek</span>
-                        <span className="font-semibold text-slate-600 text-xs">{item.merek || "Tidak Ada"}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Kategori</span>
+                        <span className="font-semibold text-slate-600 text-xs">{item.kategori || "Tidak Ada"}</span>
                         </div>
                         <div className="flex flex-col gap-1 items-end">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Stok</span>
@@ -389,10 +388,8 @@
                 <thead className="bg-slate-50 text-slate-500 text-[10px] md:text-[11px] font-bold uppercase tracking-wider">
                 <tr>
                     <th className="px-4 md:px-6 py-3 md:py-4">Produk</th>
-                    <th className="px-4 md:px-6 py-3 md:py-4">Merek</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4">Kategori</th>
                     <th className="px-4 md:px-6 py-3 md:py-4">Harga Jual</th>
-                    <th className="px-4 md:px-6 py-3 md:py-4">Stok</th>
-                    <th className="px-4 md:px-6 py-3 md:py-4">Status</th>
                     <th className="px-4 md:px-6 py-3 md:py-4 text-center">Aksi</th>
                 </tr>
                 </thead>
@@ -421,8 +418,6 @@
                         </td>
                         <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-slate-600 text-xs md:text-sm">{item.merek || "Tidak Ada"}</td>
                         <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-slate-800 text-xs md:text-sm">{formatRupiah(item.harga_produk)}</td>
-                        <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-xs md:text-sm"><span className={item.stok > 5 ? "text-green-600" : "text-orange-500"}>{item.stok}</span></td>
-                        <td className="px-4 md:px-6 py-3 md:py-4">{getStatusBadge(item.stok, item.status_produk)}</td>
                         <td className="px-4 md:px-6 py-3 md:py-4">
                         <div className="flex items-center justify-center gap-2">
                             

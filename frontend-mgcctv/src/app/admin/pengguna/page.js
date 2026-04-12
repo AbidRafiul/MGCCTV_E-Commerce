@@ -119,6 +119,8 @@ export default function DataPenggunaPage() {
     });
   };
 
+  const canEditUser = (role) => role === "Admin" || role === "Superadmin";
+
   // Logika Filter
   const filteredUsers = users.filter((user) => {
     const matchSearch =
@@ -342,13 +344,15 @@ export default function DataPenggunaPage() {
 
                   {/* Tombol Aksi */}
                   <div className="flex items-center justify-end pt-3 border-t border-borderColor gap-2">
-                    <button
-                      onClick={() => openEditModal(user)}
-                      className="p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm"
-                      title="Edit"
-                    >
-                      <Edit3 size={16} />
-                    </button>
+                    {canEditUser(user.role) && (
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm"
+                        title="Edit"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                    )}
                     <button
                       onClick={() => deleteUser(user.id_users)}
                       className="p-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors bg-white shadow-sm"
@@ -431,14 +435,15 @@ export default function DataPenggunaPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        {/* UPDATE: Tombol Desktop disamakan memakai ikon */}
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="p-1.5 md:p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm"
-                          title="Edit"
-                        >
-                          <Edit3 size={14} className="md:w-4 md:h-4" />
-                        </button>
+                        {canEditUser(user.role) && (
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="p-1.5 md:p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm"
+                            title="Edit"
+                          >
+                            <Edit3 size={14} className="md:w-4 md:h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => deleteUser(user.id_users)}
                           className="p-1.5 md:p-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors bg-white shadow-sm"

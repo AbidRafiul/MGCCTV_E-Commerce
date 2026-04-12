@@ -61,7 +61,10 @@ function PengaturanPage() {
         {/* KOLOM KIRI */}
         <div className="space-y-6">
           <DetailInformasi profile={profile} />
-          <UbahPasswordForm onSuccess={fetchProfile} />
+          <UbahPasswordForm
+            onSuccess={fetchProfile}
+            isGoogleAccount={Boolean(profile?.is_google_account)}
+          />
         </div>
 
         {/* KOLOM KANAN */}

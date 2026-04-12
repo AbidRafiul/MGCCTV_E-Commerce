@@ -44,6 +44,16 @@ const uploadProductImage = (file) =>
     stream.end(file.buffer);
   });
 
+const normalizeStockInput = (value) => {
+  const parsedValue = Number(value);
+
+  if (!Number.isFinite(parsedValue)) {
+    return 1;
+  }
+
+  return Math.max(0, Math.trunc(parsedValue));
+};
+
 const getAllProduk = async (req, res) => {
   try {
     const produk = await ProdukModel.getAll();
@@ -89,7 +99,7 @@ const addProduk = async (req, res) => {
       deskripsi_produk,
       imageUrl,
       harga_produk,
-      stok,
+      stok: normalizeStockInput(stok),
       ms_kategori_id_kategori,
     });
 
@@ -140,7 +150,7 @@ const updateProduk = async (req, res) => {
       deskripsi_produk,
       imageUrl,
       harga_produk,
-      stok,
+      stok: normalizeStockInput(stok),
       ms_kategori_id_kategori,
       now,
     });
