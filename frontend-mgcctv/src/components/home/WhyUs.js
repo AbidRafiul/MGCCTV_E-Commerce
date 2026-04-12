@@ -21,21 +21,21 @@ export default function WhyUs({ data }) {
       title: "Ultra HD Quality",
       desc: "Nikmati kualitas visual tanpa kompromi. Gambar tetap tajam dan jernih bahkan dalam kondisi minim cahaya berkat fitur Advanced Night Vision kami.",
       icon: <ShieldCheck className="w-6 h-6 md:w-7 md:h-7 text-blue-600" />,
-      img: "https://images.unsplash.com/photo-1558002038-1055907df827",
+      img: "/images/whyUs1.jpg",
       offset: "md:mt-0" // Posisi normal
     },
     {
       title: "Fast Installation",
       desc: "Waktu Anda berharga. Tim teknisi profesional kami menjamin pemasangan rapi, cepat, dan tanpa ribet, sistem langsung siap digunakan.",
       icon: <Zap className="w-6 h-6 md:w-7 md:h-7 text-amber-500" />,
-      img: "https://images.unsplash.com/photo-1526378722484-bd91ca387e72",
+      img: "/images/whyUs2.jpg",
       offset: "md:-translate-y-8" // Posisi sedikit naik ke atas untuk efek zigzag yang estetik
     },
     {
       title: "Akses Dimana Saja",
       desc: "Pantau properti langsung dari genggaman. Aplikasi seluler responsif memungkinkan akses real-time kapan saja dan dari mana saja secara stabil.",
       icon: <Smartphone className="w-6 h-6 md:w-7 md:h-7 text-green-500" />,
-      img: "https://images.unsplash.com/photo-1661326248003-094982639fb7",
+      img: "/images/whyUs3.avif",
       offset: "md:mt-0" // Posisi normal
     }
   ];

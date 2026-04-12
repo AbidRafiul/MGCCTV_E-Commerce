@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AUTH_API_URL } from "../../../lib/api";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, CheckCircle2, ArrowRight } from "lucide-react";
 
 const initialForm = {
   nama: "",
@@ -29,6 +29,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   // 1. Ambil data dari Local Storage
   useEffect(() => {
@@ -179,8 +180,8 @@ export default function RegisterPage() {
         return;
       }
 
-      alert("Pendaftaran berhasil! Silakan login.");
-      router.push("/login");
+      setIsSuccessModalOpen(true);
+      setForm(initialForm);
     } catch {
       setError("Gagal koneksi ke server. Periksa jaringan Anda.");
     } finally {
@@ -384,6 +385,46 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      {isSuccessModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white p-7 shadow-2xl ring-1 ring-slate-200 sm:p-8">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 ring-8 ring-emerald-50/70">
+              <CheckCircle2 size={34} />
+            </div>
+
+            <div className="mt-6 text-center">
+              <p className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-700">
+                Registrasi Berhasil
+              </p>
+              <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
+                Akun berhasil dibuat
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-500">
+                Data akun Anda sudah tersimpan. Silakan lanjut ke halaman login untuk mulai masuk ke sistem.
+              </p>
+            </div>
+
+            <div className="mt-7 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30"
+              >
+                Ke Halaman Login
+                <ArrowRight size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSuccessModalOpen(false)}
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

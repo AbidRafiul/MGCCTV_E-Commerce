@@ -24,9 +24,6 @@ function AktivitasKeamanan({ profile }) {
             <p className="text-sm font-bold text-slate-800 mb-1">Login Terakhir</p>
             <p className="text-xs text-blue-500">{formatLastLogin(profile?.last_login)}</p>
           </div>
-          <span className="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded-full">
-            Aman
-          </span>
         </div>
         <div className="flex items-center justify-between">
           <div>

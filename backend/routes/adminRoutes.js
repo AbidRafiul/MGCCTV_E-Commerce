@@ -8,6 +8,7 @@ const auth = require("../middleware/auth");
 const superadminAuth = require("../middleware/superadminAuth");
 const upload = require("../middleware/upload");
 const cmsController = require("../controllers/admin/cmsController");
+const orderController = require("../controllers/admin/orderController");
 const { getProdukUnggulan, toggleUnggulan } = require("../controllers/admin/produkController");
 
 
@@ -71,11 +72,15 @@ router.delete("/produk/:id", deleteProduk);
 // --- RUTE BERANDA (PRODUK UNGGULAN SAJA) ---
 router.patch("/produk/:id/unggulan", toggleUnggulan);
 
+// --- RUTE PESANAN ---
+router.get("/pesanan", orderController.getAllOrders);
+router.patch("/pesanan/:id/status", orderController.updateOrderStatus);
+
 // --- RUTE CMS TENTANG KAMI (UPDATE) ---
-router.put("/cms/tentang/:id", upload.single("gambar"), cmsController.updateTentangContent);
+router.put("/cms/tentang/:id", handleUploadGambar, cmsController.updateTentangContent);
 
 // --- RUTE CMS GALERI (ADD & DELETE) ---
-router.post("/cms/galeri", upload.single("gambar"), cmsController.addGallery);
+router.post("/cms/galeri", handleUploadGambar, cmsController.addGallery);
 router.delete("/cms/galeri/:id", cmsController.deleteGallery);
 
 // --- RUTE PENGGUNA (HANYA SUPERADMIN) ---

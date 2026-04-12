@@ -1,4 +1,4 @@
-const cartModel = require("../../models/cartModel");
+const cartModel = require("../../models/CartModel");
 
 const handleCartError = (res, error, fallbackMessage) => {
   console.error(fallbackMessage, error);

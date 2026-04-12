@@ -13,7 +13,9 @@ const safeQuery = async (query, fallback = []) => {
 
 const DashboardModel = {
   getTotalPendapatan: () => safeQuery(
-    `SELECT COALESCE(SUM(total_harga), 0) AS total FROM tr_transaksi WHERE status_order = 'paid'`, 
+    `SELECT COALESCE(SUM(total_harga), 0) AS total
+     FROM tr_transaksi
+     WHERE status_order IN ('paid', 'expired', 'completed')`, 
     [{ total: 0 }]
   ),
   
@@ -39,7 +41,9 @@ const DashboardModel = {
   
   getPendapatanHarian: () => safeQuery(
     `SELECT DATE(created_at) AS tanggal, COALESCE(SUM(total_harga), 0) AS total 
-     FROM tr_transaksi WHERE status_order = 'paid' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 4 DAY) 
+     FROM tr_transaksi
+     WHERE status_order IN ('paid', 'expired', 'completed')
+       AND created_at >= DATE_SUB(CURDATE(), INTERVAL 4 DAY) 
      GROUP BY DATE(created_at) ORDER BY tanggal DESC LIMIT 5`
   ),
   
@@ -47,7 +51,7 @@ const DashboardModel = {
     `SELECT k.nama_kategori, COALESCE(SUM(dt.quantity), 0) AS total_terjual 
      FROM ms_kategori k 
      LEFT JOIN ms_produk p ON p.ms_kategori_id_kategori = k.id_kategori 
-     LEFT JOIN ms_detail_transaction dt ON dt.id_product = p.id_produk 
+     LEFT JOIN tr_detail_transaksi dt ON dt.id_produk = p.id_produk 
      GROUP BY k.id_kategori, k.nama_kategori ORDER BY total_terjual DESC LIMIT 5`
   ),
   
@@ -58,7 +62,15 @@ const DashboardModel = {
   
   getAktivitasTerkini: () => safeQuery(
     `(SELECT CONCAT('Pesanan #ORD-', LPAD(t.id_transaksi, 4, '0'), 
-      CASE t.status_order WHEN 'pending' THEN ' menunggu konfirmasi pembayaran' WHEN 'paid' THEN ' telah dibayar' WHEN 'failed' THEN ' dibatalkan oleh pelanggan' ELSE CONCAT(' status: ', t.status_order) END) AS keterangan, 
+      CASE t.status_order
+        WHEN 'pending' THEN ' menunggu konfirmasi pembayaran'
+        WHEN 'paid' THEN ' sedang diproses admin'
+        WHEN 'expired' THEN ' sedang dikirim'
+        WHEN 'completed' THEN ' telah selesai'
+        WHEN 'failed' THEN ' dibatalkan oleh pelanggan'
+        WHEN 'cancelled' THEN ' dibatalkan'
+        ELSE CONCAT(' status: ', t.status_order)
+      END) AS keterangan, 
       u.nama AS aktor, t.created_at AS waktu, CASE WHEN t.status_order = 'failed' THEN 'batal' ELSE 'pesanan' END AS tipe 
       FROM tr_transaksi t LEFT JOIN ms_users u ON u.id_users = t.id_users ORDER BY t.created_at DESC LIMIT 3) 
      UNION ALL 

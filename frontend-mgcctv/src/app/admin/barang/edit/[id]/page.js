@@ -244,7 +244,7 @@ export default function EditBarangPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="text-sm font-bold text-slate-700 block mb-2">Merek</label>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Kategori</label>
                   <select name="ms_kategori_id_kategori" value={form.ms_kategori_id_kategori} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer" required>
                     {kategoriList.map((kat) => (
                       <option key={kat.id_kategori} value={kat.id_kategori}>{kat.nama_kategori}</option>
@@ -257,12 +257,7 @@ export default function EditBarangPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="text-sm font-bold text-slate-700 block mb-2">Stok Saat Ini</label>
-                  <input type="number" name="stok" value={form.stok} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" required />
-                </div>
-              </div>
+             
 
               <div>
                 <label className="text-sm font-bold text-slate-700 block mb-2">Deskripsi Produk</label>

@@ -113,10 +113,7 @@ export const addCartItem = async (product, quantity = 1) => {
       id_produk: product?.id_produk,
       quantity,
     }),
-
-    
   });
-  window.dispatchEvent(new Event("cart-updated"));
 
   const data = await parseCartResponse(
     response,
