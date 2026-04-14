@@ -1,16 +1,19 @@
+require("dotenv").config({ path: `${__dirname}/.env` });
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config({ path: `${__dirname}/.env` });
 
 const publicRoutes = require("./routes/publicRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+console.log("CEK SERVER KEY:", process.env.MIDTRANS_SERVER_KEY);
 
 app.get("/", (req, res) => {
   res.send("API Customer Auth Running");
@@ -24,6 +27,8 @@ app.use("/api/auth", authRoutes);
 
 // route admin
 app.use("/api/admin", adminRoutes);
+
+app.use('/api/payment', paymentRoutes)
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
