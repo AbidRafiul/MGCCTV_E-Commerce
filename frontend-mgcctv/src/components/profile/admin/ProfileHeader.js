@@ -36,7 +36,6 @@ function ProfileHeader({ profile, onEditClick }) {
                     <span className="rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-blue-50 backdrop-blur-sm">
                       Profil 
                     </span>
-                   
                   </div>
 
                   <h1 className="text-2xl font-bold tracking-tight text-white md:text-4xl">

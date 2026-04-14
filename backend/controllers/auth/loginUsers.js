@@ -11,7 +11,6 @@ const handleAuthError = (res, error, fallbackMessage) => {
 
 const loginUsers = async (req, res) => {
   try {
-    // 1. Ubah dari email menjadi identifier
     let { identifier, password } = req.body;
 
     if (!identifier || !password) {
@@ -19,8 +18,7 @@ const loginUsers = async (req, res) => {
         message: "Username/Email dan password wajib diisi",
       });
     }
-
-    // Bersihkan spasi kosong
+    
     identifier = identifier.trim().toLowerCase();
 
     // 2. Gunakan fungsi baru yang akan kita buat di Model
@@ -48,6 +46,8 @@ const loginUsers = async (req, res) => {
         message: "Username/Email atau password salah",
       });
     }
+
+    await AuthModel.updateLastLogin(user.id_users);
 
     const token = jwt.sign(
       {

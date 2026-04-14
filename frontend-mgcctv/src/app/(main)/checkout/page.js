@@ -11,10 +11,10 @@ import Navbar from "@/components/layouts/Navbar";
 import { AUTH_API_URL } from "@/lib/api";
 import {
   ensureCheckoutProfileComplete,
-  saveProfileCompletion, // Import fungsi save
+  saveProfileCompletion,
 } from "@/services/checkoutProfileService";
 import { getCheckoutItems } from "@/services/cartService";
-import CheckoutProfileDialog from "@/components/modals/CheckoutProfileDialog"; // Import Modal Shadcn
+import CheckoutProfileDialog from "@/components/modals/CheckoutProfileDialog";
 
 const normalizeProfile = (user) => {
   if (!user || typeof user !== "object") return null;
@@ -38,6 +38,12 @@ export default function CheckoutPage() {
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [shippingProfile, setShippingProfile] = useState(null);
   
+  // =======================================================
+  // STATE UNTUK METODE PEMBAYARAN
+  // =======================================================
+  const [paymentMethod, setPaymentMethod] = useState("transfer");
+  const [selectedBank, setSelectedBank] = useState("");
+
   // =======================================================
   // STATE UNTUK MODAL SHADCN
   // =======================================================
@@ -68,12 +74,11 @@ export default function CheckoutPage() {
           const fetchedProfile = normalizeProfile(data?.user ?? data?.data?.user ?? data?.data ?? null);
           setShippingProfile(fetchedProfile);
 
-          // === LOGIKA AUTO POP-UP JIKA DATA KOSONG/"-" ===
           const isInvalid = (text) => !text?.trim() || text?.trim() === "-" || text?.trim() === "null";
           
           if (isInvalid(fetchedProfile.no_hp) || isInvalid(fetchedProfile.alamat)) {
             setProfileToEdit(fetchedProfile);
-            setIsProfileModalOpen(true); // Langsung tembak buka modal!
+            setIsProfileModalOpen(true);
           }
         }
       } catch (error) {
@@ -98,23 +103,16 @@ export default function CheckoutPage() {
     [checkoutItems],
   );
 
-  // =======================================================
-  // FUNGSI MEMBUKA MODAL SAAT TOMBOL "UBAH" DIKLIK
-  // =======================================================
   const handleEditShippingProfile = () => {
-    setProfileToEdit(shippingProfile); // Masukkan data saat ini ke form modal
+    setProfileToEdit(shippingProfile);
     setIsProfileModalOpen(true);
   };
 
-  // =======================================================
-  // FUNGSI MENYIMPAN DATA DARI MODAL
-  // =======================================================
   const handleSaveProfile = async (updatedData) => {
     try {
       const token = localStorage.getItem("token");
       const savedProfile = await saveProfileCompletion({ token, ...updatedData });
       
-      // Update UI langsung tanpa perlu refresh
       setShippingProfile(normalizeProfile(savedProfile));
       setIsProfileModalOpen(false); 
       return true;
@@ -140,16 +138,33 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Validasi Pembayaran Bank
+    if (paymentMethod === "transfer" && !selectedBank) {
+      Swal.fire({
+        title: "Pilih Bank",
+        text: "Silakan pilih bank tujuan transfer terlebih dahulu.",
+        icon: "warning",
+        width: isMobile ? 280 : 360,
+        padding: isMobile ? "1rem" : "1.25rem",
+        confirmButtonColor: "#0C2C55",
+        confirmButtonText: "Mengerti",
+      });
+      return;
+    }
+
     // Pengecekan keamanan terakhir
     const { isComplete, profile } = await ensureCheckoutProfileComplete();
 
     if (!isComplete) {
-      // Jika ternyata alamatnya dihapus/kosong, paksa buka modal
       setProfileToEdit(profile || shippingProfile);
       setIsProfileModalOpen(true);
       return;
     }
 
+    localStorage.setItem("selectedPaymentMethod", paymentMethod);
+    localStorage.setItem("selectedPaymentBank", selectedBank);
+
+    // Nanti lempar data paymentMethod & selectedBank ke Backend di sini
     router.push("/transaksi");
   };
 
@@ -158,7 +173,6 @@ export default function CheckoutPage() {
       <Navbar />
       <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-24 sm:px-6 sm:pb-12 sm:pt-28 lg:px-12 lg:pb-16 lg:pt-32">
         <div className="mx-auto max-w-5xl relative">
-          {/* Ambient Glow */}
           <div className="absolute -top-20 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
         
           <div className="relative z-10 mb-10 px-2 sm:px-4 flex flex-col items-start gap-4">
@@ -169,7 +183,6 @@ export default function CheckoutPage() {
               Detail <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Pesanan</span>
             </h1>
             
-            {/* Breadcrumb Modern */}
             <nav className="flex items-center text-xs sm:text-sm font-bold text-slate-500 bg-white/80 px-4 py-2.5 rounded-full backdrop-blur-md ring-1 ring-slate-200 shadow-sm w-full sm:w-auto overflow-x-auto [&::-webkit-scrollbar]:hidden mt-2">
               <Link href="/beranda" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors shrink-0">
                 <Home size={14} className="mb-[1px]" />
@@ -186,7 +199,6 @@ export default function CheckoutPage() {
             </nav>
           </div>
         
-
           {checkoutItems.length === 0 ? (
             <div className="rounded-[24px] border border-dashed border-slate-200 bg-white px-5 py-12 text-center shadow-sm sm:rounded-[28px] sm:px-6 sm:py-14">
               <h2 className="text-lg font-bold text-[#0C2C55] sm:text-xl">
@@ -297,6 +309,7 @@ export default function CheckoutPage() {
 
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="space-y-4">
+                  {/* CARD ALAMAT PENGIRIMAN */}
                   <div className="rounded-[22px] border border-blue-100 bg-white p-4 shadow-sm sm:rounded-[24px] sm:p-5">
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
@@ -333,6 +346,78 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
+                  {/* ========================================================= */}
+                  {/* CARD METODE PEMBAYARAN */}
+                  {/* ========================================================= */}
+                  <div className="rounded-[22px] border border-blue-100 bg-white p-4 shadow-sm sm:rounded-[24px] sm:p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                        <CreditCard size={18} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-500">
+                          Metode Pembayaran
+                        </p>
+                        
+                        {/* Pilihan Metode */}
+                        <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                          <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'transfer' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                            <input 
+                              type="radio" 
+                              name="payment" 
+                              value="transfer" 
+                              className="hidden" 
+                              checked={paymentMethod === 'transfer'} 
+                              onChange={() => {
+                                setPaymentMethod('transfer');
+                              }} 
+                            />
+                            <span className="font-bold text-sm">Transfer Bank</span>
+                          </label>
+                          <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'qris' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                            <input 
+                              type="radio" 
+                              name="payment" 
+                              value="qris" 
+                              className="hidden" 
+                              checked={paymentMethod === 'qris'} 
+                              onChange={() => {
+                                setPaymentMethod('qris');
+                                setSelectedBank(""); // Reset bank kalau ganti ke QRIS
+                              }} 
+                            />
+                            <span className="font-bold text-sm">QRIS</span>
+                          </label>
+                        </div>
+
+                        {/* Dropdown Bank (Muncul jika Transfer Bank dipilih) */}
+                        {paymentMethod === 'transfer' && (
+                          <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                            <label className="block text-xs font-semibold text-slate-500 mb-2">
+                              Pilih Bank Tujuan Transfer
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={selectedBank}
+                                onChange={(e) => setSelectedBank(e.target.value)}
+                                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                              >
+                                <option value="" disabled>-- Pilih Bank --</option>
+                                <option value="MANDIRI">Bank Mandiri</option>
+                                <option value="BNI">Bank BNI</option>
+                                <option value="BRI">Bank BRI</option>
+                              </select>
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                <ChevronRight size={16} className="rotate-90" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LIST PRODUK */}
                   {checkoutItems.map((item) => (
                     <div
                       key={item.id_produk}
@@ -384,6 +469,17 @@ export default function CheckoutPage() {
                       {checkoutItems.length}
                     </span>
                   </p>
+                  
+                  {/* Info tambahan metode pembayaran di ringkasan */}
+                  <div className="mt-4 border-t border-slate-100 pt-4">
+                     <p className="text-xs text-slate-500 mb-1">Metode Pembayaran:</p>
+                     <p className="text-sm font-bold text-blue-700">
+                        {paymentMethod === 'qris' 
+                          ? 'QRIS' 
+                          : (selectedBank ? `Transfer Bank (${selectedBank})` : 'Transfer Bank')}
+                     </p>
+                  </div>
+
                   <p className="mt-4 text-2xl font-extrabold text-[#0C2C55]">
                     {formatCurrency(totalCheckout)}
                   </p>
@@ -403,7 +499,6 @@ export default function CheckoutPage() {
       </section>
       <Footer />
 
-      {/* RENDER MODAL SHADCN */}
       <CheckoutProfileDialog 
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
