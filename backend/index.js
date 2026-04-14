@@ -5,12 +5,14 @@ require("dotenv").config({ path: `${__dirname}/.env` });
 const publicRoutes = require("./routes/publicRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const transaksiRoutes = require("./routes/transaksiRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   res.send("API Customer Auth Running");
@@ -24,6 +26,9 @@ app.use("/api/auth", authRoutes);
 
 // route admin
 app.use("/api/admin", adminRoutes);
+
+// route transaksi
+app.use("/api/transaksi", transaksiRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

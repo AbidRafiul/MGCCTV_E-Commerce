@@ -3,23 +3,35 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 import { CreditCard, MapPin, Package2, Phone, Home, ChevronRight } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import AuthGuard from "@/components/auth/AuthGuard";
 import Footer from "@/components/layouts/Footer";
 import Navbar from "@/components/layouts/Navbar";
-import { AUTH_API_URL } from "@/lib/api";
+import { AUTH_API_URL, API_BASE_URL } from "@/lib/api";
 import {
   ensureCheckoutProfileComplete,
-  saveProfileCompletion, // Import fungsi save
+  saveProfileCompletion,
 } from "@/services/checkoutProfileService";
 import { getCheckoutItems } from "@/services/cartService";
-import CheckoutProfileDialog from "@/components/modals/CheckoutProfileDialog"; // Import Modal Shadcn
+import CheckoutProfileDialog from "@/components/modals/CheckoutProfileDialog";
 
 const normalizeProfile = (user) => {
   if (!user || typeof user !== "object") return null;
 
   return {
+    id_users: user.id_users || user.id || null,
     nama: user.nama || "",
     no_hp: user.no_hp || "",
     alamat: user.alamat || "",
@@ -37,6 +49,8 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [shippingProfile, setShippingProfile] = useState(null);
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false);
+  const [isConfirmPaymentOpen, setIsConfirmPaymentOpen] = useState(false);
   
   // =======================================================
   // STATE UNTUK MODAL SHADCN
@@ -124,19 +138,11 @@ export default function CheckoutPage() {
   };
 
   // =======================================================
-  // FUNGSI CHECKOUT & VALIDASI
+  // FUNGSI CHECKOUT & VALIDASI SEBELUM KONFIRMASI
   // =======================================================
   const handleFinishCheckout = async () => {
     if (checkoutItems.length === 0) {
-      Swal.fire({
-        title: "Checkout Kosong",
-        text: "Belum ada produk yang dipilih untuk checkout.",
-        icon: "warning",
-        width: isMobile ? 280 : 360,
-        padding: isMobile ? "1rem" : "1.25rem",
-        confirmButtonColor: "#0C2C55",
-        confirmButtonText: "Oke",
-      });
+      toast.warning("Belum ada produk yang dipilih untuk checkout.");
       return;
     }
 
@@ -150,11 +156,96 @@ export default function CheckoutPage() {
       return;
     }
 
-    router.push("/transaksi");
+    // Tampilkan pop-up konfirmasi pembayaran (AlertDialog Shadcn)
+    setIsConfirmPaymentOpen(true);
+  };
+
+  // =======================================================
+  // FUNGSI PROSES PEMBAYARAN SETELAH KONFIRMASI
+  // =======================================================
+  const processPayment = async () => {
+    setIsLoadingPayment(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      let userId = shippingProfile?.id_users ? Number(shippingProfile.id_users) : null;
+      
+      // Fallback: extract user ID from JWT token if not found in profile
+      if (!userId && token) {
+        try {
+          const payloadBase64 = token.split('.')[1];
+          if (payloadBase64) {
+            const decoded = JSON.parse(atob(payloadBase64));
+            userId = Number(decoded.id_users || decoded.id || decoded.sub || 0);
+          }
+        } catch (e) {
+          console.error("Failed to decode token for user ID:", e);
+        }
+      }
+      
+      // Siapkan data payload ke backend
+      const payload = {
+        id_users: userId,
+        items: checkoutItems.map(item => ({
+          id_produk: item.id_produk,
+          quantity: item.quantity,
+          harga: item.harga_produk,
+          nama_produk: item.nama_produk
+        })),
+        total_harga: Number(totalCheckout),
+        shipping: shippingProfile 
+      };
+
+      const res = await fetch(`${API_BASE_URL}/api/transaksi`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      
+      if (res.ok && data.token) {
+        // Trigger Midtrans Snap Pop-up
+        window.snap.pay(data.token, {
+          onSuccess: function (result) {
+            toast.success("Pembayaran berhasil dilakukan.");
+            router.push("/transaksi");
+          },
+          onPending: function (result) {
+            toast.info("Menunggu pembayaran Anda.");
+            router.push("/transaksi");
+          },
+          onError: function (result) {
+            toast.error("Pembayaran gagal diproses.");
+          },
+          onClose: function () {
+            toast.warning("Anda menutup popup tanpa menyelesaikan pembayaran.");
+          }
+        });
+      } else {
+        toast.error(data.message || "Gagal membuat transaksi, token tidak ditemukan");
+      }
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      toast.error("Terjadi kesalahan pada sistem.");
+    } finally {
+      setIsLoadingPayment(false);
+    }
   };
 
   return (
     <AuthGuard>
+      {/* Script Midtrans Sandbox */}
+      <Script
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key="SB-Mid-client-2ALWnVkFsU0xIYc_"
+        strategy="lazyOnload"
+      />
+
       <Navbar />
       <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-24 sm:px-6 sm:pb-12 sm:pt-28 lg:px-12 lg:pb-16 lg:pt-32">
         <div className="mx-auto max-w-5xl relative">
@@ -271,10 +362,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                
-
-                
-
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -374,27 +461,45 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                <div className="h-fit rounded-[24px] bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-28">
-                  <h2 className="text-lg font-bold text-[#0C2C55]">
-                    Ringkasan Pesanan
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    Total produk dipilih:{" "}
-                    <span className="font-semibold text-[#0C2C55]">
-                      {checkoutItems.length}
-                    </span>
-                  </p>
-                  <p className="mt-4 text-2xl font-extrabold text-[#0C2C55]">
-                    {formatCurrency(totalCheckout)}
-                  </p>
+                <div className="flex flex-col gap-4 h-fit rounded-[24px] bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-28">
+                  <div>
+                    <h2 className="text-lg font-bold text-[#0C2C55]">
+                      Ringkasan Pesanan
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Total produk dipilih:{" "}
+                      <span className="font-semibold text-[#0C2C55]">
+                        {checkoutItems.length}
+                      </span>
+                    </p>
+                    <p className="mt-4 text-2xl font-extrabold text-[#0C2C55]">
+                      {formatCurrency(totalCheckout)}
+                    </p>
+                  </div>
 
                   <button
                     type="button"
                     onClick={handleFinishCheckout}
-                    className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#28a745] px-5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                    disabled={isLoadingPayment}
+                    className={`mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl px-5 text-sm font-semibold text-white transition-colors 
+                      ${isLoadingPayment ? "bg-slate-400 cursor-not-allowed" : "bg-[#28a745] hover:bg-green-700"}
+                    `}
                   >
-                    Bayar Sekarang
+                    {isLoadingPayment ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Memproses...
+                      </span>
+                    ) : (
+                      "Bayar Sekarang"
+                    )}
                   </button>
+                  <p className="text-xs text-center text-slate-400 mt-2">
+                    Pembayaran aman didukung oleh <span className="font-bold text-blue-500">Midtrans</span>.
+                  </p>
                 </div>
               </div>
             </div>
@@ -403,13 +508,34 @@ export default function CheckoutPage() {
       </section>
       <Footer />
 
-      {/* RENDER MODAL SHADCN */}
+      {/* RENDER MODAL SHADCN (UNTUK PROFIL) */}
       <CheckoutProfileDialog 
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         profile={profileToEdit}
         onSave={handleSaveProfile}
       />
+
+      {/* RENDER ALERT DIALOG SHADCN (UNTUK KONFIRMASI BAYAR) */}
+      <AlertDialog open={isConfirmPaymentOpen} onOpenChange={setIsConfirmPaymentOpen}>
+        <AlertDialogContent className="max-w-md rounded-[24px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#0C2C55]">Konfirmasi Pembayaran</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500">
+              Apakah Anda yakin ingin melanjutkan pembayaran sejumlah <strong>{formatCurrency(totalCheckout)}</strong>? Pastikan pesanan dan alamat pengiriman Anda sudah benar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="rounded-xl border-slate-200">Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={processPayment}
+              className="rounded-xl bg-[#28a745] hover:bg-green-700 text-white"
+            >
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AuthGuard>
   );
 }
