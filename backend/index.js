@@ -5,13 +5,14 @@ const cors = require("cors");
 const publicRoutes = require("./routes/publicRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
-const paymentRoutes = require('./routes/paymentRoutes');
+const transaksiRoutes = require("./routes/transaksiRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 console.log("CEK SERVER KEY:", process.env.MIDTRANS_SERVER_KEY);
 
@@ -28,7 +29,8 @@ app.use("/api/auth", authRoutes);
 // route admin
 app.use("/api/admin", adminRoutes);
 
-app.use('/api/payment', paymentRoutes)
+// route transaksi
+app.use("/api/transaksi", transaksiRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
