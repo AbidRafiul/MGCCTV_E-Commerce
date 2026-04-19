@@ -4,7 +4,16 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
-import { CreditCard, MapPin, Package2, Phone, Home, ChevronRight } from "lucide-react";
+import { 
+  CreditCard, 
+  MapPin, 
+  Package2, 
+  Phone, 
+  Home, 
+  ChevronRight, 
+  Plus, 
+  Minus 
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -103,6 +112,21 @@ export default function CheckoutPage() {
     loadCheckoutData();
   }, []);
 
+  // =======================================================
+  // FITUR UPDATE QUANTITY
+  // =======================================================
+  const handleUpdateQuantity = (id_produk, delta) => {
+    setCheckoutItems((prevItems) => 
+      prevItems.map((item) => {
+        if (item.id_produk === id_produk) {
+          const newQuantity = Math.max(1, (item.quantity || 1) + delta);
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      })
+    );
+  };
+
   const totalCheckout = useMemo(
     () =>
       checkoutItems.reduce(
@@ -146,15 +170,7 @@ export default function CheckoutPage() {
 
     // Validasi Pembayaran Bank
     if (paymentMethod === "transfer" && !selectedBank) {
-      Swal.fire({
-        title: "Pilih Bank",
-        text: "Silakan pilih bank tujuan transfer terlebih dahulu.",
-        icon: "warning",
-        width: isMobile ? 280 : 360,
-        padding: isMobile ? "1rem" : "1.25rem",
-        confirmButtonColor: "#0C2C55",
-        confirmButtonText: "Mengerti",
-      });
+      toast.error("Silakan pilih bank tujuan transfer terlebih dahulu.");
       return;
     }
 
@@ -195,7 +211,7 @@ export default function CheckoutPage() {
         }
       }
       
-      // Siapkan data payload ke backend
+      // Siapkan data payload ke backend - Otomatis tersinkronisasi karena checkoutItems & totalCheckout terbaru
       const payload = {
         id_users: userId,
         items: checkoutItems.map(item => ({
@@ -429,9 +445,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* ========================================================= */}
                   {/* CARD METODE PEMBAYARAN */}
-                  {/* ========================================================= */}
                   <div className="rounded-[22px] border border-blue-100 bg-white p-4 shadow-sm sm:rounded-[24px] sm:p-5">
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
@@ -442,7 +456,6 @@ export default function CheckoutPage() {
                           Metode Pembayaran
                         </p>
                         
-                        {/* Pilihan Metode */}
                         <div className="mt-3 flex flex-col sm:flex-row gap-3">
                           <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'transfer' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
                             <input 
@@ -466,14 +479,13 @@ export default function CheckoutPage() {
                               checked={paymentMethod === 'qris'} 
                               onChange={() => {
                                 setPaymentMethod('qris');
-                                setSelectedBank(""); // Reset bank kalau ganti ke QRIS
+                                setSelectedBank(""); 
                               }} 
                             />
                             <span className="font-bold text-sm">QRIS</span>
                           </label>
                         </div>
 
-                        {/* Dropdown Bank (Muncul jika Transfer Bank dipilih) */}
                         {paymentMethod === 'transfer' && (
                           <div className="mt-4 animate-in fade-in slide-in-from-top-2">
                             <label className="block text-xs font-semibold text-slate-500 mb-2">
@@ -523,9 +535,28 @@ export default function CheckoutPage() {
                             {item.nama_produk}
                           </h2>
                           <div className="flex flex-col gap-1 text-sm text-slate-500 sm:flex-row sm:flex-wrap sm:gap-x-4">
-                            <p>
-                              Jumlah: <span className="font-semibold">{item.quantity}</span>
-                            </p>
+                            <div className="flex items-center gap-3">
+                              <span className="text-slate-500">Jumlah:</span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(item.id_produk, -1)}
+                                  className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 active:scale-95"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="w-8 text-center font-bold text-[#0C2C55]">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(item.id_produk, 1)}
+                                  className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 active:scale-95"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                            </div>
                             <p>
                               Harga satuan:{" "}
                               <span className="font-semibold">
@@ -547,15 +578,22 @@ export default function CheckoutPage() {
                     <h2 className="text-lg font-bold text-[#0C2C55]">
                       Ringkasan Pesanan
                     </h2>
-                    <p className="mt-2 text-sm text-slate-500">
-                      Total produk dipilih:{" "}
-                      <span className="font-semibold text-[#0C2C55]">
-                        {checkoutItems.length}
-                      </span>
-                    </p>
-                    <p className="mt-4 text-2xl font-extrabold text-[#0C2C55]">
-                      {formatCurrency(totalCheckout)}
-                    </p>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Total Produk:</span>
+                        <span className="font-bold text-[#0C2C55]">{checkoutItems.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Total Unit:</span>
+                        <span className="font-bold text-[#0C2C55]">{totalUnits}</span>
+                      </div>
+                      <div className="border-t border-slate-100 pt-2 mt-2">
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Total Pembayaran</p>
+                        <p className="mt-1 text-2xl font-extrabold text-[#0C2C55]">
+                          {formatCurrency(totalCheckout)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <button
@@ -589,7 +627,6 @@ export default function CheckoutPage() {
       </section>
       <Footer />
 
-      {/* RENDER MODAL SHADCN (UNTUK PROFIL) */}
       <CheckoutProfileDialog 
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
@@ -597,7 +634,6 @@ export default function CheckoutPage() {
         onSave={handleSaveProfile}
       />
 
-      {/* RENDER ALERT DIALOG SHADCN (UNTUK KONFIRMASI BAYAR) */}
       <AlertDialog open={isConfirmPaymentOpen} onOpenChange={setIsConfirmPaymentOpen}>
         <AlertDialogContent className="max-w-md rounded-[24px]">
           <AlertDialogHeader>

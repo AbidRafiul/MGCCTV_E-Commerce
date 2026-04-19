@@ -76,17 +76,17 @@ const createMidtransTransaction = async (req, res) => {
 
         // 3. Inisialisasi Midtrans Snap (DI-MOCK SEMENTARA)
         // Pastikan MIDTRANS_SERVER_KEY dan MIDTRANS_CLIENT_KEY sudah ada di .env
-        /*
+        
         const snap = new midtransClient.Snap({
             isProduction: false, // Ubah ke true jika sudah live production
             serverKey: process.env.MIDTRANS_SERVER_KEY,
             clientKey: process.env.MIDTRANS_CLIENT_KEY
         });
-        */
+        
 
         // 4. Request createTransaction ke Midtrans (DI-MOCK SEMENTARA)
         // Catatan: gross_amount wajib berupa angka bulat (integer)
-        /*
+        
         const parameter = {
             transaction_details: {
                 order_id: order_id,
@@ -95,15 +95,15 @@ const createMidtransTransaction = async (req, res) => {
         };
 
         const transaction = await snap.createTransaction(parameter);
-        */
-
+        
+/*
         // --- MOCK TRANSACTION RESPONSE ---
         const transaction = { 
             token: 'mock-token-xyz-123', 
             redirect_url: 'https://sandbox.midtrans.com/mock-payment-page' 
         };
         // ---------------------------------
-        
+        */
         // Midtrans mengembalikan 'token' dan 'redirect_url'
         const token = transaction.token;
         const redirect_url = transaction.redirect_url;
