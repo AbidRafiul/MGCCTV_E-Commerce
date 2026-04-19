@@ -28,8 +28,6 @@ app.use("/api/auth", authRoutes);
 // route admin
 app.use("/api/admin", adminRoutes);
 
-app.use('/api/payment', paymentRoutes)
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
