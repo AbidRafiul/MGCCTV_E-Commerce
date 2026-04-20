@@ -6,6 +6,7 @@ const publicRoutes = require("./routes/publicRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const transaksiRoutes = require("./routes/transaksiRoutes");
+const pembelianRoutes = require('./routes/pembelianRoutes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -28,6 +29,10 @@ app.use("/api/auth", authRoutes);
 
 // route admin
 app.use("/api/admin", adminRoutes);
+
+// route pembelian
+app.use('/api/pembelian', pembelianRoutes);
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
