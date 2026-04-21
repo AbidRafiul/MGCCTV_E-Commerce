@@ -10,6 +10,7 @@ const logoutCustomer = require("../controllers/auth/logoutCustomer");
 const profileUsers = require("../controllers/auth/profileUsers");
 const ubahPassword = require("../controllers/auth/ubahPassword");
 const cartController = require("../controllers/auth/cartController");
+const orderHistoryController = require("../controllers/auth/orderHistoryController");
 
 const auth = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
@@ -24,6 +25,7 @@ router.patch("/profile", auth, profileUsers);
 router.put("/ubah-password", auth, ubahPassword);
 router.get("/cart", auth, cartController.getCartItems);
 router.get("/cart/count", auth, cartController.getCartCount);
+router.get("/orders", auth, orderHistoryController.getOrderHistory);
 router.post("/cart/items", auth, cartController.addCartItem);
 router.patch("/cart/items/:productId", auth, cartController.updateCartItemQuantity);
 router.delete("/cart/items/:productId", auth, cartController.removeCartItem);

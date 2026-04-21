@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Clock,
   Download,
-  Eye,
   Loader2,
   Package,
   Search,
@@ -105,17 +104,19 @@ const formatCurrency = (value) =>
 const formatDate = (value) => {
   if (!value) return "-";
 
-  return new Date(value).toLocaleDateString("id-ID", {
+  return new Date(value).toLocaleString("id-ID", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 const mapOrderFromApi = (order) => ({
   id: `#ORD-${String(order.id_pesanan).padStart(4, "0")}`,
   id_pesanan: order.id_pesanan,
-  date: formatDate(order.created_at),
+  date: formatDate(order.tanggal_transaksi),
   customer: order.nama_pelanggan || "Pelanggan",
   city: order.alamat_pelanggan || "-",
   product: order.produk_ringkas || "-",
@@ -176,11 +177,6 @@ function ActionButtons({
       >
         <ChevronDown size={12} />
         Pilih Aksi
-      </button>
-
-      <button className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50">
-        <Eye size={12} />
-        Detail
       </button>
 
       {isMenuOpen ? (
@@ -554,7 +550,7 @@ export default function PesananPage() {
                       Metode
                     </th>
                     <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      Status
+                      Status Pesanan
                     </th>
                     <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Aksi

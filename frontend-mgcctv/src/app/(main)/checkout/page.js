@@ -33,7 +33,11 @@ import {
   ensureCheckoutProfileComplete,
   saveProfileCompletion,
 } from "@/services/checkoutProfileService";
-import { getCheckoutItems } from "@/services/cartService";
+import {
+  clearCheckoutItems,
+  clearPurchasedCartItems,
+  getCheckoutItems,
+} from "@/services/cartService";
 import CheckoutProfileDialog from "@/components/modals/CheckoutProfileDialog";
 
 const normalizeProfile = (user) => {
@@ -54,6 +58,66 @@ const formatCurrency = (value) =>
     minimumFractionDigits: 0,
   }).format(Number(value) || 0);
 
+const saveTransactionReview = (payload) => {
+  if (typeof window === "undefined") return;
+
+  const existingTransaction = localStorage.getItem("lastMidtransTransaction");
+  const parsedTransaction = existingTransaction ? JSON.parse(existingTransaction) : {};
+
+  localStorage.setItem(
+    "lastMidtransTransaction",
+    JSON.stringify({
+      ...parsedTransaction,
+      ...payload,
+    }),
+  );
+};
+
+const clearCheckoutSessionMeta = () => {
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("selectedPaymentMethod");
+  localStorage.removeItem("selectedPaymentBank");
+};
+
+const parseJsonSafely = async (response) => {
+  const rawText = await response.text();
+
+  if (!rawText) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return {
+      message: rawText,
+    };
+  }
+};
+
+const syncTransactionStatus = async ({ token, orderId, statusBayar }) => {
+  if (!token || !orderId || !statusBayar) {
+    return;
+  }
+
+  try {
+    await fetch(`${API_BASE_URL}/api/transaksi/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        order_id: orderId,
+        status_bayar: statusBayar,
+      }),
+    });
+  } catch (error) {
+    console.error("Gagal sinkron status transaksi:", error);
+  }
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [checkoutItems, setCheckoutItems] = useState([]);
@@ -66,6 +130,8 @@ export default function CheckoutPage() {
   // =======================================================
   const [paymentMethod, setPaymentMethod] = useState("transfer");
   const [selectedBank, setSelectedBank] = useState("");
+  const midtransClientKey =
+    process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "SB-Mid-client-2ALWnVkFsU0xIYc_";
 
   // =======================================================
   // STATE UNTUK MODAL SHADCN
@@ -73,8 +139,6 @@ export default function CheckoutPage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileToEdit, setProfileToEdit] = useState(null);
   
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-
   useEffect(() => {
     const loadCheckoutData = async () => {
       setCheckoutItems(getCheckoutItems());
@@ -154,8 +218,19 @@ export default function CheckoutPage() {
       setShippingProfile(normalizeProfile(savedProfile));
       setIsProfileModalOpen(false); 
       return true;
-    } catch (error) {
+    } catch {
       return false; 
+    }
+  };
+
+  const cleanupAfterSuccessfulPayment = async (paidItems) => {
+    try {
+      await clearPurchasedCartItems(paidItems);
+    } catch (error) {
+      console.error("Gagal membersihkan item keranjang setelah pembayaran:", error);
+      clearCheckoutItems();
+    } finally {
+      clearCheckoutSessionMeta();
     }
   };
 
@@ -195,6 +270,12 @@ export default function CheckoutPage() {
 
     try {
       const token = localStorage.getItem("token");
+
+      if (!token) {
+        toast.error("Sesi login tidak ditemukan. Silakan login ulang.");
+        router.push("/login");
+        return;
+      }
       
       let userId = shippingProfile?.id_users ? Number(shippingProfile.id_users) : null;
       
@@ -210,10 +291,21 @@ export default function CheckoutPage() {
           console.error("Failed to decode token for user ID:", e);
         }
       }
+
+      if (!userId) {
+        toast.error("User tidak dikenali. Silakan login ulang.");
+        return;
+      }
+
+      if (typeof window === "undefined" || !window.snap) {
+        toast.error("Snap Midtrans belum siap. Coba beberapa detik lagi.");
+        return;
+      }
       
       // Siapkan data payload ke backend - Otomatis tersinkronisasi karena checkoutItems & totalCheckout terbaru
       const payload = {
         id_users: userId,
+        payment_method: paymentMethod,
         items: checkoutItems.map(item => ({
           id_produk: item.id_produk,
           quantity: item.quantity,
@@ -233,24 +325,77 @@ export default function CheckoutPage() {
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+      const data = await parseJsonSafely(res);
       
       if (res.ok && data.token) {
+        localStorage.setItem("selectedPaymentMethod", paymentMethod);
+        localStorage.setItem("selectedPaymentBank", selectedBank);
+        saveTransactionReview({
+          order_id: data.order_id,
+          token: data.token,
+          redirect_url: data.redirect_url || "",
+          total_harga: Number(totalCheckout),
+          payment_method: paymentMethod,
+          payment_bank: selectedBank,
+          items: checkoutItems,
+          created_at: new Date().toISOString(),
+          review_status: "pending",
+        });
+
         // Trigger Midtrans Snap Pop-up
         window.snap.pay(data.token, {
-          onSuccess: function (result) {
+          onSuccess: async function (result) {
+            saveTransactionReview({
+              review_status: "success",
+              payment_type: result?.payment_type || paymentMethod,
+              transaction_time: result?.transaction_time || new Date().toISOString(),
+              settlement_time: result?.settlement_time || null,
+              va_numbers: result?.va_numbers || [],
+              pdf_url: result?.pdf_url || "",
+              snap_result: result || null,
+            });
+            await cleanupAfterSuccessfulPayment(checkoutItems);
             toast.success("Pembayaran berhasil dilakukan.");
             router.push("/transaksi");
           },
           onPending: function (result) {
+            saveTransactionReview({
+              review_status: "pending",
+              payment_type: result?.payment_type || paymentMethod,
+              transaction_time: result?.transaction_time || new Date().toISOString(),
+              va_numbers: result?.va_numbers || [],
+              pdf_url: result?.pdf_url || "",
+              snap_result: result || null,
+            });
             toast.info("Menunggu pembayaran Anda.");
             router.push("/transaksi");
           },
           onError: function (result) {
+            saveTransactionReview({
+              review_status: "expired",
+              payment_type: result?.payment_type || paymentMethod,
+              transaction_time: result?.transaction_time || new Date().toISOString(),
+              snap_result: result || null,
+            });
+            void syncTransactionStatus({
+              token,
+              orderId: data.order_id,
+              statusBayar: "expired",
+            });
             toast.error("Pembayaran gagal diproses.");
+            router.push("/transaksi");
           },
           onClose: function () {
+            saveTransactionReview({
+              review_status: "expired",
+            });
+            void syncTransactionStatus({
+              token,
+              orderId: data.order_id,
+              statusBayar: "expired",
+            });
             toast.warning("Anda menutup popup tanpa menyelesaikan pembayaran.");
+            router.push("/transaksi");
           }
         });
       } else {
@@ -269,7 +414,7 @@ export default function CheckoutPage() {
       {/* Script Midtrans Sandbox */}
       <Script
         src="https://app.sandbox.midtrans.com/snap/snap.js"
-        data-client-key="SB-Mid-client-2ALWnVkFsU0xIYc_"
+        data-client-key={midtransClientKey}
         strategy="lazyOnload"
       />
 
@@ -305,16 +450,16 @@ export default function CheckoutPage() {
           {checkoutItems.length === 0 ? (
             <div className="rounded-[24px] border border-dashed border-slate-200 bg-white px-5 py-12 text-center shadow-sm sm:rounded-[28px] sm:px-6 sm:py-14">
               <h2 className="text-lg font-bold text-[#0C2C55] sm:text-xl">
-                Belum ada produk untuk checkout
+                Belum ada produk untuk ditampilkan
               </h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Kembali ke keranjang dan pilih produk yang ingin Anda checkout.
+                Pilih produk dari keranjang atau gunakan tombol beli sekarang dari halaman produk untuk masuk ke detail pesanan.
               </p>
               <Link
                 href="/keranjang"
                 className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-[#0C2C55] px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-900"
               >
-                Kembali ke Keranjang
+                Ke Keranjang
               </Link>
             </div>
           ) : (
@@ -326,19 +471,19 @@ export default function CheckoutPage() {
                 <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                   <div>
                     <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">
-                      Checkout Pesanan
+                      Detail Pesanan
                     </span>
                     <h3 className="mt-3 text-2xl font-bold text-white md:text-[30px]">
-                      Konfirmasi Pesanan Anda
+                      Tinjau Pesanan Anda
                     </h3>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-blue-100/85">
-                      Pastikan produk, alamat pengiriman, dan total pembayaran sudah sesuai sebelum melanjutkan ke transaksi.
+                      Periksa produk, alamat pengiriman, dan metode pembayaran terlebih dahulu. Setelah itu klik Bayar Sekarang untuk membuka Midtrans sandbox.
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-sky-100/80">
-                      Total Checkout
+                      Total Pesanan
                     </p>
                     <p className="mt-1 text-2xl font-extrabold text-white">
                       {formatCurrency(totalCheckout)}
@@ -617,7 +762,7 @@ export default function CheckoutPage() {
                     )}
                   </button>
                   <p className="text-xs text-center text-slate-400 mt-2">
-                    Pembayaran aman didukung oleh <span className="font-bold text-blue-500">Midtrans</span>.
+                    Setelah Anda klik <span className="font-bold text-blue-500">Bayar Sekarang</span>, popup Midtrans sandbox akan terbuka untuk menyelesaikan pembayaran.
                   </p>
                 </div>
               </div>

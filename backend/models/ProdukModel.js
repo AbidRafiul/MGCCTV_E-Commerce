@@ -4,7 +4,14 @@ const ProdukModel = {
   // 1. Ambil semua produk
   getAll: async () => {
     const query = `
-      SELECT p.*, k.nama_kategori AS merek 
+      SELECT
+        p.*,
+        k.nama_kategori AS merek,
+        (
+          SELECT MAX(tsm.tanggal_masuk)
+          FROM tr_stok_masuk tsm
+          WHERE tsm.id_produk = p.id_produk
+        ) AS tanggal_masuk_terakhir
       FROM ms_produk p
       LEFT JOIN ms_kategori k ON p.ms_kategori_id_kategori = k.id_kategori
       ORDER BY p.created_at DESC

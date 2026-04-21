@@ -184,6 +184,31 @@ export const clearCheckoutItems = () => {
   localStorage.removeItem(CHECKOUT_STORAGE_KEY);
 };
 
+export const clearPurchasedCartItems = async (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    clearCheckoutItems();
+    emitCartUpdated();
+    return;
+  }
+
+  const uniqueProductIds = [...new Set(items.map((item) => item?.id_produk).filter(Boolean))];
+
+  await Promise.all(
+    uniqueProductIds.map(async (productId) => {
+      try {
+        await removeCartItem(productId);
+      } catch (error) {
+        if (error?.status !== 404) {
+          console.error(`Gagal menghapus item keranjang ${productId}:`, error);
+        }
+      }
+    }),
+  );
+
+  clearCheckoutItems();
+  emitCartUpdated();
+};
+
 export const clearCartItems = () => {
   emitCartUpdated();
 };
