@@ -22,6 +22,91 @@ const mapMidtransStatus = (transactionStatus, fraudStatus) => {
   return "pending";
 };
 
+const RESTORE_STOCK_PAYMENT_STATUSES = new Set(["failed", "expired"]);
+
+const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [transactionRows] = await connection.execute(
+      `
+        SELECT id_transaksi, status_bayar
+        FROM tr_transaksi
+        WHERE id_transaksi = ?
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [idTransaksi],
+    );
+
+    if (transactionRows.length === 0) {
+      const error = new Error("Transaksi tidak ditemukan");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const currentPaymentStatus = String(transactionRows[0].status_bayar || "").toLowerCase();
+    const normalizedNextStatus = String(nextPaymentStatus || "").toLowerCase();
+
+    if (!normalizedNextStatus) {
+      const error = new Error("Status pembayaran tidak valid");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const shouldRestoreStock =
+      RESTORE_STOCK_PAYMENT_STATUSES.has(normalizedNextStatus) &&
+      !RESTORE_STOCK_PAYMENT_STATUSES.has(currentPaymentStatus) &&
+      currentPaymentStatus !== "paid";
+
+    if (shouldRestoreStock) {
+      const [detailRows] = await connection.execute(
+        `
+          SELECT id_produk, quantity
+          FROM tr_detail_transaksi
+          WHERE id_transaksi = ?
+        `,
+        [idTransaksi],
+      );
+
+      for (const detail of detailRows) {
+        await connection.execute(
+          `
+            UPDATE ms_produk
+            SET stok = stok + ?
+            WHERE id_produk = ?
+          `,
+          [Number(detail.quantity || 0), Number(detail.id_produk || 0)],
+        );
+      }
+    }
+
+    await connection.execute(
+      `
+        UPDATE tr_transaksi
+        SET status_bayar = ?
+        WHERE id_transaksi = ?
+      `,
+      [normalizedNextStatus, idTransaksi],
+    );
+
+    await connection.commit();
+
+    return {
+      restoredStock: shouldRestoreStock,
+      previousStatus: currentPaymentStatus || "pending",
+      nextStatus: normalizedNextStatus,
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
 const createMidtransTransaction = async (req, res) => {
   let connection;
 
@@ -222,19 +307,16 @@ const midtransWebhook = async (req, res) => {
     const id_transaksi = order_id.replace("MGCCTV-", "");
     const status_bayar = mapMidtransStatus(transaction_status, fraud_status);
 
-    await db.execute(
-      `
-        UPDATE tr_transaksi
-        SET status_bayar = ?
-        WHERE id_transaksi = ?
-      `,
-      [status_bayar, id_transaksi],
-    );
+    const syncResult = await syncTransactionInventory({
+      idTransaksi: Number(id_transaksi),
+      nextPaymentStatus: status_bayar,
+    });
 
     console.log("Midtrans webhook updated transaction:", {
       id_transaksi,
       order_id,
       status_bayar,
+      restored_stock: syncResult.restoredStock,
     });
 
     return res.status(200).json({ success: true, message: "Webhook received" });
@@ -248,7 +330,90 @@ const midtransWebhook = async (req, res) => {
   }
 };
 
+const updateTransactionStatus = async (req, res) => {
+  try {
+    const orderId = String(req.body.order_id || "").trim();
+    const requestedStatus = String(req.body.status_bayar || "").trim().toLowerCase();
+    const authUserId = Number(req.user?.id || req.user?.id_users || 0);
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "order_id wajib diisi",
+      });
+    }
+
+    if (requestedStatus !== "expired") {
+      return res.status(400).json({
+        success: false,
+        message: "Status bayar yang diizinkan saat ini hanya expired",
+      });
+    }
+
+    const idTransaksi = Number(orderId.replace("MGCCTV-", ""));
+
+    if (!idTransaksi) {
+      return res.status(400).json({
+        success: false,
+        message: "Format order_id tidak valid",
+      });
+    }
+
+    const [transactionRows] = await db.execute(
+      `
+        SELECT id_transaksi, id_users, status_bayar
+        FROM tr_transaksi
+        WHERE id_transaksi = ?
+        LIMIT 1
+      `,
+      [idTransaksi],
+    );
+
+    if (transactionRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaksi tidak ditemukan",
+      });
+    }
+
+    const transaction = transactionRows[0];
+
+    if (Number(transaction.id_users) !== authUserId) {
+      return res.status(403).json({
+        success: false,
+        message: "Anda tidak memiliki akses ke transaksi ini",
+      });
+    }
+
+    if (transaction.status_bayar === "paid") {
+      return res.status(409).json({
+        success: false,
+        message: "Transaksi yang sudah dibayar tidak bisa diubah menjadi expired",
+      });
+    }
+
+    const syncResult = await syncTransactionInventory({
+      idTransaksi,
+      nextPaymentStatus: "expired",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Status bayar berhasil diperbarui menjadi expired",
+      restored_stock: syncResult.restoredStock,
+    });
+  } catch (error) {
+    console.error("Error updateTransactionStatus:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan saat memperbarui status transaksi",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createMidtransTransaction,
   midtransWebhook,
+  updateTransactionStatus,
 };

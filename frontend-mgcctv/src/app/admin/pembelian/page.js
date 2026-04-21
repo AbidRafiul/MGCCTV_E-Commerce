@@ -4,14 +4,25 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  CheckCircle2,
   ClipboardList,
+  CircleAlert,
   Loader2,
   PackagePlus,
-  ShieldCheck,
   ShoppingCart,
-  PlusCircle
+  PlusCircle,
 } from "lucide-react";
 import { API_BASE_URL, PUBLIC_API_URL } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("id-ID", {
@@ -22,6 +33,24 @@ const formatCurrency = (value) =>
 
 const formatNumber = (value) =>
   new Intl.NumberFormat("id-ID").format(Number(value) || 0);
+
+const formatDateTime = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 const statusTone = (stok) => {
   const numericStock = Number(stok || 0);
@@ -39,17 +68,28 @@ export default function PembelianPage() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // --- STATE UNTUK FORM PEMBELIAN (BARANG MASUK) ---
   const [formData, setFormData] = useState({
     id_produk: "",
-    jumlah_masuk: "",
+    qty_masuk: "",
     catatan: "",
-    // id_user sudah dihapus karena otomatis terbaca dari Token JWT di backend
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackDialog, setFeedbackDialog] = useState({
+    open: false,
+    title: "",
+    description: "",
+    tone: "success",
+  });
 
-  // Pindahkan fungsi fetch ke luar useEffect agar bisa dipanggil ulang setelah form submit
+  const openFeedbackDialog = ({ title, description, tone }) => {
+    setFeedbackDialog({
+      open: true,
+      title,
+      description,
+      tone,
+    });
+  };
+
   const fetchInventoryData = async () => {
     try {
       setError("");
@@ -65,8 +105,10 @@ export default function PembelianPage() {
       const productsPayload = await productsRes.json().catch(() => []);
       const ordersPayload = await ordersRes.json().catch(() => []);
 
-      if (!productsRes.ok) throw new Error("Gagal mengambil data produk");
-      
+      if (!productsRes.ok) {
+        throw new Error("Gagal mengambil data produk");
+      }
+
       setProducts(Array.isArray(productsPayload) ? productsPayload : []);
       setOrders(Array.isArray(ordersPayload) ? ordersPayload : []);
     } catch (fetchError) {
@@ -81,7 +123,6 @@ export default function PembelianPage() {
     fetchInventoryData();
   }, []);
 
-  // --- FUNGSI HANDLE SUBMIT FORM BARANG MASUK ---
   const handleFormChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -89,33 +130,47 @@ export default function PembelianPage() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Ambil token dari localStorage untuk otorisasi backend
+
     const token = localStorage.getItem("token");
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/pembelian/tambah`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // Menyisipkan token agar backend mengenali user
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        alert("✅ Stok berhasil ditambahkan!");
-        // Reset form setelah sukses
-        setFormData({ id_produk: "", jumlah_masuk: "", catatan: "" });
-        // Panggil fetch lagi untuk update tabel & statistik secara real-time!
-        await fetchInventoryData(); 
+        openFeedbackDialog({
+          title: "Stok Berhasil Ditambahkan",
+          description:
+            result?.data?.nama_produk && result?.data?.qty_masuk
+              ? `${result.data.qty_masuk} unit ${result.data.nama_produk} sudah masuk ke inventori.`
+              : result?.message || "Data stok masuk berhasil disimpan.",
+          tone: "success",
+        });
+
+        setFormData({ id_produk: "", qty_masuk: "", catatan: "" });
+        await fetchInventoryData();
       } else {
-        alert("❌ Error: " + (result.error || result.message));
+        openFeedbackDialog({
+          title: "Gagal Menyimpan Stok",
+          description:
+            result?.error || result?.message || "Terjadi kesalahan saat menyimpan stok masuk.",
+          tone: "error",
+        });
       }
     } catch (err) {
-      alert("Gagal terhubung ke server.");
+      openFeedbackDialog({
+        title: "Server Tidak Merespons",
+        description: "Koneksi ke server gagal. Coba lagi beberapa saat lagi.",
+        tone: "warning",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -141,10 +196,30 @@ export default function PembelianPage() {
     return orders.filter((order) => order.status_order === "selesai").slice(0, 5);
   }, [orders]);
 
+  const feedbackMeta =
+    feedbackDialog.tone === "success"
+      ? {
+          icon: CheckCircle2,
+          mediaClass: "bg-emerald-50 text-emerald-600",
+          buttonClass: "bg-[#0C2C55] hover:bg-[#123d73]",
+        }
+      : feedbackDialog.tone === "warning"
+        ? {
+            icon: CircleAlert,
+            mediaClass: "bg-amber-50 text-amber-600",
+            buttonClass: "bg-amber-500 text-white hover:bg-amber-600",
+          }
+        : {
+            icon: CircleAlert,
+            mediaClass: "bg-red-50 text-red-600",
+            buttonClass: "bg-red-600 text-white hover:bg-red-700",
+          };
+  const FeedbackIcon = feedbackMeta.icon;
+
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <>
+      <div className="space-y-6">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">
@@ -158,22 +233,21 @@ export default function PembelianPage() {
         </div>
       </section>
 
-      {isLoading ? (
-        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-20 shadow-sm">
-          <div className="flex items-center justify-center gap-3 text-slate-500">
-            <Loader2 className="animate-spin" size={18} />
-            <span>Memuat data stok produk...</span>
+        {isLoading ? (
+          <div className="rounded-3xl border border-slate-200 bg-white px-6 py-20 shadow-sm">
+            <div className="flex items-center justify-center gap-3 text-slate-500">
+              <Loader2 className="animate-spin" size={18} />
+              <span>Memuat data stok produk...</span>
+            </div>
           </div>
-        </div>
-      ) : error ? (
-        <div className="rounded-3xl border border-red-100 bg-red-50 px-6 py-10 shadow-sm">
-          <p className="text-lg font-bold text-red-600">Data inventori gagal dimuat</p>
-          <p className="mt-2 text-sm text-red-500">{error}</p>
-        </div>
-      ) : (
-        <>
-          {/* Bagian Statistik */}
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        ) : error ? (
+          <div className="rounded-3xl border border-red-100 bg-red-50 px-6 py-10 shadow-sm">
+            <p className="text-lg font-bold text-red-600">Data inventori gagal dimuat</p>
+            <p className="mt-2 text-sm text-red-500">{error}</p>
+          </div>
+        ) : (
+          <>
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                 <PackagePlus size={20} />
@@ -207,9 +281,7 @@ export default function PembelianPage() {
             </article>
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.9fr)]">
-            
-            {/* KOLOM KIRI: Tabel Produk */}
+            <section className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.9fr)]">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -225,6 +297,7 @@ export default function PembelianPage() {
                       <th className="px-4 py-3 font-semibold">Produk</th>
                       <th className="px-4 py-3 font-semibold">Harga</th>
                       <th className="px-4 py-3 font-semibold">Stok</th>
+                      <th className="px-4 py-3 font-semibold">Tanggal Masuk</th>
                       <th className="px-4 py-3 font-semibold">Status</th>
                     </tr>
                   </thead>
@@ -236,6 +309,9 @@ export default function PembelianPage() {
                           <td className="px-4 py-4 font-semibold text-slate-900">{product.nama_produk}</td>
                           <td className="px-4 py-4 font-medium text-slate-800">{formatCurrency(product.harga_produk)}</td>
                           <td className="px-4 py-4 font-bold text-slate-900">{formatNumber(product.stok)}</td>
+                          <td className="px-4 py-4 font-medium text-slate-600">
+                            {formatDateTime(product.tanggal_masuk_terakhir)}
+                          </td>
                           <td className="px-4 py-4">
                             <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${tone.className}`}>
                               {tone.label}
@@ -249,29 +325,26 @@ export default function PembelianPage() {
               </div>
             </div>
 
-            {/* KOLOM KANAN */}
             <div className="space-y-6">
-              
-              {/* --- FORM TAMBAH STOK BARU --- */}
-              <section className="rounded-3xl border border-blue-200 bg-blue-50/50 p-6 shadow-sm relative overflow-hidden">
+              <section className="relative overflow-hidden rounded-3xl border border-blue-200 bg-blue-50/50 p-6 shadow-sm">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                   <PackagePlus size={100} />
                 </div>
-                
-                <h2 className="text-lg font-bold text-blue-900 relative z-10">
+
+                <h2 className="relative z-10 text-lg font-bold text-blue-900">
                   + Form Restock Barang
                 </h2>
-                <p className="mt-1 text-sm text-blue-700/80 relative z-10">
+                <p className="relative z-10 mt-1 text-sm text-blue-700/80">
                   Catat stok masuk dari supplier.
                 </p>
 
-                <form onSubmit={handleFormSubmit} className="mt-5 space-y-4 relative z-10">
+                <form onSubmit={handleFormSubmit} className="relative z-10 mt-5 space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Produk</label>
-                    <select 
-                      name="id_produk" 
-                      value={formData.id_produk} 
-                      onChange={handleFormChange} 
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Pilih Produk</label>
+                    <select
+                      name="id_produk"
+                      value={formData.id_produk}
+                      onChange={handleFormChange}
                       required
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
@@ -285,21 +358,22 @@ export default function PembelianPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Jumlah Masuk</label>
-                    <input 
-                      type="number" 
-                      name="jumlah_masuk" 
-                      value={formData.jumlah_masuk} 
-                      onChange={handleFormChange} 
-                      required min="1"
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Jumlah Masuk</label>
+                    <input
+                      type="number"
+                      name="qty_masuk"
+                      value={formData.qty_masuk}
+                      onChange={handleFormChange}
+                      required
+                      min="1"
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={isSubmitting}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:bg-blue-400"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:bg-blue-400"
                   >
                     {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <PlusCircle size={16} />}
                     {isSubmitting ? "Menyimpan..." : "Simpan Stok Baru"}
@@ -307,7 +381,6 @@ export default function PembelianPage() {
                 </form>
               </section>
 
-              {/* Catatan Implementasi & Pesanan Selesai */}
               <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-bold text-slate-900">Pesanan Selesai Terbaru</h2>
                 <div className="mt-5 space-y-3">
@@ -321,11 +394,38 @@ export default function PembelianPage() {
                   ))}
                 </div>
               </section>
-              
             </div>
-          </section>
-        </>
-      )}
-    </div>
+            </section>
+          </>
+        )}
+      </div>
+
+      <AlertDialog
+        open={feedbackDialog.open}
+        onOpenChange={(open) => setFeedbackDialog((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent className="max-w-md rounded-[24px] border border-slate-200 bg-white p-0 shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+          <AlertDialogHeader className="px-6 pt-6 text-left sm:place-items-start sm:text-left">
+            <AlertDialogMedia className={`size-12 rounded-2xl ${feedbackMeta.mediaClass}`}>
+              <FeedbackIcon size={22} />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-bold text-[#0C2C55]">
+              {feedbackDialog.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-6 text-slate-500">
+              {feedbackDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="rounded-b-[24px] border-t border-slate-200 bg-slate-50/80 px-6 py-4">
+            <AlertDialogAction
+              onClick={() => setFeedbackDialog((prev) => ({ ...prev, open: false }))}
+              className={`w-full rounded-xl text-white sm:w-auto ${feedbackMeta.buttonClass}`}
+            >
+              Mengerti
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

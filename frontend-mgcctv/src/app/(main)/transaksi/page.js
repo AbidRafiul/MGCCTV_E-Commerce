@@ -157,6 +157,18 @@ export default function TransaksiPage() {
       };
     }
 
+    if (reviewStatus === "expired") {
+      return {
+        heroBadge: "Pembayaran Kedaluwarsa",
+        heroTitle: "Transaksi Kedaluwarsa",
+        heroDescription:
+          "Pembayaran tidak diselesaikan, jadi transaksi ini sudah ditandai sebagai kedaluwarsa. Anda bisa membuat transaksi baru dari halaman detail pesanan.",
+        statusLabel: "Pembayaran gagal",
+        statusClass: "bg-red-50 text-red-700",
+        icon: CircleX,
+      };
+    }
+
     return {
       heroBadge: "Menunggu Pembayaran",
       heroTitle: "Transaksi Menunggu Pembayaran",

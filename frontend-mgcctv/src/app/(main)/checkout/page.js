@@ -80,6 +80,44 @@ const clearCheckoutSessionMeta = () => {
   localStorage.removeItem("selectedPaymentBank");
 };
 
+const parseJsonSafely = async (response) => {
+  const rawText = await response.text();
+
+  if (!rawText) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return {
+      message: rawText,
+    };
+  }
+};
+
+const syncTransactionStatus = async ({ token, orderId, statusBayar }) => {
+  if (!token || !orderId || !statusBayar) {
+    return;
+  }
+
+  try {
+    await fetch(`${API_BASE_URL}/api/transaksi/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        order_id: orderId,
+        status_bayar: statusBayar,
+      }),
+    });
+  } catch (error) {
+    console.error("Gagal sinkron status transaksi:", error);
+  }
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [checkoutItems, setCheckoutItems] = useState([]);
@@ -287,7 +325,7 @@ export default function CheckoutPage() {
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+      const data = await parseJsonSafely(res);
       
       if (res.ok && data.token) {
         localStorage.setItem("selectedPaymentMethod", paymentMethod);
@@ -334,19 +372,30 @@ export default function CheckoutPage() {
           },
           onError: function (result) {
             saveTransactionReview({
-              review_status: "failed",
+              review_status: "expired",
               payment_type: result?.payment_type || paymentMethod,
               transaction_time: result?.transaction_time || new Date().toISOString(),
               snap_result: result || null,
+            });
+            void syncTransactionStatus({
+              token,
+              orderId: data.order_id,
+              statusBayar: "expired",
             });
             toast.error("Pembayaran gagal diproses.");
             router.push("/transaksi");
           },
           onClose: function () {
             saveTransactionReview({
-              review_status: "pending",
+              review_status: "expired",
+            });
+            void syncTransactionStatus({
+              token,
+              orderId: data.order_id,
+              statusBayar: "expired",
             });
             toast.warning("Anda menutup popup tanpa menyelesaikan pembayaran.");
+            router.push("/transaksi");
           }
         });
       } else {
