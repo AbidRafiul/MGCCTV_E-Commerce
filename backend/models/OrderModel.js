@@ -11,6 +11,7 @@ const OrderModel = {
     const [rows] = await connection.query(
       `SELECT
         t.id_transaksi AS id_pesanan,
+        t.tanggal_transaksi,
         t.created_at,
         t.updated_at,
         t.total_harga,
@@ -30,6 +31,7 @@ const OrderModel = {
       LEFT JOIN ms_produk p ON p.id_produk = dt.id_produk
       GROUP BY
         t.id_transaksi,
+        t.tanggal_transaksi,
         t.created_at,
         t.updated_at,
         t.total_harga,
@@ -38,7 +40,7 @@ const OrderModel = {
         t.id_users,
         u.nama,
         u.alamat
-      ORDER BY t.created_at DESC`,
+      ORDER BY t.tanggal_transaksi DESC`,
     );
 
     return rows;
@@ -75,50 +77,6 @@ const OrderModel = {
           400,
           "Pesanan yang sudah selesai tidak dapat diubah lagi agar stok tetap konsisten",
         );
-      }
-
-      if (currentStatus !== "selesai" && statusOrder === "selesai") {
-        const [detailRows] = await db.query(
-          `SELECT dt.id_produk, dt.quantity, p.nama_produk, p.stok
-           FROM tr_detail_transaksi dt
-           INNER JOIN ms_produk p ON p.id_produk = dt.id_produk
-           WHERE dt.id_transaksi = ?
-           FOR UPDATE`,
-          [id],
-        );
-
-        if (detailRows.length === 0) {
-          throw createHttpError(400, "Detail pesanan tidak ditemukan");
-        }
-
-        for (const item of detailRows) {
-          const quantity = Number(item.quantity || 0);
-          const stokSaatIni = Number(item.stok || 0);
-
-          if (quantity <= 0) {
-            throw createHttpError(
-              400,
-              `Quantity untuk produk ${item.nama_produk} tidak valid`,
-            );
-          }
-
-          if (stokSaatIni < quantity) {
-            throw createHttpError(
-              400,
-              `Stok produk ${item.nama_produk} tidak mencukupi untuk menyelesaikan pesanan`,
-            );
-          }
-        }
-
-        for (const item of detailRows) {
-          await db.query(
-            `UPDATE ms_produk
-             SET stok = stok - ?,
-                 updated_at = NOW()
-             WHERE id_produk = ?`,
-            [Number(item.quantity || 0), item.id_produk],
-          );
-        }
       }
 
       await db.query(
