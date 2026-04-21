@@ -18,26 +18,6 @@ const navLinks = [
   { href: "/tentang", label: "Tentang Kami" },
 ];
 
-// --- DATA DUMMY NOTIFIKASI (Sesuai dengan screenshot database-mu) ---
-const dummyNotifications = [
-  {
-    id_notifikasi: 1,
-    judul: "Pembayaran Berhasil! 🎉",
-    pesan: "Pembayaran untuk pesanan INV-20260403 telah kami terima dan sedang diproses.",
-    tipe: "pesanan",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 30).toISOString(), // 30 menit lalu
-  },
-  {
-    id_notifikasi: 2,
-    judul: "Pesanan Dikirim 🚚",
-    pesan: "Paket CCTV Anda sedang dalam perjalanan menggunakan kurir pengiriman.",
-    tipe: "stok",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 60 * 2).toISOString(), // 2 jam lalu
-  }
-];
-
 export default function Navbar() {
   const [isMounted, setIsMounted] = useState(false);
   const [isLogin, setIsLogin] = useState(false);
@@ -47,8 +27,8 @@ export default function Navbar() {
   const [profile, setProfile] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
-  // --- STATE NOTIFIKASI MENGGUNAKAN DUMMY ---
-  const [notifications, setNotifications] = useState(dummyNotifications);
+  // --- STATE NOTIFIKASI MENGGUNAKAN API ---
+  const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
   // Hitung yang belum dibaca (is_read === 0)
@@ -56,9 +36,76 @@ export default function Navbar() {
 
   const router = useRouter();
 
-  // FUNGSI TANDAI DIBACA (Hanya manipulasi state lokal sementara)
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
+  // FUNGSI FETCH NOTIFIKASI
+  const fetchNotifications = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const res = await fetch("http://localhost:3000/api/notifications", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Pastikan format array, jika API mengembalikan { data: [...] } sesuaikan
+        setNotifications(Array.isArray(data) ? data : (data.data || data.notifications || []));
+      }
+    } catch (error) {
+      console.error("Gagal memuat notifikasi:", error);
+    }
+  };
+
+  // FUNGSI TANDAI SATU DIBACA
+  const handleNotificationClick = async (idNotifikasi, linkTujuan) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    // Optimistic Update
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id_notifikasi === idNotifikasi ? { ...n, is_read: 1 } : n
+      )
+    );
+
+    try {
+      await fetch(`http://localhost:3000/api/notifications/${idNotifikasi}/read`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    } catch (error) {
+      console.error("Gagal menandai notifikasi dibaca:", error);
+    }
+
+    if (linkTujuan) {
+      setIsNotifOpen(false);
+      router.push(linkTujuan);
+    }
+  };
+
+  // FUNGSI TANDAI SEMUA DIBACA
+  const handleMarkAllRead = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    // Optimistic Update
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
+
+    try {
+      await fetch("http://localhost:3000/api/notifications/read-all", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    } catch (error) {
+      console.error("Gagal menandai semua notifikasi dibaca:", error);
+    }
   };
 
   useEffect(() => {
@@ -75,11 +122,9 @@ export default function Navbar() {
       if (!token) {
         setProfile(null);
         setCartCount(0);
-        // Jika logout, bisa dikosongkan, atau dibiarkan dummy. Kita kembalikan ke default dummy saja.
-        setNotifications(dummyNotifications); 
+        setNotifications([]); 
       } else {
-        // Jika login, pastikan dummy terisi
-        setNotifications(dummyNotifications);
+        fetchNotifications();
       }
     };
 
@@ -125,12 +170,19 @@ export default function Navbar() {
     handleScroll();
     handleFocus();
 
+    // Polling notifikasi setiap 30 detik
+    const notifInterval = setInterval(() => {
+      const token = localStorage.getItem("token");
+      if (token) fetchNotifications();
+    }, 30000);
+
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
     window.addEventListener("cart-updated", syncCartCount);
 
     return () => {
+      clearInterval(notifInterval);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
@@ -150,6 +202,7 @@ export default function Navbar() {
     setIsLogin(false);
     setProfile(null);
     setCartCount(0);
+    setNotifications([]);
     setShowLogoutModal(false);
     setIsMobileMenuOpen(false);
 
@@ -169,7 +222,7 @@ export default function Navbar() {
   const getNotifIcon = (type) => {
     if (type === 'success') return <CheckCircle2 size={18} className="text-green-500" />;
     if (type === 'stok' || type === 'warning') return <AlertTriangle size={18} className="text-amber-500" />;
-    if (type === 'pesanan' || type === 'package') return <Package size={18} className="text-blue-500" />;
+    if (type === 'pesanan' || type === 'package' || type === 'transaksi') return <Package size={18} className="text-blue-500" />;
     return <Bell size={18} className="text-blue-500" />;
   };
 
@@ -225,7 +278,7 @@ export default function Navbar() {
             {/* ICONS DESKTOP */}
             <div className="hidden lg:flex items-center gap-2 shrink-0">
               
-              {/* Notifikasi Dummy */}
+              {/* Notifikasi */}
               {isLogin && (
                 <div className="relative">
                   <button 
@@ -251,7 +304,7 @@ export default function Navbar() {
                           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <h3 className="font-extrabold text-slate-900">Notifikasi</h3>
                             {unreadNotifCount > 0 && (
-                              <button type="button" onClick={handleMarkAllAsRead} className="text-xs font-bold text-blue-600 cursor-pointer hover:underline">
+                              <button type="button" onClick={handleMarkAllRead} className="text-xs font-bold text-blue-600 cursor-pointer hover:underline">
                                 Tandai dibaca
                               </button>
                             )}
@@ -259,8 +312,11 @@ export default function Navbar() {
                           <div className="max-h-[350px] overflow-y-auto">
                             {notifications.length > 0 ? (
                               notifications.map((notif) => (
-                                // UBAH: Dari <Link> menjadi <div> agar tidak bisa dipencet/pindah halaman
-                                <div key={notif.id_notifikasi} className={`p-4 border-b border-slate-50 flex gap-3 ${notif.is_read === 0 ? 'bg-blue-50/30' : ''}`}>
+                                <div 
+                                  key={notif.id_notifikasi} 
+                                  onClick={() => handleNotificationClick(notif.id_notifikasi, notif.link_tujuan || notif.link)}
+                                  className={`p-4 border-b border-slate-50 flex gap-3 cursor-pointer hover:bg-slate-50 transition-colors ${notif.is_read === 0 ? 'bg-blue-50/30' : ''}`}
+                                >
                                   <div className="mt-0.5 shrink-0">{getNotifIcon(notif.tipe)}</div>
                                   <div className="flex-1 space-y-1">
                                     <h4 className={`text-sm font-bold ${notif.is_read === 0 ? 'text-slate-900' : 'text-slate-700'}`}>{notif.judul}</h4>

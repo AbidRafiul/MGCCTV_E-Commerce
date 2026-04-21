@@ -1,5 +1,6 @@
 const midtransClient = require('midtrans-client');
-const db = require('../config/database'); // Pastikan path ini sesuai dengan konfigurasi database mysql2/promise Anda
+const db = require('../config/database');
+const NotificationModel = require('../models/NotificationModel');
 
 const createMidtransTransaction = async (req, res) => {
     try {
@@ -74,8 +75,6 @@ const createMidtransTransaction = async (req, res) => {
         // 2. Buat order_id dengan prefix
         const order_id = `MGCCTV-${insertId}`;
 
-        // 3. Inisialisasi Midtrans Snap (DI-MOCK SEMENTARA)
-        // Pastikan MIDTRANS_SERVER_KEY dan MIDTRANS_CLIENT_KEY sudah ada di .env
         
         const snap = new midtransClient.Snap({
             isProduction: false, // Ubah ke true jika sudah live production
@@ -83,9 +82,6 @@ const createMidtransTransaction = async (req, res) => {
             clientKey: process.env.MIDTRANS_CLIENT_KEY
         });
         
-
-        // 4. Request createTransaction ke Midtrans (DI-MOCK SEMENTARA)
-        // Catatan: gross_amount wajib berupa angka bulat (integer)
         
         const parameter = {
             transaction_details: {
@@ -96,15 +92,7 @@ const createMidtransTransaction = async (req, res) => {
 
         const transaction = await snap.createTransaction(parameter);
         
-/*
-        // --- MOCK TRANSACTION RESPONSE ---
-        const transaction = { 
-            token: 'mock-token-xyz-123', 
-            redirect_url: 'https://sandbox.midtrans.com/mock-payment-page' 
-        };
-        // ---------------------------------
-        */
-        // Midtrans mengembalikan 'token' dan 'redirect_url'
+
         const token = transaction.token;
         const redirect_url = transaction.redirect_url;
 
@@ -174,8 +162,49 @@ const midtransWebhook = async (req, res) => {
         `;
         await db.execute(updateQuery, [status_bayar, id_transaksi]);
 
-        // Response statis HTTP 200 agar Midtrans berhenti mengirim ulang webhook (Notifikasi berhasil diterima)
-        return res.status(200).json({ success: true, message: 'Webhook received' });
+
+        // 1. Cari tahu siapa pemilik pesanan ini
+        const [trxResult] = await db.execute("SELECT id_users FROM tr_transaksi WHERE id_transaksi = ?", [id_transaksi]);
+        
+        if (trxResult.length > 0) {
+            const id_users = trxResult[0].id_users;
+
+            // 2. Jika status berubah menjadi LUNAS (PAID)
+            if (status_bayar === 'paid') {
+                // Notif ke Pelanggan
+                await NotificationModel.createNotification(
+                    id_users,
+                    id_transaksi,
+                    'pembayaran',
+                    'Pembayaran Berhasil!',
+                    `Pembayaran untuk pesanan ${order_id} telah kami terima. Pesanan Anda akan segera diproses.`,
+                    `/transaksi` // Sesuaikan URL dengan halaman riwayat pesanan frontend Anda
+                );
+
+                // Broadcast ke Admin
+                await NotificationModel.broadcastToAdmins(
+                    id_transaksi,
+                    'transaksi',
+                    'Pesanan Baru Dibayar!',
+                    `Pesanan ${order_id} telah dibayar lunas oleh pelanggan. Harap segera cek dan proses pesanan ini.`,
+                    `/admin/transaksi` // Sesuaikan URL dengan halaman kelola pesanan admin
+                );
+            } 
+            // 3. Jika status berubah menjadi GAGAL/KEDALUWARSA
+            else if (status_bayar === 'failed' || status_bayar === 'expired') {
+                await NotificationModel.createNotification(
+                    id_users,
+                    id_transaksi,
+                    'pembayaran',
+                    'Pembayaran Kedaluwarsa',
+                    `Waktu pembayaran untuk pesanan ${order_id} telah habis atau dibatalkan.`,
+                    `/transaksi`
+                );
+            }
+        }
+
+        // Response statis HTTP 200 agar Midtrans berhenti mengirim ulang webhook
+        return res.status(200).json({ success: true, message: 'Webhook received & Notifications sent' });
 
     } catch (error) {
         console.error('Error midtransWebhook:', error);

@@ -104,6 +104,62 @@ const AuthModel = {
       [id]
     );
     return result;
+  },
+
+  // --- Fungsi Lupa Sandi (Forgot Password) ---
+
+  checkEmailExists: async (email) => {
+    const [rows] = await connection.query("SELECT * FROM ms_users WHERE email = ?", [email]);
+    return rows;
+  },
+
+  createOtpTableIfNotExists: async () => {
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS tr_otp (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(50) NOT NULL,
+        otp_code VARCHAR(6) NOT NULL,
+        expired_at DATETIME NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  },
+
+  saveOtp: async (email, otpCode, expiredAt) => {
+    const [result] = await connection.query(
+      "INSERT INTO tr_otp (email, otp_code, expired_at) VALUES (?, ?, ?)",
+      [email, otpCode, expiredAt]
+    );
+    return result;
+  },
+
+  getLatestOtp: async (email) => {
+    const [rows] = await connection.query(
+      "SELECT * FROM tr_otp WHERE email = ? ORDER BY id DESC LIMIT 1",
+      [email]
+    );
+    return rows;
+  },
+
+  getOtpByEmailAndCode: async (email, otpCode) => {
+    const [rows] = await connection.query(
+      "SELECT * FROM tr_otp WHERE email = ? AND otp_code = ? ORDER BY id DESC LIMIT 1",
+      [email, otpCode]
+    );
+    return rows;
+  },
+
+  updatePasswordByEmail: async (email, hashedPassword) => {
+    const [result] = await connection.query(
+      "UPDATE ms_users SET password = ?, password_updated_at = NOW() WHERE email = ?",
+      [hashedPassword, email]
+    );
+    return result;
+  },
+
+  deleteOtp: async (email) => {
+    const [result] = await connection.query("DELETE FROM tr_otp WHERE email = ?", [email]);
+    return result;
   }
 };
 
