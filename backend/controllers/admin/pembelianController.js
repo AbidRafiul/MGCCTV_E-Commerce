@@ -15,7 +15,7 @@ const getListProduk = async (req, res) => {
 const tambahStok = async (req, res) => {
   const id_user = req.user.id; 
   
-  // 1. CUKUP AMBIL 2 INI SAJA DARI FRONTEND 👇 (tanggal_masuk dihapus dari sini)
+  // 1. CUKUP AMBIL 2 INI SAJA DARI FRONTEND  (tanggal_masuk dihapus dari sini)
   const { id_produk, jumlah_masuk } = req.body;
 
   try {
@@ -29,7 +29,7 @@ const tambahStok = async (req, res) => {
       return res.status(403).json({ error: "Akses Ditolak! Hanya Admin/Superadmin yang bisa menambah stok." });
     }
 
-    // 2. KUNCI OTOMATISNYA: Panggil NOW() langsung di dalam query SQL 👇
+    // 2. KUNCI OTOMATISNYA: Panggil NOW() langsung di dalam query SQL 
     await db.query(
       "INSERT INTO tr_pembelian (id_produk, id_user, jumlah_masuk, tanggal_masuk) VALUES (?, ?, ?, NOW())",
       [id_produk, id_user, jumlah_masuk] // <-- Array-nya juga cuma sisa 3
@@ -44,7 +44,7 @@ const tambahStok = async (req, res) => {
     return res.status(200).json({ message: "Berhasil! Stok telah diperbarui dan tanggal otomatis tercatat." });
 
   } catch (error) {
-    console.error("❌ Terjadi Error:", error.message);
+    console.error(" Terjadi Error:", error.message);
     return res.status(500).json({ error: "Gagal memproses restock", detail: error.message });
   }
 };
