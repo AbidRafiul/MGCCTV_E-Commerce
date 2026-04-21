@@ -30,9 +30,9 @@ const tambahStok = async (req, res) => {
     }
 
     // 2. KUNCI OTOMATISNYA: Panggil NOW() langsung di dalam query SQL 👇
-    await db.query(
-      "INSERT INTO tr_pembelian (id_produk, id_user, jumlah_masuk, tanggal_masuk) VALUES (?, ?, ?, NOW())",
-      [id_produk, id_user, jumlah_masuk] // <-- Array-nya juga cuma sisa 3
+   await db.query(
+      "INSERT INTO tr_stok_masuk (id_produk, id_users, qty_masuk) VALUES (?, ?, ?)",
+      [id_produk, id_user, jumlah_masuk]
     );
 
     // Update stok fisik di tabel ms_produk (Tetap sama)
@@ -44,7 +44,7 @@ const tambahStok = async (req, res) => {
     return res.status(200).json({ message: "Berhasil! Stok telah diperbarui dan tanggal otomatis tercatat." });
 
   } catch (error) {
-    console.error("❌ Terjadi Error:", error.message);
+    console.error(" Terjadi Error:", error.message);
     return res.status(500).json({ error: "Gagal memproses restock", detail: error.message });
   }
 };

@@ -106,13 +106,13 @@ export default function PembelianPage() {
       const result = await response.json();
 
       if (response.ok) {
-        alert("✅ Stok berhasil ditambahkan!");
+        alert("Stok berhasil ditambahkan!");
         // Reset form setelah sukses
         setFormData({ id_produk: "", jumlah_masuk: "", catatan: "" });
         // Panggil fetch lagi untuk update tabel & statistik secara real-time!
         await fetchInventoryData(); 
       } else {
-        alert("❌ Error: " + (result.error || result.message));
+        alert("Error: " + (result.error || result.message));
       }
     } catch (err) {
       alert("Gagal terhubung ke server.");
