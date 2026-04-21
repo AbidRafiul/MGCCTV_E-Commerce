@@ -33,6 +33,9 @@ app.use("/api/admin", adminRoutes);
 // route pembelian
 app.use('/api/pembelian', pembelianRoutes);
 
+// route transaksi
+app.use("/api/transaksi", transaksiRoutes);
+
 
 
 app.listen(port, () => {

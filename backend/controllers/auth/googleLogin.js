@@ -1,6 +1,7 @@
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const AuthModel = require("../../models/AuthModel");
+const connection = require("../../config/database");
 const { ROLE } = require("../../utils/role");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -50,21 +51,20 @@ const googleLogin = async (req, res) => {
 
     const email = payload.email.toLowerCase().trim();
     const nama = payload.name;
-    const google_id = payload.sub; // MENGAMBIL GOOGLE ID DARI PAYLOAD
-
     const existingUser = await AuthModel.findUserByEmail(email);
 
     let userData;
 
     if (existingUser.length === 0) {
       const role = ROLE.KUSTOMER;
+      const username = await generateUniqueUsername(email);
 
       const [result] = await connection.query(
-        `INSERT INTO ms_users (nama, email, role, created_at) VALUES (?,?,?, NOW())`,
-        [nama, email, role]
+        `INSERT INTO ms_users (nama, email, username, role, created_at) VALUES (?,?,?,?, NOW())`,
+        [nama, email, username, role]
       );
 
-      userData = { id_users: result.insertId, role };
+      userData = { id_users: result.insertId, role, username, email };
     } else {
       userData = existingUser[0];
     }
