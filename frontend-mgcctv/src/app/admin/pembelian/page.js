@@ -146,13 +146,24 @@ export default function PembelianPage() {
       const result = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        alert("Stok berhasil ditambahkan!");
-        // Reset form setelah sukses
-        setFormData({ id_produk: "", jumlah_masuk: "", catatan: "" });
-        // Panggil fetch lagi untuk update tabel & statistik secara real-time!
-        await fetchInventoryData(); 
+        openFeedbackDialog({
+          title: "Stok Berhasil Ditambahkan",
+          description:
+            result?.data?.nama_produk && result?.data?.qty_masuk
+              ? `${result.data.qty_masuk} unit ${result.data.nama_produk} sudah masuk ke inventori.`
+              : result?.message || "Data stok masuk berhasil disimpan.",
+          tone: "success",
+        });
+
+        setFormData({ id_produk: "", qty_masuk: "", catatan: "" });
+        await fetchInventoryData();
       } else {
-        alert("Error: " + (result.error || result.message));
+        openFeedbackDialog({
+          title: "Gagal Menyimpan Stok",
+          description:
+            result?.error || result?.message || "Terjadi kesalahan saat menyimpan stok masuk.",
+          tone: "error",
+        });
       }
     } catch (err) {
       openFeedbackDialog({

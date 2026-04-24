@@ -9,7 +9,7 @@ const getListProduk = async (req, res) => {
         ORDER BY nama_produk ASC
       `,
     );
-
+    
     return res.status(200).json(results);
   } catch (err) {
     console.error("Error getListProduk:", err.message);
@@ -28,10 +28,19 @@ const tambahStok = async (req, res) => {
       return res.status(401).json({ error: "User tidak valid." });
     }
 
-    // 2. KUNCI OTOMATISNYA: Panggil NOW() langsung di dalam query SQL 👇
-   await db.query(
-      "INSERT INTO tr_stok_masuk (id_produk, id_users, qty_masuk) VALUES (?, ?, ?)",
-      [id_produk, id_user, jumlah_masuk]
+    if (!idProduk) {
+      return res.status(400).json({ error: "Produk wajib dipilih." });
+    }
+
+    if (!Number.isInteger(qtyMasuk) || qtyMasuk <= 0) {
+      return res.status(400).json({
+        error: "Jumlah stok masuk harus berupa angka bulat lebih dari 0.",
+      });
+    }
+
+    const [userData] = await db.query(
+      "SELECT role FROM ms_users WHERE id_users = ? LIMIT 1",
+      [idUser],
     );
 
     if (userData.length === 0) {
@@ -98,8 +107,19 @@ const tambahStok = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(" Terjadi Error:", error.message);
-    return res.status(500).json({ error: "Gagal memproses restock", detail: error.message });
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error("Error tambahStok:", error.message);
+    return res.status(500).json({
+      error: "Gagal memproses stok masuk",
+      detail: error.message,
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
