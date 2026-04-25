@@ -1,15 +1,18 @@
 "use client";
 
 import AuthGuard from "@/components/auth/AuthGuard";
-import ProfileHero from "@/components/profile/ProfilHero";
-import  Navbar from "@/components/layouts/Navbar";
+import Navbar from "@/components/layouts/Navbar";
 import Footer from "@/components/layouts/Footer";
+import ProfileSection from "@/section/users/profile/ProfileSection";
+import { useProfile } from "@/hooks/users/profile/useProfile";
 
 export default function ProfilePage() {
+  const profileState = useProfile();
+
   return (
     <AuthGuard>
       <Navbar />
-      <ProfileHero />
+      <ProfileSection {...profileState} />
       <Footer />
     </AuthGuard>
   );
