@@ -1,24 +1,24 @@
-import HomeSection from "@/section/home/homeSection";
+"use client";
 
-// Fungsi untuk mengambil data CMS dari backend
-async function getCmsBeranda() {
-  try {
-    // Gunakan cache: 'no-store' agar Next.js selalu mengambil data terbaru 
-    const res = await fetch("http://localhost:3000/api/admin/cms/beranda", {
-      cache: "no-store", 
-    });
-    
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (error) {
-    console.error("Gagal mengambil data CMS Beranda:", error);
-    return [];
-  }
-}
+import HeroSection from "@/section/users/home/HeroSection";
+import WhyUsSection from "@/section/users/home/WhyUsSection";
+import FeaturedProductsSection from "@/section/users/home/FeaturedProductsSection";
+import { useFeaturedProducts } from "@/hooks/users/home/useFeaturedProducts";
 
-export default async function BerandaPage() {
-  const dataCms = await getCmsBeranda();
+export default function HomePage() {
+  const { products, isLoading, scrollProgress, handleScroll, formatRupiah } = useFeaturedProducts();
 
-  // Lempar dataCms ke HomeSection
-  return <HomeSection cmsData={dataCms} />;
+  return (
+    <main>
+      <HeroSection />
+      <WhyUsSection />
+      <FeaturedProductsSection 
+        products={products}
+        isLoading={isLoading}
+        scrollProgress={scrollProgress}
+        handleScroll={handleScroll}
+        formatRupiah={formatRupiah}
+      />
+    </main>
+  );
 }

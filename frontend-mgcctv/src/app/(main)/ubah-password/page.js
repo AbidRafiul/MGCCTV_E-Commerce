@@ -1,13 +1,18 @@
+"use client";
+
 import AuthGuard from "@/components/auth/AuthGuard";
 import Navbar from "@/components/layouts/Navbar";
 import Footer from "@/components/layouts/Footer";
-import PassHero from "@/components/ubahPass/PassHero";
+import ChangePasswordSection from "@/section/users/ubahPass/ChangePasswordSection";
+import { useChangePassword } from "@/hooks/users/ubahPass/useChangePassword";
 
-export default function Page() {
+export default function ChangePasswordPage() {
+  const changePasswordState = useChangePassword();
+
   return (
     <AuthGuard>
       <Navbar />
-      <PassHero />
+      <ChangePasswordSection {...changePasswordState} />
       <Footer />
     </AuthGuard>
   );

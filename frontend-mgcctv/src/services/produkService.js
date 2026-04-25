@@ -1,4 +1,3 @@
-// src/services/produkService.js
 const API_URL = "http://localhost:3000/api/public";
 
 // Fungsi helper untuk ambil token biar nggak ngetik berulang-ulang
@@ -13,7 +12,7 @@ export const getAllProducts = async () => {
     const res = await fetch(`${API_URL}/produk`, {
       method: "GET",
       headers: {
-        ...getAuthHeader(), // <--- Menempelkan token di sini
+        ...getAuthHeader(),
         "Content-Type": "application/json",
       },
     });
@@ -39,7 +38,7 @@ export const getAllCategories = async () => {
     const res = await fetch(`${API_URL}/kategori`, {
       method: "GET",
       headers: {
-        ...getAuthHeader(), // <--- Menempelkan token di sini
+        ...getAuthHeader(), 
       },
     });
     const data = await res.json();
@@ -47,5 +46,34 @@ export const getAllCategories = async () => {
   } catch (error) {
     console.error("Gagal mengambil kategori:", error);
     return [];
+  }
+};
+
+// Ambil Detail Produk Berdasarkan ID
+export const getProductById = async (id) => {
+  try {
+    const res = await fetch(`${API_URL}/produk/${id}`, {
+      method: "GET",
+      headers: {
+        ...getAuthHeader(),
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    
+    if (data.message === "Token tidak valid") {
+       console.error("Wah, kuncinya salah atau sudah expired!");
+       return null;
+    }
+
+    return data.data || data; 
+  } catch (error) {
+    console.error(`Gagal mengambil detail produk ID ${id}:`, error);
+    return null;
   }
 };

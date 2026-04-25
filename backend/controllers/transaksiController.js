@@ -202,7 +202,8 @@ const createMidtransTransaction = async (req, res) => {
       );
     }
 
-    const order_id = `MGCCTV-${insertId}`;
+    // const order_id = `MGCCTV-${insertId}`;
+    const order_id = `MGCCTV-${insertId}-${Date.now()}`;
 
     const snap = new midtransClient.Snap({
       isProduction: false,
@@ -304,7 +305,8 @@ const midtransWebhook = async (req, res) => {
       });
     }
 
-    const id_transaksi = order_id.replace("MGCCTV-", "");
+    // const id_transaksi = order_id.replace("MGCCTV-", "");
+    const id_transaksi = order_id.split("-")[1];
     const status_bayar = mapMidtransStatus(transaction_status, fraud_status);
 
     const syncResult = await syncTransactionInventory({
@@ -350,7 +352,8 @@ const updateTransactionStatus = async (req, res) => {
       });
     }
 
-    const idTransaksi = Number(orderId.replace("MGCCTV-", ""));
+    // const idTransaksi = Number(orderId.replace("MGCCTV-", ""));
+    const idTransaksi = Number(orderId.split("-")[1]);
 
     if (!idTransaksi) {
       return res.status(400).json({

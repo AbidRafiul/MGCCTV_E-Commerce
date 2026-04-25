@@ -9,7 +9,7 @@ const getListProduk = async (req, res) => {
         ORDER BY nama_produk ASC
       `,
     );
-
+    
     return res.status(200).json(results);
   } catch (err) {
     console.error("Error getListProduk:", err.message);
