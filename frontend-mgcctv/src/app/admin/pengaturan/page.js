@@ -1,45 +1,25 @@
 "use client";
-import { useState, useEffect } from "react";
-import { AUTH_API_URL } from "@/lib/api";
 
-// Import Semua Komponen yang Sudah Dipisah
-import EditProfileModal from "@/components/profile/admin/EditAdmin";
-import ProfileHeader from "@/components/profile/admin/ProfileHeader";
-import DetailInformasi from "@/components/profile/admin/DetailInformasi";
-import UbahPasswordForm from "@/components/profile/admin/UbahPasswordForm";
-import AktivitasKeamanan from "@/components/profile/admin/AktivitasKeamanan";
-import PreferensiNotif from "@/components/profile/admin/PreferensiNotif";
+// 1. Import Sang Otak (Custom Hook)
+import { usePengaturan } from "@/hooks/admin/pengaturan/usePengaturan";
 
-function PengaturanPage() {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+// 2. Import Kepingan UI (Sudah kamu buat sebelumnya, mantap!)
+import EditProfileModal from "@/section/users/profile/admin/EditAdmin";
+import ProfileHeader from "@/section/users/profile/admin/ProfileHeader";
+import DetailInformasi from "@/section/users/profile/admin/DetailInformasi";
+import UbahPasswordForm from "@/section/users/profile/admin/UbahPasswordForm";
+import AktivitasKeamanan from "@/section/users/profile/admin/AktivitasKeamanan";
+import PreferensiNotif from "@/section/users/profile/admin/PreferensiNotif";
 
-  // --- FETCH DATA MURNI ---
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-      const res = await fetch(`${AUTH_API_URL}/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setProfile(data.user);
-      }
-    } catch (error) {
-      console.error("Gagal mengambil data profile:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+export default function PengaturanPage() {
+  // 3. Ekstrak Senjata dari Hook
+  const { 
+    profile, 
+    loading, 
+    isEditModalOpen, 
+    setIsEditModalOpen, 
+    fetchProfile 
+  } = usePengaturan();
 
   if (loading) {
     return (
@@ -86,5 +66,3 @@ function PengaturanPage() {
     </div>
   );
 }
-
-export default PengaturanPage
