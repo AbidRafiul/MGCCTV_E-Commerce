@@ -1,5 +1,12 @@
 const DashboardModel = require("../../models/DashboardModel");
 
+const handleDashboardError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+  return res.status(error.status || 500).json({
+    message: error.message || fallbackMessage,
+  });
+};
+
 const getDashboardStats = async (req, res) => {
   try {
     // Jalankan semua query ke database secara bersamaan (paralel)

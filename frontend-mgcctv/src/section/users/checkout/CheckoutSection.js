@@ -138,10 +138,11 @@ export default function CheckoutSection({
                             <span className="font-bold text-sm">Transfer Bank</span>
                           </label>
                           <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'qris' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
-                            <input type="radio" name="payment" value="qris" className="hidden" checked={paymentMethod === 'qris'} onChange={() => { setPaymentMethod('qris'); }} />
+                            <input type="radio" name="payment" value="qris" className="hidden" checked={paymentMethod === 'qris'} onChange={() => setPaymentMethod('qris')} />
                             <span className="font-bold text-sm">QRIS</span>
                           </label>
                         </div>
+                        
                       </div>
                     </div>
                   </div>

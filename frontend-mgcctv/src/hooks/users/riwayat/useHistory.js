@@ -15,7 +15,7 @@ export const useHistory = () => {
     completed_orders: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -111,7 +111,7 @@ export const useHistory = () => {
   );
 
   return {
-    router, orders, summary, isLoading, expandedOrderId, setExpandedOrderId,
+    router, orders, summary, isLoading, selectedOrder, setSelectedOrder,
     handleNavigate, summaryCards
   };
 };

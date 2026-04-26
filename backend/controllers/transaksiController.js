@@ -23,6 +23,7 @@ const mapMidtransStatus = (transactionStatus, fraudStatus) => {
 };
 
 const RESTORE_STOCK_PAYMENT_STATUSES = new Set(["failed", "expired"]);
+const DEDUCT_STOCK_PAYMENT_STATUSES = new Set(["paid"]);
 
 const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
   const connection = await db.getConnection();
@@ -58,8 +59,60 @@ const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
 
     const shouldRestoreStock =
       RESTORE_STOCK_PAYMENT_STATUSES.has(normalizedNextStatus) &&
-      !RESTORE_STOCK_PAYMENT_STATUSES.has(currentPaymentStatus) &&
-      currentPaymentStatus !== "paid";
+      DEDUCT_STOCK_PAYMENT_STATUSES.has(currentPaymentStatus);
+
+    const shouldDeductStock =
+      DEDUCT_STOCK_PAYMENT_STATUSES.has(normalizedNextStatus) &&
+      !DEDUCT_STOCK_PAYMENT_STATUSES.has(currentPaymentStatus);
+
+    if (shouldDeductStock) {
+      const [detailRows] = await connection.execute(
+        `
+          SELECT id_produk, quantity
+          FROM tr_detail_transaksi
+          WHERE id_transaksi = ?
+        `,
+        [idTransaksi],
+      );
+
+      for (const detail of detailRows) {
+        const productId = Number(detail.id_produk || 0);
+        const quantity = Number(detail.quantity || 0);
+
+        const [productRows] = await connection.execute(
+          `
+            SELECT stok
+            FROM ms_produk
+            WHERE id_produk = ?
+            LIMIT 1
+            FOR UPDATE
+          `,
+          [productId],
+        );
+
+        if (productRows.length === 0) {
+          const error = new Error(`Produk dengan ID ${productId} tidak ditemukan`);
+          error.statusCode = 404;
+          throw error;
+        }
+
+        const currentStock = Number(productRows[0].stok || 0);
+        if (currentStock < quantity) {
+          const error = new Error("Stok barang tidak mencukupi untuk menyelesaikan pembayaran");
+          error.statusCode = 409;
+          throw error;
+        }
+
+        await connection.execute(
+          `
+            UPDATE ms_produk
+            SET stok = stok - ?
+            WHERE id_produk = ?
+          `,
+          [quantity, productId],
+        );
+      }
+    }
 
     if (shouldRestoreStock) {
       const [detailRows] = await connection.execute(
@@ -95,6 +148,7 @@ const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
     await connection.commit();
 
     return {
+      deductedStock: shouldDeductStock,
       restoredStock: shouldRestoreStock,
       previousStatus: currentPaymentStatus || "pending",
       nextStatus: normalizedNextStatus,
@@ -190,15 +244,6 @@ const createMidtransTransaction = async (req, res) => {
           VALUES (?, ?, ?, ?, ?)
         `,
         [insertId, id_produk, quantity, harga, total],
-      );
-
-      await connection.execute(
-        `
-          UPDATE ms_produk
-          SET stok = stok - ?
-          WHERE id_produk = ?
-        `,
-        [quantity, id_produk],
       );
     }
 
@@ -318,6 +363,7 @@ const midtransWebhook = async (req, res) => {
       id_transaksi,
       order_id,
       status_bayar,
+      deducted_stock: syncResult.deductedStock,
       restored_stock: syncResult.restoredStock,
     });
 
@@ -403,6 +449,7 @@ const updateTransactionStatus = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Status bayar berhasil diperbarui menjadi expired",
+      deducted_stock: syncResult.deductedStock,
       restored_stock: syncResult.restoredStock,
     });
   } catch (error) {
