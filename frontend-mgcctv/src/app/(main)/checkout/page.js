@@ -631,28 +631,6 @@ export default function CheckoutPage() {
                           </label>
                         </div>
 
-                        {paymentMethod === 'transfer' && (
-                          <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                            <label className="block text-xs font-semibold text-slate-500 mb-2">
-                              Pilih Bank Tujuan Transfer
-                            </label>
-                            <div className="relative">
-                              <select
-                                value={selectedBank}
-                                onChange={(e) => setSelectedBank(e.target.value)}
-                                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                              >
-                                <option value="" disabled>-- Pilih Bank --</option>
-                                <option value="MANDIRI">Bank Mandiri</option>
-                                <option value="BNI">Bank BNI</option>
-                                <option value="BRI">Bank BRI</option>
-                              </select>
-                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                                <ChevronRight size={16} className="rotate-90" />
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
