@@ -38,7 +38,6 @@ const saveTransactionReview = (payload) => {
 const clearCheckoutSessionMeta = () => {
   if (typeof window === "undefined") return;
   localStorage.removeItem("selectedPaymentMethod");
-  localStorage.removeItem("selectedPaymentBank");
 };
 
 const parseJsonSafely = async (response) => {
@@ -78,7 +77,6 @@ export const useCheckout = () => {
   const [isConfirmPaymentOpen, setIsConfirmPaymentOpen] = useState(false);
   
   const [paymentMethod, setPaymentMethod] = useState("transfer");
-  const [selectedBank, setSelectedBank] = useState("");
   const midtransClientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "SB-Mid-client-2ALWnVkFsU0xIYc_";
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -169,10 +167,6 @@ export const useCheckout = () => {
       toast.warning("Belum ada produk yang dipilih untuk checkout.");
       return;
     }
-    if (paymentMethod === "transfer" && !selectedBank) {
-      toast.error("Silakan pilih bank tujuan transfer terlebih dahulu.");
-      return;
-    }
     const { isComplete, profile } = await ensureCheckoutProfileComplete();
     if (!isComplete) {
       setProfileToEdit(profile || shippingProfile);
@@ -237,14 +231,12 @@ export const useCheckout = () => {
       
       if (res.ok && data.token) {
         localStorage.setItem("selectedPaymentMethod", paymentMethod);
-        localStorage.setItem("selectedPaymentBank", selectedBank);
         saveTransactionReview({
           order_id: data.order_id,
           token: data.token,
           redirect_url: data.redirect_url || "",
           total_harga: Number(totalCheckout),
           payment_method: paymentMethod,
-          payment_bank: selectedBank,
           items: checkoutItems,
           created_at: new Date().toISOString(),
           review_status: "pending",
@@ -308,7 +300,7 @@ export const useCheckout = () => {
 
   return {
     checkoutItems, shippingProfile, isLoadingPayment, isConfirmPaymentOpen, setIsConfirmPaymentOpen,
-    paymentMethod, setPaymentMethod, selectedBank, setSelectedBank, midtransClientKey,
+    paymentMethod, setPaymentMethod, midtransClientKey,
     isProfileModalOpen, setIsProfileModalOpen, profileToEdit,
     handleUpdateQuantity, totalCheckout, totalUnits, handleEditShippingProfile, handleSaveProfile,
     handleFinishCheckout, processPayment
