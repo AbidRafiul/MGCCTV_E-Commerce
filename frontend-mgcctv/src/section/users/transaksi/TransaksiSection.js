@@ -34,7 +34,7 @@ export default function TransaksiSection({
             Pesanan Anda
           </span>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
-            Detail{" "}
+            Informasi{" "}
             <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
               Transaksi
             </span>
@@ -136,7 +136,7 @@ export default function TransaksiSection({
 
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                          Batas Pembayaran
+                          {reviewStatus === "success" ? "Waktu Pembayaran" : "Batas Waktu Pembayaran"}
                         </p>
                         <p className="mt-2 text-sm font-semibold leading-6 text-[#0C2C55]">
                           {reviewStatus === "success"

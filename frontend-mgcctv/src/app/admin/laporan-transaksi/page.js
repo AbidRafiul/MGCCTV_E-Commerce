@@ -8,6 +8,8 @@ import LaporanInsightSection from "@/section/admin/laporan-transaksi/LaporanInsi
 
 export default function LaporanTransaksiPage() {
   const {
+    isLoading, isExporting, error,
+    startDate, setStartDate, endDate, setEndDate, applyDateFilter, resetDateFilter, exportReportToExcel, dateRangeLabel,
     activeTab, setActiveTab, currentCards, currentTopProducts,
     transactions, restockTransactions, formatCurrency, toneStyles, statusStyles
   } = useLaporanTransaksi();
@@ -15,8 +17,29 @@ export default function LaporanTransaksiPage() {
   return (
     <div className="space-y-6">
       {/* 1. Bagian Atas (Judul & Export) */}
-      <LaporanHeaderSection />
+      <LaporanHeaderSection
+        startDate={startDate}
+        endDate={endDate}
+        setStartDate={setStartDate}
+        setEndDate={setEndDate}
+        applyDateFilter={applyDateFilter}
+        resetDateFilter={resetDateFilter}
+        exportReportToExcel={exportReportToExcel}
+        isExporting={isExporting}
+        dateRangeLabel={dateRangeLabel}
+      />
 
+      {isLoading ? (
+        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-20 text-center shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Memuat laporan transaksi dari database...</p>
+        </div>
+      ) : error ? (
+        <div className="rounded-3xl border border-red-100 bg-red-50 px-6 py-10 shadow-sm">
+          <p className="text-lg font-bold text-red-600">Laporan gagal dimuat</p>
+          <p className="mt-2 text-sm text-red-500">{error}</p>
+        </div>
+      ) : (
+        <>
       {/* 2. Kartu Rangkuman (4 Kotak) */}
       <LaporanSummarySection currentCards={currentCards} toneStyles={toneStyles} />
 
@@ -35,9 +58,12 @@ export default function LaporanTransaksiPage() {
         <LaporanInsightSection 
           activeTab={activeTab} 
           currentTopProducts={currentTopProducts} 
+          formatCurrency={formatCurrency}
         />
         
       </section>
+        </>
+      )}
     </div>
   );
 }

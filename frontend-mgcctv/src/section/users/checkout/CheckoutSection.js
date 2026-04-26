@@ -16,7 +16,7 @@ const formatCurrency = (value) =>
 
 export default function CheckoutSection({
   checkoutItems, shippingProfile, isLoadingPayment, isConfirmPaymentOpen, setIsConfirmPaymentOpen,
-  paymentMethod, setPaymentMethod, selectedBank, setSelectedBank,
+  paymentMethod, setPaymentMethod,
   isProfileModalOpen, setIsProfileModalOpen, profileToEdit,
   handleUpdateQuantity, totalCheckout, totalUnits, handleEditShippingProfile, handleSaveProfile,
   handleFinishCheckout, processPayment
@@ -138,24 +138,11 @@ export default function CheckoutSection({
                             <span className="font-bold text-sm">Transfer Bank</span>
                           </label>
                           <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'qris' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
-                            <input type="radio" name="payment" value="qris" className="hidden" checked={paymentMethod === 'qris'} onChange={() => { setPaymentMethod('qris'); setSelectedBank(""); }} />
+                            <input type="radio" name="payment" value="qris" className="hidden" checked={paymentMethod === 'qris'} onChange={() => setPaymentMethod('qris')} />
                             <span className="font-bold text-sm">QRIS</span>
                           </label>
                         </div>
-                        {paymentMethod === 'transfer' && (
-                          <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                            <label className="block text-xs font-semibold text-slate-500 mb-2">Pilih Bank Tujuan Transfer</label>
-                            <div className="relative">
-                              <select value={selectedBank} onChange={(e) => setSelectedBank(e.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
-                                <option value="" disabled>-- Pilih Bank --</option>
-                                <option value="MANDIRI">Bank Mandiri</option>
-                                <option value="BNI">Bank BNI</option>
-                                <option value="BRI">Bank BRI</option>
-                              </select>
-                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400"><ChevronRight size={16} className="rotate-90" /></div>
-                            </div>
-                          </div>
-                        )}
+                        
                       </div>
                     </div>
                   </div>

@@ -51,7 +51,7 @@ export default function TambahBarangPage() {
     nama_produk: "",
     deskripsi_produk: "",
     harga_produk: "",
-    stok: "1",
+    stok: "",
     ms_kategori_id_kategori: "",
   });
 
