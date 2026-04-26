@@ -48,7 +48,7 @@ const normalizeStockInput = (value) => {
   const parsedValue = Number(value);
 
   if (!Number.isFinite(parsedValue)) {
-    return 1;
+    return 0;
   }
 
   return Math.max(0, Math.trunc(parsedValue));

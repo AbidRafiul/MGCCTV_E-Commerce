@@ -9,6 +9,7 @@ const superadminAuth = require("../middleware/superadminAuth");
 const upload = require("../middleware/upload");
 const cmsController = require("../controllers/admin/cmsController");
 const orderController = require("../controllers/admin/orderController");
+const { getTransactionReport } = require("../controllers/admin/reportController");
 const { getProdukUnggulan, toggleUnggulan } = require("../controllers/admin/produkController");
 
 
@@ -75,6 +76,7 @@ router.patch("/produk/:id/unggulan", toggleUnggulan);
 // --- RUTE PESANAN ---
 router.get("/pesanan", orderController.getAllOrders);
 router.patch("/pesanan/:id/status", orderController.updateOrderStatus);
+router.get("/laporan-transaksi", getTransactionReport);
 
 // --- RUTE CMS TENTANG KAMI (UPDATE) ---
 router.put("/cms/tentang/:id", handleUploadGambar, cmsController.updateTentangContent);

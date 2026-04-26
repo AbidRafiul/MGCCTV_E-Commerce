@@ -1,15 +1,15 @@
 export default function PembelianTableSection({ productsByStock, formatCurrency, formatNumber, formatDateTime, statusTone }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col min-h-0">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Daftar Stok Produk</h2>
-          <p className="mt-1 text-sm text-slate-500">Data ini terhubung langsung ke tabel `ms_produk`.</p>
+          <p className="mt-1 text-sm text-slate-500">Data ini berdasarkan informasi stok produk yang tersedia.</p>
         </div>
       </div>
-      <div className="mt-5 overflow-x-auto">
+      <div className="mt-5 max-h-[640px] overflow-auto rounded-2xl border border-slate-100">
         <table className="min-w-full text-left">
-          <thead className="bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-400">
+          <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-400">
             <tr>
               <th className="px-4 py-3 font-semibold">Produk</th>
               <th className="px-4 py-3 font-semibold">Harga</th>

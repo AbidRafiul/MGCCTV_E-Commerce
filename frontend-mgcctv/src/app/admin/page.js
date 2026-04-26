@@ -24,6 +24,26 @@ const formatDate = (dateStr) => {
   });
 };
 
+const formatShortDateRange = (dates) => {
+  if (!Array.isArray(dates) || dates.length === 0) return "Belum ada data";
+
+  const normalizedDates = dates
+    .filter(Boolean)
+    .map((date) => new Date(date))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a - b);
+
+  if (normalizedDates.length === 0) return "Belum ada data";
+
+  const formatOptions = { day: "2-digit", month: "short", year: "numeric" };
+  const firstDate = normalizedDates[0].toLocaleDateString("id-ID", formatOptions);
+  const lastDate = normalizedDates[normalizedDates.length - 1].toLocaleDateString("id-ID", formatOptions);
+
+  return normalizedDates.length === 1
+    ? `1 tanggal transaksi: ${firstDate}`
+    : `${normalizedDates.length} tanggal transaksi: ${firstDate} - ${lastDate}`;
+};
+
 const formatTimeAgo = (dateStr) => {
   if (!dateStr) return "";
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
@@ -39,19 +59,19 @@ const STATUS_CFG = {
     label: "Menunggu",
     color: "text-orange-500 bg-orange-50 border border-orange-100",
   },
-  paid: {
+  diproses: {
     label: "Diproses",
     color: "text-blue-600  bg-blue-50   border border-blue-100",
   },
-  expired: {
+  dikirim: {
     label: "Dikirim",
     color: "text-violet-600 bg-violet-50 border border-violet-100",
   },
-  completed: {
+  selesai: {
     label: "Selesai",
     color: "text-emerald-600 bg-emerald-50  border border-emerald-100",
   },
-  failed: {
+  dibatalkan: {
     label: "Dibatalkan",
     color: "text-red-500   bg-red-50    border border-red-100",
   },
@@ -65,6 +85,62 @@ const AKTIVITAS_DOT = {
 };
 
 const KATEGORI_COLORS = ["#2563EB", "#3B82F6", "#F97316", "#22C55E", "#A855F7"];
+
+const getLatestOrderStatusConfig = (order) => {
+  if (!order) {
+    return {
+      label: "-",
+      color: "text-slate-500 bg-slate-50 border border-slate-200",
+    };
+  }
+
+  const paymentStatus = String(order.status_bayar || "").toLowerCase();
+  const orderStatus = String(order.status_order || "").toLowerCase();
+
+  if (paymentStatus === "pending") return STATUS_CFG.pending;
+  if (paymentStatus === "failed" || paymentStatus === "expired") return STATUS_CFG.dibatalkan;
+
+  return STATUS_CFG[orderStatus] || STATUS_CFG.pending;
+};
+
+const buildRevenueChartPath = (data, width = 520, height = 220) => {
+  if (!Array.isArray(data) || data.length === 0) return "";
+
+  const points = [...data].reverse();
+  const maxValue = Math.max(...points.map((item) => Number(item.total || 0)), 1);
+  const stepX = points.length > 1 ? width / (points.length - 1) : width / 2;
+
+  return points
+    .map((item, index) => {
+      const x = points.length > 1 ? index * stepX : width / 2;
+      const y = height - (Number(item.total || 0) / maxValue) * (height - 24) - 12;
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+};
+
+const buildRevenueAreaPath = (data, width = 520, height = 220) => {
+  if (!Array.isArray(data) || data.length === 0) return "";
+
+  const points = [...data].reverse();
+  const maxValue = Math.max(...points.map((item) => Number(item.total || 0)), 1);
+  const stepX = points.length > 1 ? width / (points.length - 1) : width / 2;
+
+  const pointCoordinates = points.map((item, index) => {
+    const x = points.length > 1 ? index * stepX : width / 2;
+    const y = height - (Number(item.total || 0) / maxValue) * (height - 24) - 12;
+    return { x, y };
+  });
+
+  const linePath = pointCoordinates
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+
+  const lastX = pointCoordinates[pointCoordinates.length - 1]?.x ?? width;
+  const firstX = pointCoordinates[0]?.x ?? 0;
+
+  return `${linePath} L ${lastX} ${height} L ${firstX} ${height} Z`;
+};
 
 // ── Stat Card (UI Sesuai Figma) ──────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, badgeText }) {
@@ -217,6 +293,11 @@ export default function AdminPage() {
     pesananTerbaru,
     aktivitasTerkini,
   } = data;
+  const revenueLinePath = buildRevenueChartPath(pendapatanHarian);
+  const revenueAreaPath = buildRevenueAreaPath(pendapatanHarian);
+  const revenueDateLabel = formatShortDateRange(
+    pendapatanHarian.map((item) => item.tanggal)
+  );
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-10">
@@ -416,8 +497,7 @@ export default function AdminPage() {
               ? `Rp ${(stats.totalPendapatan / 1_000_000).toFixed(0)} Jt`
               : formatRupiah(stats.totalPendapatan)
           }
-          sub="Maret 2026 - vs Rp 217 Jt Feb"
-          badgeText="14.2%"
+          sub={`${stats.totalPesanan} transaksi tercatat di dashboard`}
         />
         <StatCard
           icon={
@@ -439,8 +519,7 @@ export default function AdminPage() {
           }
           label="Total Pesanan"
           value={stats.totalPesanan}
-          sub={`${stats.pesananMenunggu} menunggu konfirmasi`}
-          badgeText="9.7%"
+          sub={`${stats.pesananMenunggu} pesanan masih menunggu tindak lanjut`}
         />
         <StatCard
           icon={
@@ -463,7 +542,6 @@ export default function AdminPage() {
           label="Produk Aktif"
           value={stats.produkAktif}
           sub={`${stats.produkHampirHabis} stok hampir habis`}
-          badgeText="4"
         />
         <StatCard
           icon={
@@ -486,7 +564,6 @@ export default function AdminPage() {
           label="Pelanggan Baru"
           value={stats.totalPelanggan}
           sub={`Total ${stats.totalPelanggan} pengguna`}
-          badgeText="21.5%"
         />
       </div>
 
@@ -545,16 +622,14 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
         {/* Ringkasan Pendapatan Harian */}
-        <div className="lg:col-span-2 bg-white rounded-[20px] p-7 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col">
+        <div className="bg-white rounded-[20px] p-7 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col">
           <h2 className="font-bold text-slate-800 text-base mb-1">
             Ringkasan Pendapatan Harian
           </h2>
           <p className="text-[12px] font-medium text-blue-500 mb-8">
-            {pendapatanHarian.length > 0
-              ? `${pendapatanHarian.length} Hari Terakhir — Maret 2026`
-              : "Belum ada data"}
+            {revenueDateLabel}
           </p>
 
           {pendapatanHarian.length === 0 ? (
@@ -565,6 +640,71 @@ export default function AdminPage() {
             </div>
           ) : (
             <div className="space-y-6 mt-auto">
+              <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_100%)] p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-500">
+                      Grafik Omzet
+                    </p>
+                    <p className="mt-2 text-2xl font-extrabold text-slate-900">
+                      {formatRupiah(stats.totalPendapatan)}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Total omzet dibaca dari detail transaksi yang sudah berhasil dibayar
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 overflow-x-auto">
+                  <div className="min-w-[520px]">
+                    <svg viewBox="0 0 520 220" className="h-[220px] w-full">
+                      <defs>
+                        <linearGradient id="revenueAreaFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2563eb" stopOpacity="0.22" />
+                          <stop offset="100%" stopColor="#2563eb" stopOpacity="0.02" />
+                        </linearGradient>
+                      </defs>
+
+                      {[0, 1, 2, 3].map((line) => (
+                        <line
+                          key={line}
+                          x1="0"
+                          x2="520"
+                          y1={20 + line * 50}
+                          y2={20 + line * 50}
+                          stroke="#dbeafe"
+                          strokeDasharray="4 6"
+                        />
+                      ))}
+
+                      {revenueAreaPath ? <path d={revenueAreaPath} fill="url(#revenueAreaFill)" /> : null}
+                      {revenueLinePath ? (
+                        <path
+                          d={revenueLinePath}
+                          fill="none"
+                          stroke="#2563eb"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      ) : null}
+
+                      {[...pendapatanHarian].reverse().map((item, index, arr) => {
+                        const maxValue = Math.max(...arr.map((entry) => Number(entry.total || 0)), 1);
+                        const stepX = arr.length > 1 ? 520 / (arr.length - 1) : 260;
+                        const x = arr.length > 1 ? index * stepX : 260;
+                        const y = 220 - (Number(item.total || 0) / maxValue) * (220 - 24) - 12;
+
+                        return (
+                          <g key={item.tanggal}>
+                            <circle cx={x} cy={y} r="6" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                </div>
+              </div>
               {pendapatanHarian.map((d) => (
                 <div key={d.tanggal} className="flex items-center gap-5">
                   <span className="text-[13px] font-medium text-slate-500 w-24 shrink-0">
@@ -586,11 +726,11 @@ export default function AdminPage() {
         </div>
 
         {/* Kategori Terlaris */}
-        <div className="bg-white rounded-[20px] p-7 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col">
+        <div className="bg-white rounded-[20px] p-7 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col lg:w-[340px] xl:w-[380px]">
           <h2 className="font-bold text-slate-800 text-base mb-1">
             Kategori Terlaris
           </h2>
-          <p className="text-[12px] font-medium text-blue-500 mb-8">
+          <p className="text-[12px] font-medium text-blue-500 mb-5">
             Berdasarkan unit terjual ({stats.totalPesanan} total)
           </p>
 
@@ -601,7 +741,7 @@ export default function AdminPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-6 mt-auto">
+            <div className="space-y-4">
               {kategoriTerlaris.map((k, i) => (
                 <div key={k.nama} className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -687,11 +827,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {pesananTerbaru.map((p) => {
-                    const cfg = STATUS_CFG[p.status_order] ?? {
-                      label: p.status_order,
-                      color:
-                        "text-slate-500 bg-slate-50 border border-slate-200",
-                    };
+                    const cfg = getLatestOrderStatusConfig(p);
                     return (
                       <tr
                         key={p.id_pesanan}

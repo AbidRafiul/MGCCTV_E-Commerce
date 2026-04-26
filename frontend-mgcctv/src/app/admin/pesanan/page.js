@@ -7,7 +7,8 @@ import PesananTableSection from "@/section/admin/pesanan/PesananTableSection";
 
 export default function PesananPage() {
   const {
-    wrapperRef, loading, summaryCards, tabs, activeTab, setActiveTab, search, setSearch,
+    wrapperRef, loading, isExporting, summaryCards, tabs, activeTab, setActiveTab, search, setSearch,
+    startDate, setStartDate, endDate, setEndDate, applyDateFilter, resetDateFilter, exportDateLabel, handleExportExcel,
     filteredOrders, paginatedOrders, currentPage, setCurrentPage, totalPages,
     openActionMenu, toggleActionMenu, updatingOrderId, handleChangeStatus
   } = usePesanan();
@@ -23,7 +24,12 @@ export default function PesananPage() {
         {/* 2. Tab & Filter Search */}
         <PesananFilterSection 
           tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} 
-          search={search} setSearch={setSearch} 
+          search={search} setSearch={setSearch}
+          startDate={startDate} setStartDate={setStartDate}
+          endDate={endDate} setEndDate={setEndDate}
+          applyDateFilter={applyDateFilter} resetDateFilter={resetDateFilter}
+          exportDateLabel={exportDateLabel} handleExportExcel={handleExportExcel}
+          isExporting={isExporting}
         />
 
         {/* 3. Tabel & Pagination */}

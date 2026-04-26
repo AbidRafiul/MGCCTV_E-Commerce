@@ -1,10 +1,21 @@
 import { Search, Filter, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
+const formatDateTime = (value) => {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 export default function LaporanTableSection({ 
   activeTab, setActiveTab, transactions, restockTransactions, formatCurrency, statusStyles 
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col">
+    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col min-h-0">
       <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Riwayat Data</h2>
@@ -42,9 +53,9 @@ export default function LaporanTableSection({
         </button>
       </div>
 
-      <div className="overflow-x-auto flex-1">
+      <div className="flex-1 overflow-auto rounded-b-3xl">
         <table className="min-w-full text-left">
-          <thead className="bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-400">
+          <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-400">
             <tr>
               {activeTab === "penjualan" ? (
                 <>
@@ -69,7 +80,7 @@ export default function LaporanTableSection({
               <tr key={t.id} className="border-t border-slate-100 text-sm text-slate-600">
                 <td className="px-6 py-4 align-top">
                   <p className="font-semibold text-slate-900">{t.id}</p>
-                  <p className="mt-1 text-xs text-slate-400">{t.date}</p>
+                  <p className="mt-1 text-xs text-slate-400">{formatDateTime(t.date)}</p>
                 </td>
                 <td className="px-6 py-4 align-top">
                   <p className="font-semibold text-slate-800">{t.customer}</p>
@@ -86,7 +97,7 @@ export default function LaporanTableSection({
               <tr key={t.id} className="border-t border-slate-100 text-sm text-slate-600 bg-blue-50/10">
                 <td className="px-6 py-4 align-top">
                   <p className="font-semibold text-slate-900">{t.id}</p>
-                  <p className="mt-1 text-xs text-slate-400">{t.date}</p>
+                  <p className="mt-1 text-xs text-slate-400">{formatDateTime(t.date)}</p>
                 </td>
                 <td className="px-6 py-4 align-top font-bold text-slate-800">{t.product}</td>
                 <td className="px-6 py-4 align-top text-center">
