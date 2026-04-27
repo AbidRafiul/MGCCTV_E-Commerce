@@ -81,7 +81,7 @@ export default function PesananTableSection({
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Produk</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Metode</th>
-                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Status Order</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Aksi</th>
                 </tr>
               </thead>

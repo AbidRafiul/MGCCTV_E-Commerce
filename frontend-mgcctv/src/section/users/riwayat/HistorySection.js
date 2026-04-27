@@ -3,8 +3,6 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
-  ChevronDown,
-  ChevronUp,
   ChevronRight,
   Clock3,
   Home,
@@ -17,6 +15,13 @@ import {
   XCircle,
 } from "lucide-react";
 import NavBox from "@/components/profile/NavBox"; // Pastikan path NavBox benar
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const STATUS_META = {
   pending: { label: "Menunggu", statusClass: "border-blue-100 bg-blue-50 text-blue-700", icon: Clock3, accentClass: "from-blue-500/12 to-cyan-400/5" },
@@ -78,7 +83,7 @@ export default function HistorySection({
               <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <div>
                   <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">Pesanan Saya</span>
-                  <h3 className="mt-3 text-2xl font-bold text-white md:text-[30px]">Riwayat Belanja</h3>
+                  <h3 className="mt-3 text-2xl font-bold text-white md:text-[30px]">Riwayat Pesanan</h3>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-blue-100/85">Riwayat pesanan ini sekarang terhubung langsung ke transaksi dan detail transaksi dari database.</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
@@ -122,8 +127,6 @@ export default function HistorySection({
                     const meta = STATUS_META[order.status_order] || STATUS_META.pending;
                     const StatusIcon = meta.icon;
                     const firstProduct = order.items?.[0];
-                    const isExpanded = expandedOrderId === order.id_pesanan;
-                    const paymentStatusLabel = PAYMENT_STATUS_LABELS[order.status_bayar] || order.status_bayar || "-";
                     const productLabel = order.items?.length > 1 ? `${firstProduct?.nama_produk || "Produk"} +${order.items.length - 1} item lainnya` : firstProduct?.nama_produk || "Produk";
 
                     return (
@@ -147,33 +150,13 @@ export default function HistorySection({
                               </div>
                             </div>
                             <div className="flex flex-col items-start gap-3 lg:items-end">
+                              <p><span className="block text-[11px] uppercase tracking-[0.14em] text-slate-400">Status Order</span></p>
                               <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${meta.statusClass}`}><StatusIcon size={14} /> {meta.label}</span>
-                              <button type="button" onClick={() => setExpandedOrderId((prev) => prev === order.id_pesanan ? null : order.id_pesanan)} className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2.5 text-xs font-semibold text-[#0C2C55] transition hover:bg-slate-200">
-                                {isExpanded ? "Tutup Ringkasan" : "Lihat Ringkasan"} {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              <button type="button" onClick={() => setSelectedOrder(order)} className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2.5 text-xs font-semibold text-[#0C2C55] transition hover:bg-slate-200">
+                                Lihat Ringkasan
                               </button>
                             </div>
                           </div>
-                          {isExpanded && (
-                            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                              <div className="grid gap-3 md:grid-cols-4">
-                                <div><p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">ID Transaksi</p><p className="mt-1 text-sm font-semibold text-slate-700">TRX-{String(order.id_pesanan).padStart(5, "0")}</p></div>
-                                <div><p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Tanggal Transaksi</p><p className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(order.tanggal_transaksi)}</p></div>
-                                <div><p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Metode Bayar</p><p className="mt-1 text-sm font-semibold text-slate-700">{order.metode_bayar || "-"}</p></div>
-                                <div><p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Status Bayar</p><p className="mt-1 text-sm font-semibold text-slate-700">{paymentStatusLabel}</p></div>
-                              </div>
-                              <div className="mt-4 space-y-3">
-                                {order.items.map((item) => (
-                                  <div key={item.id_detail_transcation} className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3">
-                                    <div className="min-w-0"><p className="text-sm font-semibold text-[#0C2C55]">{item.nama_produk}</p><p className="text-xs text-slate-500">{item.merek} | {item.quantity} x {formatCurrency(item.harga)}</p></div>
-                                    <p className="shrink-0 text-sm font-bold text-slate-800">{formatCurrency(item.total)}</p>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="mt-4 flex justify-end">
-                                <Link href="/produk" className="inline-flex items-center gap-2 rounded-full bg-[#0C2C55] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#123d73]">Beli Lagi <ArrowUpRight size={14} /></Link>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
@@ -184,6 +167,87 @@ export default function HistorySection({
           </div>
         </div>
       </div>
+
+      <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-[calc(100%-2rem)] rounded-[24px] border-0 bg-white p-0 shadow-[0_24px_80px_rgba(15,23,42,0.22)] sm:max-w-2xl md:max-w-[720px]">
+          {selectedOrder ? (
+            <>
+              <div className="relative overflow-hidden rounded-t-[24px] bg-[linear-gradient(135deg,#0C2C55_0%,#123e74_55%,#1d5ca2_100%)] px-5 py-5 text-white sm:px-6 sm:py-6">
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+                <DialogHeader className="relative z-10 pr-10">
+                  <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100">
+                    Ringkasan Lengkap
+                  </span>
+                  <DialogTitle className="mt-3 text-2xl font-bold text-white">
+                    Pesanan #{String(selectedOrder.id_pesanan).padStart(4, "0")}
+                  </DialogTitle>
+                  <DialogDescription className="mt-2 max-w-2xl text-sm leading-relaxed text-blue-100/85">
+                    Lihat rincian transaksi, status pembayaran, dan daftar produk dalam satu tampilan yang lebih jelas.
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
+
+              <div className="max-h-[68vh] space-y-5 overflow-y-auto px-5 py-5 sm:px-6 sm:py-5">
+                <div className="grid gap-3 md:grid-cols-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">ID Transaksi</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">TRX-{String(selectedOrder.id_pesanan).padStart(5, "0")}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Tanggal Transaksi</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">{formatDateTime(selectedOrder.tanggal_transaksi)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Metode Bayar</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">{selectedOrder.metode_bayar || "-"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Status Bayar</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      {PAYMENT_STATUS_LABELS[selectedOrder.status_bayar] || selectedOrder.status_bayar || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Ringkasan Pesanan</p>
+                      <h4 className="mt-1 text-lg font-bold text-[#0C2C55]">
+                        {selectedOrder.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0)} item dalam satu transaksi
+                      </h4>
+                    </div>
+                    <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Total Pembayaran</p>
+                      <p className="mt-1 text-xl font-extrabold text-[#0C2C55]">{formatCurrency(selectedOrder.total_harga)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {selectedOrder.items?.map((item) => (
+                      <div key={item.id_detail_transcation} className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#0C2C55] sm:text-base">{item.nama_produk}</p>
+                          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                            {item.merek} | {item.quantity} x {formatCurrency(item.harga)}
+                          </p>
+                        </div>
+                        <p className="shrink-0 text-sm font-bold text-slate-800 sm:text-base">{formatCurrency(item.total)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link href="/produk" className="inline-flex items-center gap-2 rounded-full bg-[#0C2C55] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#123d73]">
+                    Beli Lagi <ArrowUpRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
