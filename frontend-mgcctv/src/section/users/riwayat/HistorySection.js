@@ -42,7 +42,7 @@ const formatDateTime = (value) => {
 };
 
 export default function HistorySection({
-  orders, summary, isLoading, expandedOrderId, setExpandedOrderId, handleNavigate, summaryCards
+  orders, summary, isLoading, expandedOrderId, setExpandedOrderId, handleNavigate, summaryCards, isGoogleAccount
 }) {
   return (
     <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
@@ -67,7 +67,9 @@ export default function HistorySection({
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-          <NavBox activeItem="orders" onNavigate={handleNavigate} canAccessPassword />
+          
+          {/* INI BAGIAN YANG DIPERBAIKI: */}
+          <NavBox activeItem="orders" onNavigate={handleNavigate} canAccessPassword={!isGoogleAccount} />
 
           <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
             {/* Header Riwayat */}

@@ -16,6 +16,7 @@ export const useHistory = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [isGoogleAccount, setIsGoogleAccount] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -41,7 +42,7 @@ export const useHistory = () => {
   };
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
         router.push("/login");
@@ -49,18 +50,33 @@ export const useHistory = () => {
       }
       try {
         setIsLoading(true);
-        const response = await fetch(`${AUTH_API_URL}/orders`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data?.message || "Gagal mengambil riwayat pesanan");
+
+        // Ambil data Orders dan Profile secara bersamaan
+        const [ordersRes, profileRes] = await Promise.all([
+          fetch(`${AUTH_API_URL}/orders`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${AUTH_API_URL}/profile`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        // Cek apakah ini akun Google
+        if (profileRes.ok) {
+          const profileData = await profileRes.json().catch(() => ({}));
+          const user = profileData?.user ?? profileData?.data?.user ?? profileData?.data ?? null;
+          setIsGoogleAccount(Boolean(user?.is_google_account));
         }
-        setOrders(Array.isArray(data?.orders) ? data.orders : []);
+
+        // Olah data Orders
+        const ordersData = await ordersRes.json().catch(() => ({}));
+        if (!ordersRes.ok) {
+          throw new Error(ordersData?.message || "Gagal mengambil riwayat pesanan");
+        }
+        
+        setOrders(Array.isArray(ordersData?.orders) ? ordersData.orders : []);
         setSummary(
-          data?.summary || {
+          ordersData?.summary || {
             total_orders: 0,
             total_spent: 0,
             pending_orders: 0,
@@ -68,13 +84,13 @@ export const useHistory = () => {
           },
         );
       } catch (error) {
-        console.error("Gagal mengambil riwayat pesanan:", error);
+        console.error("Gagal mengambil data:", error);
         setOrders([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchOrders();
+    fetchData();
   }, [router]);
 
   const summaryCards = useMemo(
@@ -112,6 +128,6 @@ export const useHistory = () => {
 
   return {
     router, orders, summary, isLoading, expandedOrderId, setExpandedOrderId,
-    handleNavigate, summaryCards
+    handleNavigate, summaryCards, isGoogleAccount
   };
 };
