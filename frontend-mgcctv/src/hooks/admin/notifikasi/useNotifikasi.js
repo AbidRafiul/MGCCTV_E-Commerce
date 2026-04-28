@@ -1,27 +1,97 @@
-import { useState } from "react";
-import { Package, AlertTriangle, User, CheckCircle2, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Package, AlertTriangle, User, CheckCircle2, XCircle, CreditCard } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export const useNotifikasi = () => {
-  // --- DUMMY DATA ---
-  const initialNotifications = [
-    { id: 1, type: "order", isRead: false, title: "Pesanan baru #ORD-0187 menunggu konfirmasi", description: "Budi Santoso - 2x Hikvision DS-2CD2143G2-I - Total: Rp 2.500.000", time: "5 menit lalu", actionLabel: "Konfirmasi" },
-    { id: 2, type: "warning", isRead: false, title: "Stok hampir habis — DVR Dahua 8 Channel", description: "SKU: DAH-DVR8CH - Sisa stok: 3 unit. Segera lakukan restock.", time: "1 jam lalu", actionLabel: "Restock" },
-    { id: 3, type: "user", isRead: false, title: "Pelanggan baru terdaftar", description: "Siti Rahayu (siti@email.com) baru mendaftar dari Madiun", time: "2 jam lalu", actionLabel: null },
-    { id: 4, type: "success", isRead: true, title: "Pesanan #ORD-0185 berhasil diselesaikan", description: "Pembayaran Rp 5.600.000 dari Andi Wijaya telah dikonfirmasi", time: "Kemarin, 16:42", actionLabel: null },
-    { id: 5, type: "error", isRead: true, title: "Pesanan #ORD-0183 dibatalkan pelanggan", description: "Rizal Maulana membatalkan Uniview IPC3614SB", time: "Kemarin, 09:15", actionLabel: null },
-  ];
+  const [notifications, setNotifications] = useState([]);
+  const router = useRouter();
 
-  const [notifications, setNotifications] = useState(initialNotifications);
+  // Mengambil data notifikasi dari API
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
-  const unreadNotifs = notifications.filter((n) => !n.isRead);
-  const readNotifs = notifications.filter((n) => n.isRead);
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      console.log("Data Notifikasi:", data);
+      if (response.ok) {
+        // Asumsi API mengembalikan array notifikasi di data.notifications atau langsung array data
+        setNotifications(data.notifications || data || []);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil notifikasi:", error);
+    }
   };
 
+  // Fungsi untuk menandai 1 notifikasi telah dibaca dan mengarahkan ke link tujuan (jika ada)
+  const handleRead = async (id, link_tujuan) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      // Jika id valid (bukan notif statis tanpa ID backend), update status di server
+      if (id) {
+        const response = await fetch(`${API_BASE_URL}/api/notifications/${id}/read`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          // Update state lokal tanpa harus fetch ulang
+          setNotifications(prev => prev.map(n => 
+            (n.id_notifikasi === id || n.id === id) ? { ...n, is_read: 1 } : n
+          ));
+        }
+      }
+
+      // Navigasi ke rute yang diberikan (jika ada)
+      if (link_tujuan) {
+        router.push(link_tujuan);
+      }
+    } catch (error) {
+      console.error("Gagal menandai notifikasi dibaca:", error);
+    }
+  };
+
+  // Fungsi untuk menandai seluruh notifikasi dibaca sekaligus
+  const handleMarkAllRead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        // Update seluruh isi array state
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+      }
+    } catch (error) {
+      console.error("Gagal menandai semua sebagai dibaca:", error);
+    }
+  };
+
+  // Memisahkan notifikasi berdasarkan status (asumsi is_read bertipe boolean atau 0/1)
+  const unreadNotifs = notifications.filter((n) => n.is_read == 0 || n.is_read === false);
+  const readNotifs = notifications.filter((n) => n.is_read == 1 || n.is_read === true);
+
+  // Penyesuaian gaya ikon dengan tipe enum database ('transaksi', 'pembayaran', 'status_order')
   const getStyleByType = (type) => {
     switch (type) {
+      case "transaksi":
       case "order":
         return {
           boxClass: "bg-blue-50/60 border-blue-200",
@@ -29,26 +99,34 @@ export const useNotifikasi = () => {
           icon: <Package size={18} className="text-white" />,
           btnClass: "bg-blue-600 hover:bg-blue-700 text-white border border-transparent",
         };
-      case "warning":
+      case "pembayaran":
         return {
           boxClass: "bg-orange-50/60 border-orange-200",
           iconBg: "bg-orange-500",
-          icon: <AlertTriangle size={18} className="text-white" />,
+          icon: <CreditCard size={18} className="text-white" />,
           btnClass: "bg-white hover:bg-orange-50 text-orange-600 border border-orange-200",
+        };
+      case "status_order":
+      case "success":
+        return {
+          boxClass: "bg-emerald-50/60 border-emerald-200",
+          iconBg: "bg-emerald-500",
+          icon: <CheckCircle2 size={18} className="text-white" />,
+          btnClass: "bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent",
         };
       case "user":
         return {
           boxClass: "bg-green-50/60 border-green-200",
           iconBg: "bg-green-500",
           icon: <User size={18} className="text-white" />,
-          btnClass: "",
+          btnClass: "bg-white hover:bg-green-50 text-green-600 border border-green-200",
         };
-      case "success":
+      case "warning":
         return {
-          boxClass: "bg-white border-slate-200",
-          iconBg: "bg-green-100",
-          icon: <CheckCircle2 size={18} className="text-green-500" />,
-          btnClass: "",
+          boxClass: "bg-orange-50/60 border-orange-200",
+          iconBg: "bg-orange-500",
+          icon: <AlertTriangle size={18} className="text-white" />,
+          btnClass: "bg-white hover:bg-orange-50 text-orange-600 border border-orange-200",
         };
       case "error":
         return {
@@ -62,15 +140,17 @@ export const useNotifikasi = () => {
           boxClass: "bg-white border-slate-200",
           iconBg: "bg-slate-200",
           icon: <CheckCircle2 size={18} className="text-slate-500" />,
-          btnClass: "",
+          btnClass: "bg-slate-100 text-slate-600 border-slate-300",
         };
     }
   };
 
   return {
+    notifications,
     unreadNotifs,
     readNotifs,
-    markAllAsRead,
+    handleMarkAllRead,
+    handleRead,
     getStyleByType
   };
 };

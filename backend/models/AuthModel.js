@@ -116,7 +116,7 @@ const AuthModel = {
   createOtpTableIfNotExists: async () => {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS tr_otp (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id_otp INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(50) NOT NULL,
         otp_code VARCHAR(6) NOT NULL,
         expired_at DATETIME NOT NULL,
@@ -135,7 +135,7 @@ const AuthModel = {
 
   getLatestOtp: async (email) => {
     const [rows] = await connection.query(
-      "SELECT * FROM tr_otp WHERE email = ? ORDER BY id DESC LIMIT 1",
+      "SELECT * FROM tr_otp WHERE email = ? ORDER BY id_otp DESC LIMIT 1",
       [email]
     );
     return rows;
@@ -143,7 +143,7 @@ const AuthModel = {
 
   getOtpByEmailAndCode: async (email, otpCode) => {
     const [rows] = await connection.query(
-      "SELECT * FROM tr_otp WHERE email = ? AND otp_code = ? ORDER BY id DESC LIMIT 1",
+      "SELECT * FROM tr_otp WHERE email = ? AND otp_code = ? ORDER BY id_otp DESC LIMIT 1",
       [email, otpCode]
     );
     return rows;

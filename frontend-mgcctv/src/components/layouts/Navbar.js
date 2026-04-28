@@ -24,6 +24,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
@@ -39,7 +40,7 @@ export default function Navbar() {
   // FUNGSI FETCH NOTIFIKASI
   const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token || token === "undefined" || token === "null") return;
 
     try {
       const res = await fetch("http://localhost:3000/api/notifications", {
@@ -62,7 +63,7 @@ export default function Navbar() {
   // FUNGSI TANDAI SATU DIBACA
   const handleNotificationClick = async (idNotifikasi, linkTujuan) => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token || token === "undefined" || token === "null") return;
 
     // Optimistic Update
     setNotifications((prev) =>
@@ -91,7 +92,7 @@ export default function Navbar() {
   // FUNGSI TANDAI SEMUA DIBACA
   const handleMarkAllRead = async () => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token || token === "undefined" || token === "null") return;
 
     // Optimistic Update
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
@@ -117,9 +118,11 @@ export default function Navbar() {
 
     const syncAuth = () => {
       const token = localStorage.getItem("token");
-      setIsLogin(!!token);
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      
+      setIsLogin(!!isValidToken);
 
-      if (!token) {
+      if (!isValidToken) {
         setProfile(null);
         setCartCount(0);
         setNotifications([]); 
@@ -130,7 +133,9 @@ export default function Navbar() {
 
     const syncCartCount = async () => {
       const token = localStorage.getItem("token");
-      if (token) {
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      
+      if (isValidToken) {
         try {
           const count = await getCartCount();
           setCartCount(count);
@@ -144,17 +149,22 @@ export default function Navbar() {
 
     const fetchProfile = async () => {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      
+      if (!isValidToken) return;
 
       try {
         const res = await fetch(`${AUTH_API_URL}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (res.ok) {
-          setProfile(data.user || null);
+        if (res.ok && data.user) {
+          setProfile(data.user);
         } else {
+          // Jika token tidak valid di mata server, hapus sesi login (optional tapi direkomendasikan)
           setProfile(null);
+          setIsLogin(false);
+          localStorage.removeItem("token");
         }
       } catch (error) {
         setProfile(null);
@@ -173,7 +183,8 @@ export default function Navbar() {
     // Polling notifikasi setiap 30 detik
     const notifInterval = setInterval(() => {
       const token = localStorage.getItem("token");
-      if (token) fetchNotifications();
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      if (isValidToken) fetchNotifications();
     }, 30000);
 
     window.addEventListener("scroll", handleScroll);
@@ -205,6 +216,7 @@ export default function Navbar() {
     setNotifications([]);
     setShowLogoutModal(false);
     setIsMobileMenuOpen(false);
+    setIsDropdownOpen(false);
 
     window.dispatchEvent(new Event("cart-updated"));
 
@@ -357,21 +369,62 @@ export default function Navbar() {
                     Masuk
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-2 p-1.5 pr-3 bg-slate-50 border border-slate-200 rounded-full shadow-sm hover:shadow-md transition-shadow ml-2">
-                    <Link href="/profile" className="flex items-center gap-2.5 group">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner">
-                        {profileInitial}
+                  <div className="relative ml-2">
+                    <button 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="flex items-center gap-2 p-1.5 pr-3 bg-slate-50 border border-slate-200 rounded-full shadow-sm hover:shadow-md transition-shadow w-full text-left"
+                    >
+                      <div className="flex items-center gap-2.5 group">
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner shrink-0">
+                          {profileInitial}
+                        </div>
+                        <div className="flex min-w-0 max-w-[120px] flex-col justify-center">
+                          <span className="truncate font-bold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
+                            {profile?.nama || "User"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex min-w-0 max-w-[120px] flex-col justify-center">
-                        <span className="truncate font-bold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
-                          {profile?.nama || "User"}
-                        </span>
-                      </div>
-                    </Link>
-                    <div className="w-px h-5 bg-slate-200 mx-1"></div>
-                    <button type="button" onClick={() => setShowLogoutModal(true)} className="text-slate-400 hover:text-red-500 transition-colors" title="Logout">
-                      <LogOut size={16} />
                     </button>
+
+                    {/* Dropdown Menu */}
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)}></div>
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                            animate={{ opacity: 1, y: 0, scale: 1 }} 
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 origin-top-right"
+                          >
+                            <div className="flex flex-col py-2">
+                              <Link 
+                                href="/profile" 
+                                onClick={() => setIsDropdownOpen(false)}
+                                className="px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center gap-3"
+                              >
+                                <User size={16} /> Profil Saya
+                              </Link>
+                              <Link 
+                                href="/riwayat" 
+                                onClick={() => setIsDropdownOpen(false)}
+                                className="px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center gap-3"
+                              >
+                                <Package size={16} /> Pesanan Saya
+                              </Link>
+                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              <button 
+                                onClick={() => { setIsDropdownOpen(false); setShowLogoutModal(true); }}
+                                className="px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3 w-full text-left"
+                              >
+                                <LogOut size={16} /> Logout
+                              </button>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ))}
             </div>
