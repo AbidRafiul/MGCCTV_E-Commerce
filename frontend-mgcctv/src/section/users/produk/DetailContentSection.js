@@ -102,10 +102,7 @@ export default function DetailContentSection({
                   <span className="w-1 h-4 bg-blue-600 rounded-full"></span> Ringkasan
                 </h3>
                 <div className="space-y-1.5 text-[13px]">
-                  <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
-                    <span className="text-slate-500 font-medium">Merk</span>
-                    <span className="text-slate-900 font-semibold">{product.merek || product.nama_kategori}</span>
-                  </div>
+
                   <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
                     <span className="text-slate-500 font-medium">Kategori</span>
                     <span className="text-slate-900 font-semibold">{product.nama_kategori || "CCTV"}</span>

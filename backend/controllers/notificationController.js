@@ -1,28 +1,65 @@
-const NotificationModel = require("../models/notificationModel");
+const NotificationModel = require("../models/NotificationModel");
 
-const getNotifications = async (req, res) => {
+const fetchMyNotifications = async (req, res) => {
   try {
-    // req.user.id didapat dari middleware verifikasi JWT kamu
-    const id_users = req.user.id; 
-    const notifications = await NotificationModel.getByUserId(id_users);
-    
-    return res.json({ success: true, data: notifications });
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const notifications = await NotificationModel.getNotificationsByUserId(userId);
+    const unreadCount = await NotificationModel.getUnreadCount(userId);
+
+    res.status(200).json({
+      notifications,
+      unreadCount
+    });
   } catch (error) {
-    console.error("Error getNotifications:", error);
-    return res.status(500).json({ success: false, message: "Gagal mengambil notifikasi" });
+    console.error("Error fetchMyNotifications:", error);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
 };
 
-const markAsRead = async (req, res) => {
+const readNotification = async (req, res) => {
   try {
-    const id_users = req.user.id;
-    await NotificationModel.markAllAsRead(id_users);
-    
-    return res.json({ success: true, message: "Notifikasi ditandai dibaca" });
+    const userId = req.user.id;
+    const idNotifikasi = req.params.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    if (!idNotifikasi) {
+      return res.status(400).json({ message: "ID Notifikasi diperlukan" });
+    }
+
+    await NotificationModel.markAsRead(idNotifikasi, userId);
+
+    res.status(200).json({ message: "Notifikasi telah dibaca" });
   } catch (error) {
-    console.error("Error markAsRead:", error);
-    return res.status(500).json({ success: false, message: "Gagal mengupdate notifikasi" });
+    console.error("Error readNotification:", error);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
 };
 
-module.exports = { getNotifications, markAsRead };
+const readAllNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    await NotificationModel.markAllAsRead(userId);
+
+    res.status(200).json({ message: "Semua notifikasi telah dibaca" });
+  } catch (error) {
+    console.error("Error readAllNotifications:", error);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
+  }
+};
+
+module.exports = {
+  fetchMyNotifications,
+  readNotification,
+  readAllNotifications
+};

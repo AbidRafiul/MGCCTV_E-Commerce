@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const transaksiRoutes = require("./routes/transaksiRoutes");
 const pembelianRoutes = require('./routes/pembelianRoutes');
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -35,6 +36,10 @@ app.use('/api/pembelian', pembelianRoutes);
 
 //route transaksi
 app.use("/api/transaksi", transaksiRoutes);
+
+// route notifikasi
+app.use("/api/notifications", notificationRoutes);
+
 
 
 app.listen(port, () => {

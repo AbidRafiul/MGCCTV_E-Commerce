@@ -56,7 +56,8 @@ export default function CheckoutProfileDialog({ isOpen, onClose, profile, onSave
   // onOpenChange digunakan Shadcn untuk mendeteksi klik di luar modal (overlay) atau tombol ESC
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-white rounded-3xl font-sans gap-0">
+      {/* BAGIAN YANG DIUBAH: Tambah mt-8 md:mt-12 untuk mendorong ke bawah, dan max-h-[75vh] */}
+      <DialogContent className="sm:max-w-[480px] p-0 max-h-[75vh] mt-8 md:mt-12 overflow-y-auto bg-white rounded-1xl font-sans gap-0">
         
         {/* Header Shadcn */}
         <DialogHeader className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
