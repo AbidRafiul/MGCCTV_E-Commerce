@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle, Eye, EyeOff, Mail, X, CheckCircle2 } from "lucide-react";
+import { LoaderCircle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import ForgotPasswordModal from "@/components/modals/ForgotPasswordModal"; 
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,11 +17,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false); 
   const [showPassword, setShowPassword] = useState(false);
+  
+  // State khusus untuk memicu Modal Lupa Sandi
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
-  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
 
-  // UBAH STATE: email -> identifier (bisa username atau email)
   const [form, setForm] = useState({
     identifier: "", 
     password: "",
@@ -127,14 +128,12 @@ export default function LoginPage() {
   };
 
   const openForgotPasswordModal = () => {
-    setForgotPasswordSuccess(false);
     setForgotPasswordEmail(form.identifier.includes("@") ? form.identifier : "");
     setIsForgotPasswordOpen(true);
   };
 
   const closeForgotPasswordModal = () => {
     setIsForgotPasswordOpen(false);
-    setForgotPasswordSuccess(false);
   };
 
   const handleLogin = async (e) => {
@@ -179,11 +178,6 @@ export default function LoginPage() {
       setError("Gagal terhubung ke server. Periksa jaringan Anda.");
       setIsSubmitting(false);
     }
-  };
-
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    setForgotPasswordSuccess(true);
   };
 
   if (!isMounted || localToken) {
@@ -250,7 +244,7 @@ export default function LoginPage() {
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">Username / Email</label>
               <input
                 type="text"
-                name="identifier" // UBAH NAME JADI IDENTIFIER
+                name="identifier"
                 placeholder="Masukkan username atau email"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
                 onChange={handleChange}
@@ -328,86 +322,13 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {isForgotPasswordOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200 sm:p-8">
-            <button
-              type="button"
-              onClick={closeForgotPasswordModal}
-              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-              aria-label="Tutup modal lupa password"
-            >
-              <X size={18} />
-            </button>
-
-            {forgotPasswordSuccess ? (
-              <div className="pt-4 text-center">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 ring-8 ring-emerald-50/60">
-                  <CheckCircle2 size={30} />
-                </div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                  Berhasil
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-slate-500">
-                  Instruksi reset password telah dikirim ke{" "}
-                  <span className="font-semibold text-slate-700">{forgotPasswordEmail || "email Anda"}</span>.
-                </p>
-                <button
-                  type="button"
-                  onClick={closeForgotPasswordModal}
-                  className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30"
-                >
-                  Tutup
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-6 pr-10">
-                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-8 ring-blue-50/60">
-                    <Mail size={24} />
-                  </div>
-                  <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                    Lupa Password?
-                  </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                    Masukkan email akun Anda, lalu kami tampilkan popup berhasil untuk demo.
-                  </p>
-                </div>
-
-                <form onSubmit={handleForgotPassword} className="space-y-5">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Email Akun</label>
-                    <input
-                      type="email"
-                      placeholder="Contoh: user@email.com"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
-                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                      value={forgotPasswordEmail}
-                      required
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <button
-                      type="button"
-                      onClick={closeForgotPasswordModal}
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="submit"
-                      className="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30"
-                    >
-                      Kirim Link Reset
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* 2. PANGGIL KOMPONEN MODAL DI SINI */}
+      <ForgotPasswordModal 
+        isOpen={isForgotPasswordOpen} 
+        onClose={closeForgotPasswordModal}
+        initialEmail={forgotPasswordEmail}
+      />
+      
     </div>
   );
 }

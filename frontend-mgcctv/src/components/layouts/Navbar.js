@@ -44,6 +44,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
@@ -89,12 +90,20 @@ export default function Navbar() {
     const handleFocus = () => { syncAuth(); fetchProfile(); syncCartCount(); };
     handleScroll(); handleFocus();
 
+    // Polling notifikasi setiap 30 detik
+    const notifInterval = setInterval(() => {
+      const token = localStorage.getItem("token");
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      if (isValidToken) fetchNotifications();
+    }, 30000);
+
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
     window.addEventListener("cart-updated", syncCartCount);
 
     return () => {
+      clearInterval(notifInterval);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
@@ -118,7 +127,7 @@ export default function Navbar() {
   const getNotifIcon = (type) => {
     if (type === 'success') return <CheckCircle2 size={18} className="text-green-500" />;
     if (type === 'stok' || type === 'warning') return <AlertTriangle size={18} className="text-amber-500" />;
-    if (type === 'pesanan' || type === 'package') return <Package size={18} className="text-blue-500" />;
+    if (type === 'pesanan' || type === 'package' || type === 'transaksi') return <Package size={18} className="text-blue-500" />;
     return <Bell size={18} className="text-blue-500" />;
   };
   
