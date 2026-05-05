@@ -14,7 +14,7 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-import NavBox from "@/components/profile/NavBox"; // Pastikan path NavBox benar
+import NavBox from "@/components/profile/NavBox"; 
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,8 @@ const formatDateTime = (value) => {
 };
 
 export default function HistorySection({
-  orders, summary, isLoading, expandedOrderId, setExpandedOrderId, handleNavigate, summaryCards, isGoogleAccount
+  orders, summary, isLoading, selectedOrder, setSelectedOrder, handleNavigate, summaryCards,
+  isGoogleAccount // <--- 1. TANGKAP DI SINI
 }) {
   return (
     <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
@@ -73,7 +74,7 @@ export default function HistorySection({
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
           
-          {/* INI BAGIAN YANG DIPERBAIKI: */}
+          {/* <--- 2. UBAH BARIS INI BIAR DIA TAHU KONDISI GOOGLE ---> */}
           <NavBox activeItem="orders" onNavigate={handleNavigate} canAccessPassword={!isGoogleAccount} />
 
           <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
