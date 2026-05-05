@@ -18,37 +18,18 @@ const navLinks = [
   { href: "/tentang", label: "Tentang Kami" },
 ];
 
-// --- DATA DUMMY NOTIFIKASI (Sesuai dengan screenshot database-mu) ---
-const dummyNotifications = [
-  {
-    id_notifikasi: 1,
-    judul: "Pembayaran Berhasil! 🎉",
-    pesan: "Pembayaran untuk pesanan INV-20260403 telah kami terima dan sedang diproses.",
-    tipe: "pesanan",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 30).toISOString(), // 30 menit lalu
-  },
-  {
-    id_notifikasi: 2,
-    judul: "Pesanan Dikirim 🚚",
-    pesan: "Paket CCTV Anda sedang dalam perjalanan menggunakan kurir pengiriman.",
-    tipe: "stok",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 60 * 2).toISOString(), // 2 jam lalu
-  }
-];
-
 export default function Navbar() {
   const [isMounted, setIsMounted] = useState(false);
   const [isLogin, setIsLogin] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
-  // --- STATE NOTIFIKASI MENGGUNAKAN DUMMY ---
-  const [notifications, setNotifications] = useState(dummyNotifications);
+  // --- STATE NOTIFIKASI MENGGUNAKAN API ---
+  const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
   // Hitung yang belum dibaca (is_read === 0)
@@ -56,9 +37,76 @@ export default function Navbar() {
 
   const router = useRouter();
 
-  // FUNGSI TANDAI DIBACA (Hanya manipulasi state lokal sementara)
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
+  // FUNGSI FETCH NOTIFIKASI
+  const fetchNotifications = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || token === "undefined" || token === "null") return;
+
+    try {
+      const res = await fetch("http://localhost:3000/api/notifications", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Pastikan format array, jika API mengembalikan { data: [...] } sesuaikan
+        setNotifications(Array.isArray(data) ? data : (data.data || data.notifications || []));
+      }
+    } catch (error) {
+      console.error("Gagal memuat notifikasi:", error);
+    }
+  };
+
+  // FUNGSI TANDAI SATU DIBACA
+  const handleNotificationClick = async (idNotifikasi, linkTujuan) => {
+    const token = localStorage.getItem("token");
+    if (!token || token === "undefined" || token === "null") return;
+
+    // Optimistic Update
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id_notifikasi === idNotifikasi ? { ...n, is_read: 1 } : n
+      )
+    );
+
+    try {
+      await fetch(`http://localhost:3000/api/notifications/${idNotifikasi}/read`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    } catch (error) {
+      console.error("Gagal menandai notifikasi dibaca:", error);
+    }
+
+    if (linkTujuan) {
+      setIsNotifOpen(false);
+      router.push(linkTujuan);
+    }
+  };
+
+  // FUNGSI TANDAI SEMUA DIBACA
+  const handleMarkAllRead = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || token === "undefined" || token === "null") return;
+
+    // Optimistic Update
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
+
+    try {
+      await fetch("http://localhost:3000/api/notifications/read-all", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    } catch (error) {
+      console.error("Gagal menandai semua notifikasi dibaca:", error);
+    }
   };
 
   useEffect(() => {
@@ -70,22 +118,24 @@ export default function Navbar() {
 
     const syncAuth = () => {
       const token = localStorage.getItem("token");
-      setIsLogin(!!token);
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      
+      setIsLogin(!!isValidToken);
 
-      if (!token) {
+      if (!isValidToken) {
         setProfile(null);
         setCartCount(0);
-        // Jika logout, bisa dikosongkan, atau dibiarkan dummy. Kita kembalikan ke default dummy saja.
-        setNotifications(dummyNotifications); 
+        setNotifications([]); 
       } else {
-        // Jika login, pastikan dummy terisi
-        setNotifications(dummyNotifications);
+        fetchNotifications();
       }
     };
 
     const syncCartCount = async () => {
       const token = localStorage.getItem("token");
-      if (token) {
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      
+      if (isValidToken) {
         try {
           const count = await getCartCount();
           setCartCount(count);
@@ -99,17 +149,22 @@ export default function Navbar() {
 
     const fetchProfile = async () => {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      
+      if (!isValidToken) return;
 
       try {
         const res = await fetch(`${AUTH_API_URL}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (res.ok) {
-          setProfile(data.user || null);
+        if (res.ok && data.user) {
+          setProfile(data.user);
         } else {
+          // Jika token tidak valid di mata server, hapus sesi login (optional tapi direkomendasikan)
           setProfile(null);
+          setIsLogin(false);
+          localStorage.removeItem("token");
         }
       } catch (error) {
         setProfile(null);
@@ -125,12 +180,20 @@ export default function Navbar() {
     handleScroll();
     handleFocus();
 
+    // Polling notifikasi setiap 30 detik
+    const notifInterval = setInterval(() => {
+      const token = localStorage.getItem("token");
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      if (isValidToken) fetchNotifications();
+    }, 30000);
+
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
     window.addEventListener("cart-updated", syncCartCount);
 
     return () => {
+      clearInterval(notifInterval);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
@@ -150,8 +213,10 @@ export default function Navbar() {
     setIsLogin(false);
     setProfile(null);
     setCartCount(0);
+    setNotifications([]);
     setShowLogoutModal(false);
     setIsMobileMenuOpen(false);
+    setIsDropdownOpen(false);
 
     window.dispatchEvent(new Event("cart-updated"));
 
@@ -169,7 +234,7 @@ export default function Navbar() {
   const getNotifIcon = (type) => {
     if (type === 'success') return <CheckCircle2 size={18} className="text-green-500" />;
     if (type === 'stok' || type === 'warning') return <AlertTriangle size={18} className="text-amber-500" />;
-    if (type === 'pesanan' || type === 'package') return <Package size={18} className="text-blue-500" />;
+    if (type === 'pesanan' || type === 'package' || type === 'transaksi') return <Package size={18} className="text-blue-500" />;
     return <Bell size={18} className="text-blue-500" />;
   };
 
@@ -225,7 +290,7 @@ export default function Navbar() {
             {/* ICONS DESKTOP */}
             <div className="hidden lg:flex items-center gap-2 shrink-0">
               
-              {/* Notifikasi Dummy */}
+              {/* Notifikasi */}
               {isLogin && (
                 <div className="relative">
                   <button 
@@ -251,7 +316,7 @@ export default function Navbar() {
                           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <h3 className="font-extrabold text-slate-900">Notifikasi</h3>
                             {unreadNotifCount > 0 && (
-                              <button type="button" onClick={handleMarkAllAsRead} className="text-xs font-bold text-blue-600 cursor-pointer hover:underline">
+                              <button type="button" onClick={handleMarkAllRead} className="text-xs font-bold text-blue-600 cursor-pointer hover:underline">
                                 Tandai dibaca
                               </button>
                             )}
@@ -259,8 +324,11 @@ export default function Navbar() {
                           <div className="max-h-[350px] overflow-y-auto">
                             {notifications.length > 0 ? (
                               notifications.map((notif) => (
-                                // UBAH: Dari <Link> menjadi <div> agar tidak bisa dipencet/pindah halaman
-                                <div key={notif.id_notifikasi} className={`p-4 border-b border-slate-50 flex gap-3 ${notif.is_read === 0 ? 'bg-blue-50/30' : ''}`}>
+                                <div 
+                                  key={notif.id_notifikasi} 
+                                  onClick={() => handleNotificationClick(notif.id_notifikasi, notif.link_tujuan || notif.link)}
+                                  className={`p-4 border-b border-slate-50 flex gap-3 cursor-pointer hover:bg-slate-50 transition-colors ${notif.is_read === 0 ? 'bg-blue-50/30' : ''}`}
+                                >
                                   <div className="mt-0.5 shrink-0">{getNotifIcon(notif.tipe)}</div>
                                   <div className="flex-1 space-y-1">
                                     <h4 className={`text-sm font-bold ${notif.is_read === 0 ? 'text-slate-900' : 'text-slate-700'}`}>{notif.judul}</h4>
@@ -301,21 +369,62 @@ export default function Navbar() {
                     Masuk
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-2 p-1.5 pr-3 bg-slate-50 border border-slate-200 rounded-full shadow-sm hover:shadow-md transition-shadow ml-2">
-                    <Link href="/profile" className="flex items-center gap-2.5 group">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner">
-                        {profileInitial}
+                  <div className="relative ml-2">
+                    <button 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="flex items-center gap-2 p-1.5 pr-3 bg-slate-50 border border-slate-200 rounded-full shadow-sm hover:shadow-md transition-shadow w-full text-left"
+                    >
+                      <div className="flex items-center gap-2.5 group">
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner shrink-0">
+                          {profileInitial}
+                        </div>
+                        <div className="flex min-w-0 max-w-[120px] flex-col justify-center">
+                          <span className="truncate font-bold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
+                            {profile?.nama || "User"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex min-w-0 max-w-[120px] flex-col justify-center">
-                        <span className="truncate font-bold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
-                          {profile?.nama || "User"}
-                        </span>
-                      </div>
-                    </Link>
-                    <div className="w-px h-5 bg-slate-200 mx-1"></div>
-                    <button type="button" onClick={() => setShowLogoutModal(true)} className="text-slate-400 hover:text-red-500 transition-colors" title="Logout">
-                      <LogOut size={16} />
                     </button>
+
+                    {/* Dropdown Menu */}
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)}></div>
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                            animate={{ opacity: 1, y: 0, scale: 1 }} 
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 origin-top-right"
+                          >
+                            <div className="flex flex-col py-2">
+                              <Link 
+                                href="/profile" 
+                                onClick={() => setIsDropdownOpen(false)}
+                                className="px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center gap-3"
+                              >
+                                <User size={16} /> Profil Saya
+                              </Link>
+                              <Link 
+                                href="/riwayat" 
+                                onClick={() => setIsDropdownOpen(false)}
+                                className="px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center gap-3"
+                              >
+                                <Package size={16} /> Pesanan Saya
+                              </Link>
+                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              <button 
+                                onClick={() => { setIsDropdownOpen(false); setShowLogoutModal(true); }}
+                                className="px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3 w-full text-left"
+                              >
+                                <LogOut size={16} /> Logout
+                              </button>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ))}
             </div>

@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Search, Filter, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
 const formatDateTime = (value) => {
@@ -14,6 +15,31 @@ const formatDateTime = (value) => {
 export default function LaporanTableSection({ 
   activeTab, setActiveTab, transactions, restockTransactions, formatCurrency, statusStyles 
 }) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+    if (!searchQuery) return transactions;
+    const lowerQuery = searchQuery.toLowerCase();
+    return transactions.filter(
+      (t) =>
+        t.id?.toLowerCase().includes(lowerQuery) ||
+        t.customer?.toLowerCase().includes(lowerQuery)
+    );
+  }, [transactions, searchQuery]);
+
+  const filteredRestockTransactions = useMemo(() => {
+    if (!restockTransactions) return [];
+    if (!searchQuery) return restockTransactions;
+    const lowerQuery = searchQuery.toLowerCase();
+    return restockTransactions.filter(
+      (t) =>
+        t.product?.toLowerCase().includes(lowerQuery) ||
+        t.admin?.toLowerCase().includes(lowerQuery) ||
+        t.id?.toLowerCase().includes(lowerQuery)
+    );
+  }, [restockTransactions, searchQuery]);
+
   return (
     <div className="rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col min-h-0">
       <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
@@ -26,7 +52,10 @@ export default function LaporanTableSection({
 
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/50">
           <button
-            onClick={() => setActiveTab("penjualan")}
+            onClick={() => {
+              setActiveTab("penjualan");
+              setSearchQuery("");
+            }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
               activeTab === "penjualan" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
@@ -34,7 +63,10 @@ export default function LaporanTableSection({
             <ArrowUpCircle size={16} className={activeTab === "penjualan" ? "text-emerald-500" : ""} /> Penjualan
           </button>
           <button
-            onClick={() => setActiveTab("pembelian")}
+            onClick={() => {
+              setActiveTab("pembelian");
+              setSearchQuery("");
+            }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
               activeTab === "pembelian" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
@@ -45,8 +77,15 @@ export default function LaporanTableSection({
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row px-6 py-4 border-b border-slate-100">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          <Search size={16} /> {activeTab === "penjualan" ? "Cari nomor invoice / nama pelanggan" : "Cari nama produk / admin"}
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-colors">
+          <Search size={16} className="shrink-0" /> 
+          <input 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={activeTab === "penjualan" ? "Cari nomor invoice / nama pelanggan..." : "Cari nama produk / admin..."}
+            className="w-full bg-transparent outline-none placeholder:text-slate-400 text-slate-700"
+          />
         </div>
         <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
           <Filter size={16} /> Filter
@@ -76,8 +115,15 @@ export default function LaporanTableSection({
             </tr>
           </thead>
           <tbody>
-            {activeTab === "penjualan" && transactions.map((t) => (
-              <tr key={t.id} className="border-t border-slate-100 text-sm text-slate-600">
+            {activeTab === "penjualan" && filteredTransactions.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
+                  Tidak ada data penjualan yang cocok dengan "{searchQuery}".
+                </td>
+              </tr>
+            )}
+            {activeTab === "penjualan" && filteredTransactions.map((t) => (
+              <tr key={t.id} className="border-t border-slate-100 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4 align-top">
                   <p className="font-semibold text-slate-900">{t.id}</p>
                   <p className="mt-1 text-xs text-slate-400">{formatDateTime(t.date)}</p>
@@ -93,8 +139,16 @@ export default function LaporanTableSection({
                 </td>
               </tr>
             ))}
-            {activeTab === "pembelian" && restockTransactions.map((t) => (
-              <tr key={t.id} className="border-t border-slate-100 text-sm text-slate-600 bg-blue-50/10">
+            
+            {activeTab === "pembelian" && filteredRestockTransactions.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-6 py-10 text-center text-sm text-slate-500">
+                  Tidak ada data barang masuk yang cocok dengan "{searchQuery}".
+                </td>
+              </tr>
+            )}
+            {activeTab === "pembelian" && filteredRestockTransactions.map((t) => (
+              <tr key={t.id} className="border-t border-slate-100 text-sm text-slate-600 bg-blue-50/10 hover:bg-blue-50/30 transition-colors">
                 <td className="px-6 py-4 align-top">
                   <p className="font-semibold text-slate-900">{t.id}</p>
                   <p className="mt-1 text-xs text-slate-400">{formatDateTime(t.date)}</p>
