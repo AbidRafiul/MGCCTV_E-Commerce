@@ -56,7 +56,19 @@ const normalizeStockInput = (value) => {
 
 const getAllProduk = async (req, res) => {
   try {
-    const produk = await ProdukModel.getAll();
+    const { search } = req.query; // 1. Tangkap kata kunci pencarian
+    let produk = await ProdukModel.getAll();
+
+    // 2. Jika ada query pencarian dari Navbar, filter datanya
+    if (search) {
+      const keyword = search.toLowerCase();
+      produk = produk.filter(item => 
+        item.nama_produk?.toLowerCase().includes(keyword) || 
+        item.merek?.toLowerCase().includes(keyword)
+      );
+    }
+
+    // 3. Kembalikan data (bentuknya tetap Array agar halaman Produk lain tidak error)
     return res.status(200).json(produk);
   } catch (error) {
     return handleProdukError(res, error, "Gagal mengambil data produk");

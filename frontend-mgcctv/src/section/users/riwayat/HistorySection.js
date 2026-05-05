@@ -15,7 +15,7 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-import NavBox from "@/components/profile/NavBox";
+import NavBox from "@/components/profile/NavBox"; 
 import {
   Dialog,
   DialogContent,
@@ -48,7 +48,8 @@ const formatDateTime = (value) => {
 };
 
 export default function HistorySection({
-  orders, summary, isLoading, selectedOrder, setSelectedOrder, handleNavigate, summaryCards
+  orders, summary, isLoading, selectedOrder, setSelectedOrder, handleNavigate, summaryCards,
+  isGoogleAccount // <--- 1. TANGKAP DI SINI
 }) {
   const [activeFilter, setActiveFilter] = useState('SEMUA');
 
@@ -83,7 +84,9 @@ export default function HistorySection({
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-          <NavBox activeItem="orders" onNavigate={handleNavigate} canAccessPassword />
+          
+          {/* <--- 2. UBAH BARIS INI BIAR DIA TAHU KONDISI GOOGLE ---> */}
+          <NavBox activeItem="orders" onNavigate={handleNavigate} canAccessPassword={!isGoogleAccount} />
 
           <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
             <div className="relative overflow-hidden border-b border-slate-200 bg-[linear-gradient(135deg,#0C2C55_0%,#123e74_55%,#1d5ca2_100%)] px-5 py-6 md:px-8 md:py-8">
