@@ -17,6 +17,7 @@ export default function AdminLayout({ children }) {
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -67,6 +68,30 @@ export default function AdminLayout({ children }) {
 
     setIsAllowed(true);
   }, [pathname, router]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const response = await fetch("http://localhost:3000/api/notifications", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const notifs = data.notifications || data.data || data || [];
+          const count = Array.isArray(notifs) ? notifs.filter(n => n.is_read == 0 || n.is_read === false).length : 0;
+          setUnreadCount(count);
+        }
+      } catch (error) {
+        console.error("Gagal memuat notifikasi sidebar:", error);
+      }
+    };
+    
+    if (isAllowed) {
+      fetchNotifications();
+    }
+  }, [isAllowed]);
 
   const handleLogout = () => {
     const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
@@ -132,7 +157,7 @@ export default function AdminLayout({ children }) {
     { name: "Data Pengguna", href: "/admin/pengguna", section: "MANAJEMEN", icon: icons.users },
     { name: "Laporan Transaksi", href: "/admin/laporan-transaksi", section: "MANAJEMEN", icon: icons.report },
     { name: "Kelola CMS", href: "/admin/cms", section: "KONTEN & ANALITIK", icon: icons.layout },
-    { name: "Notifikasi", href: "/admin/notifikasi", section: "SISTEM", icon: icons.bell, badge: 3 },
+    { name: "Notifikasi", href: "/admin/notifikasi", section: "SISTEM", icon: icons.bell, badge: unreadCount > 0 ? unreadCount : null },
     { name: "Pengaturan", href: "/admin/pengaturan", section: "SISTEM", icon: icons.settings },
   ];
 
