@@ -15,7 +15,9 @@ export const useHistory = () => {
     completed_orders: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  // 1. TAMBAHKAN STATE INI LAGI
   const [isGoogleAccount, setIsGoogleAccount] = useState(false);
 
   const handleLogout = () => {
@@ -42,6 +44,7 @@ export const useHistory = () => {
   };
 
   useEffect(() => {
+    // 2. UBAH NAMA FUNGSI DAN PENGAMBILAN DATA (Promise.all)
     const fetchData = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -51,7 +54,6 @@ export const useHistory = () => {
       try {
         setIsLoading(true);
 
-        // Ambil data Orders dan Profile secara bersamaan
         const [ordersRes, profileRes] = await Promise.all([
           fetch(`${AUTH_API_URL}/orders`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -127,7 +129,8 @@ export const useHistory = () => {
   );
 
   return {
-    router, orders, summary, isLoading, expandedOrderId, setExpandedOrderId,
-    handleNavigate, summaryCards, isGoogleAccount
+    router, orders, summary, isLoading, selectedOrder, setSelectedOrder,
+    handleNavigate, summaryCards, 
+    isGoogleAccount // 3. PASTIKAN INI DI-RETURN
   };
 };

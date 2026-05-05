@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useMemo } from "react";
 import {
   ArrowUpRight,
   ChevronRight,
@@ -14,7 +15,7 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-import NavBox from "@/components/profile/NavBox"; // Pastikan path NavBox benar
+import NavBox from "@/components/profile/NavBox"; 
 import {
   Dialog,
   DialogContent,
@@ -47,8 +48,19 @@ const formatDateTime = (value) => {
 };
 
 export default function HistorySection({
-  orders, summary, isLoading, expandedOrderId, setExpandedOrderId, handleNavigate, summaryCards, isGoogleAccount
+  orders, summary, isLoading, selectedOrder, setSelectedOrder, handleNavigate, summaryCards,
+  isGoogleAccount // <--- 1. TANGKAP DI SINI
 }) {
+  const [activeFilter, setActiveFilter] = useState('SEMUA');
+
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    if (activeFilter === 'SEMUA') return orders;
+    if (activeFilter === 'BERJALAN') return orders.filter((o) => ["pending", "diproses", "dikirim"].includes(o.status_order));
+    if (activeFilter === 'SELESAI') return orders.filter((o) => o.status_order === "selesai");
+    return orders;
+  }, [orders, activeFilter]);
+
   return (
     <section className="min-h-screen bg-[#f5f6f8] px-4 pb-10 pt-32 md:px-8 sm:pt-36 lg:px-16">
       <div className="mx-auto max-w-5xl relative">
@@ -73,11 +85,10 @@ export default function HistorySection({
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
           
-          {/* INI BAGIAN YANG DIPERBAIKI: */}
+          {/* <--- 2. UBAH BARIS INI BIAR DIA TAHU KONDISI GOOGLE ---> */}
           <NavBox activeItem="orders" onNavigate={handleNavigate} canAccessPassword={!isGoogleAccount} />
 
           <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
-            {/* Header Riwayat */}
             <div className="relative overflow-hidden border-b border-slate-200 bg-[linear-gradient(135deg,#0C2C55_0%,#123e74_55%,#1d5ca2_100%)] px-5 py-6 md:px-8 md:py-8">
               <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
               <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
@@ -97,8 +108,18 @@ export default function HistorySection({
               <div className="grid gap-4 md:grid-cols-3">
                 {summaryCards.map((item) => {
                   const Icon = item.icon;
+                  let filterKey = 'SEMUA';
+                  if (item.key === 'process') filterKey = 'BERJALAN';
+                  if (item.key === 'done') filterKey = 'SELESAI';
+                  
+                  const isActive = activeFilter === filterKey;
+
                   return (
-                    <div key={item.key} className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.03)] ${item.className}`}>
+                    <div 
+                      key={item.key} 
+                      onClick={() => setActiveFilter(filterKey)}
+                      className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.03)] cursor-pointer transition-all duration-200 hover:shadow-md ${isActive ? 'ring-2 ring-blue-500 shadow-md opacity-100' : 'opacity-60 hover:opacity-100'} ${item.className}`}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[11px] uppercase tracking-[0.18em] opacity-70">{item.label}</p>
@@ -116,14 +137,14 @@ export default function HistorySection({
                 <div className="mt-6 flex items-center justify-center gap-3 rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-14 text-slate-500">
                   <Loader2 className="animate-spin" size={18} /> <span>Memuat riwayat pesanan...</span>
                 </div>
-              ) : orders.length === 0 ? (
+              ) : filteredOrders.length === 0 ? (
                 <div className="mt-6 rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-5 py-14 text-center">
-                  <h4 className="text-lg font-bold text-[#0C2C55]">Belum ada riwayat pesanan</h4>
-                  <p className="mt-2 text-sm text-slate-500">Pesanan Anda akan muncul di sini setelah transaksi berhasil dibuat.</p>
+                  <h4 className="text-lg font-bold text-[#0C2C55]">Belum ada pesanan</h4>
+                  <p className="mt-2 text-sm text-slate-500">Tidak ada riwayat pesanan untuk filter ini.</p>
                 </div>
               ) : (
-                <div className="mt-6 space-y-4">
-                  {orders.map((order) => {
+                <div className="mt-6 space-y-4 max-h-[60vh] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                  {filteredOrders.map((order) => {
                     const meta = STATUS_META[order.status_order] || STATUS_META.pending;
                     const StatusIcon = meta.icon;
                     const firstProduct = order.items?.[0];
