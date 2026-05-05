@@ -32,14 +32,16 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
-  // Hitung yang belum dibaca (is_read === 0)
-  const unreadNotifCount = notifications.filter(n => n.is_read === 0).length;
+  // Hitung yang belum dibaca (dilonggarkan dengan == 0 atau false)
+  const unreadNotifCount = notifications.filter(n => n.is_read == 0 || n.is_read === false).length;
 
   const router = useRouter();
 
-  // FUNGSI FETCH NOTIFIKASI
+  // FUNGSI FETCH NOTIFIKASI (DENGAN LOG DEBUGGING)
   const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
+    console.log('=== DEBUG NOTIFIKASI MULAI ===');
+    console.log('1. Cek Token Notif:', token ? 'Token Ada' : 'Token Kosong');
     if (!token || token === "undefined" || token === "null") return;
 
     try {
@@ -50,13 +52,22 @@ export default function Navbar() {
         }
       });
       
+      console.log('2. Status HTTP API:', res.status);
+
       if (res.ok) {
         const data = await res.json();
-        // Pastikan format array, jika API mengembalikan { data: [...] } sesuaikan
-        setNotifications(Array.isArray(data) ? data : (data.data || data.notifications || []));
+        console.log('3. Data Mentah API Notifikasi:', data);
+        
+        // Pastikan format array
+        const notifArray = Array.isArray(data) ? data : (data?.data || data?.notifications || []);
+        console.log('4. Data Notif Hasil Filter (Array):', notifArray);
+        
+        setNotifications(notifArray);
+      } else {
+         console.error('API merespons dengan status error:', res.status);
       }
     } catch (error) {
-      console.error("Gagal memuat notifikasi:", error);
+      console.error('5. Error Fetch Notif (Jaringan/CORS):', error);
     }
   };
 
@@ -327,15 +338,15 @@ export default function Navbar() {
                                 <div 
                                   key={notif.id_notifikasi} 
                                   onClick={() => handleNotificationClick(notif.id_notifikasi, notif.link_tujuan || notif.link)}
-                                  className={`p-4 border-b border-slate-50 flex gap-3 cursor-pointer hover:bg-slate-50 transition-colors ${notif.is_read === 0 ? 'bg-blue-50/30' : ''}`}
+                                  className={`p-4 border-b border-slate-50 flex gap-3 cursor-pointer hover:bg-slate-50 transition-colors ${(notif.is_read == 0 || notif.is_read === false) ? 'bg-blue-50/30' : ''}`}
                                 >
                                   <div className="mt-0.5 shrink-0">{getNotifIcon(notif.tipe)}</div>
                                   <div className="flex-1 space-y-1">
-                                    <h4 className={`text-sm font-bold ${notif.is_read === 0 ? 'text-slate-900' : 'text-slate-700'}`}>{notif.judul}</h4>
+                                    <h4 className={`text-sm font-bold ${(notif.is_read == 0 || notif.is_read === false) ? 'text-slate-900' : 'text-slate-700'}`}>{notif.judul}</h4>
                                     <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{notif.pesan}</p>
                                     <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatDate(notif.created_at)}</p>
                                   </div>
-                                  {notif.is_read === 0 && <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>}
+                                  {(notif.is_read == 0 || notif.is_read === false) && <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>}
                                 </div>
                               ))
                             ) : (

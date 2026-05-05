@@ -3,17 +3,25 @@ const NotificationModel = require("../models/NotificationModel");
 const fetchMyNotifications = async (req, res) => {
   try {
     const userId = req.user.id;
+    const role = req.user.role; // Ambil role dari req.user
+
+    console.log("ID User Request:", req.user); // Tambahan log sesuai permintaan
+
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const notifications = await NotificationModel.getNotificationsByUserId(userId);
-    const unreadCount = await NotificationModel.getUnreadCount(userId);
+    const notifications = await NotificationModel.getNotificationsByUserId(userId, role);
+    const unreadCount = await NotificationModel.getUnreadCount(userId, role);
 
-    res.status(200).json({
+    const result = {
       notifications,
       unreadCount
-    });
+    };
+
+    console.log("Query Result:", result); // Tambahan log sesuai permintaan
+
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetchMyNotifications:", error);
     res.status(500).json({ message: "Terjadi kesalahan pada server" });

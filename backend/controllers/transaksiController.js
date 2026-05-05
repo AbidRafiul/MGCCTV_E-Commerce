@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const midtransClient = require("midtrans-client");
 const db = require("../config/database");
+const NotificationModel = require("../models/NotificationModel");
 
 const mapMidtransStatus = (transactionStatus, fraudStatus) => {
   if (transactionStatus === "capture") {
@@ -277,6 +278,31 @@ const createMidtransTransaction = async (req, res) => {
     );
 
     await connection.commit();
+
+    try {
+      await NotificationModel.createNotification(
+        id_users,
+        insertId,
+        'transaksi',
+        'Pesanan Berhasil Dibuat',
+        'Pesanan Anda berhasil dibuat dan menunggu pembayaran.'
+      );
+
+      const [adminUsers] = await db.query("SELECT id_users FROM users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')");
+
+      for (const admin of adminUsers) {
+        const idAdmin = admin.id_users || admin.id;
+        await NotificationModel.createNotification(
+          idAdmin,
+          insertId,
+          'transaksi',
+          'Pesanan Baru Masuk!',
+          'Ada pesanan baru masuk dari pelanggan. Segera cek dan proses.'
+        );
+      }
+    } catch (notifError) {
+      console.error("Gagal membuat notifikasi:", notifError);
+    }
 
     return res.status(200).json({
       success: true,
