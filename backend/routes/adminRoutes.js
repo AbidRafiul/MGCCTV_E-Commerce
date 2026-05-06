@@ -5,12 +5,14 @@ const router = express.Router();
 // 1. IMPORT MIDDLEWARE
 // ==========================================
 const auth = require("../middleware/auth");
+const authorize = require("../middleware/authorize");
 const superadminAuth = require("../middleware/superadminAuth");
 const upload = require("../middleware/upload");
 const cmsController = require("../controllers/admin/cmsController");
 const orderController = require("../controllers/admin/orderController");
 const { getTransactionReport } = require("../controllers/admin/reportController");
 const { getProdukUnggulan, toggleUnggulan } = require("../controllers/admin/produkController");
+const supplierController = require("../controllers/admin/supplierController");
 
 
 // ==========================================
@@ -35,6 +37,9 @@ const handleUploadGambar = (req, res, next) => {
     next();
   });
 };
+
+// Helper role untuk fitur yang hanya boleh dikelola Admin dan Superadmin.
+const adminOrSuperadmin = authorize("Admin", "Superadmin");
 
 // ==========================================
 // 4. DAFTAR ROUTES PUBLIK (Tidak perlu auth)
@@ -77,6 +82,22 @@ router.patch("/produk/:id/unggulan", toggleUnggulan);
 router.get("/pesanan", orderController.getAllOrders);
 router.patch("/pesanan/:id/status", orderController.updateOrderStatus);
 router.get("/laporan-transaksi", getTransactionReport);
+
+// --- RUTE SUPPLIER (HANYA ADMIN & SUPERADMIN) ---
+// getAllSupplier: mengambil semua data supplier dari tabel ms_supplier.
+router.get("/supplier", adminOrSuperadmin, supplierController.getAllSupplier);
+
+// getSupplierById: mengambil detail supplier berdasarkan id_supplier.
+router.get("/supplier/:id", adminOrSuperadmin, supplierController.getSupplierById);
+
+// createSupplier: menambahkan data supplier baru.
+router.post("/supplier", adminOrSuperadmin, supplierController.createSupplier);
+
+// updateSupplier: memperbarui data supplier berdasarkan id_supplier.
+router.put("/supplier/:id", adminOrSuperadmin, supplierController.updateSupplier);
+
+// deleteSupplier: menghapus data supplier berdasarkan id_supplier.
+router.delete("/supplier/:id", adminOrSuperadmin, supplierController.deleteSupplier);
 
 // --- RUTE CMS TENTANG KAMI (UPDATE) ---
 router.put("/cms/tentang/:id", handleUploadGambar, cmsController.updateTentangContent);

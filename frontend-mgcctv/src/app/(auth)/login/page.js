@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import ForgotPasswordModal from "@/components/modals/ForgotPasswordModal"; 
+import { AUTH_API_URL } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +21,9 @@ export default function LoginPage() {
   // State khusus untuk memicu Modal Lupa Sandi
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+  const [forgotPasswordError, setForgotPasswordError] = useState("");
+  const [forgotPasswordSubmitting, setForgotPasswordSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     identifier: "", 
@@ -128,12 +131,17 @@ export default function LoginPage() {
   };
 
   const openForgotPasswordModal = () => {
+    setForgotPasswordSuccess(false);
+    setForgotPasswordError("");
     setForgotPasswordEmail(form.identifier.includes("@") ? form.identifier : "");
     setIsForgotPasswordOpen(true);
   };
 
   const closeForgotPasswordModal = () => {
     setIsForgotPasswordOpen(false);
+    setForgotPasswordSuccess(false);
+    setForgotPasswordError("");
+    setForgotPasswordSubmitting(false);
   };
 
   const handleLogin = async (e) => {
@@ -177,6 +185,32 @@ export default function LoginPage() {
     } catch {
       setError("Gagal terhubung ke server. Periksa jaringan Anda.");
       setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotPasswordError("");
+    setForgotPasswordSubmitting(true);
+
+    try {
+      const res = await fetch(`${AUTH_API_URL}/lupa-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setForgotPasswordError(data.message || "Gagal mengirim email reset password.");
+        return;
+      }
+
+      setForgotPasswordSuccess(true);
+    } catch {
+      setForgotPasswordError("Gagal terhubung ke server. Periksa koneksi Anda.");
+    } finally {
+      setForgotPasswordSubmitting(false);
     }
   };
 
@@ -322,13 +356,100 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 2. PANGGIL KOMPONEN MODAL DI SINI */}
-      <ForgotPasswordModal 
-        isOpen={isForgotPasswordOpen} 
-        onClose={closeForgotPasswordModal}
-        initialEmail={forgotPasswordEmail}
-      />
-      
+      {isForgotPasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200 sm:p-8">
+            <button
+              type="button"
+              onClick={closeForgotPasswordModal}
+              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Tutup modal lupa password"
+            >
+              <X size={18} />
+            </button>
+
+            {forgotPasswordSuccess ? (
+              <div className="pt-4 text-center">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 ring-8 ring-emerald-50/60">
+                  <CheckCircle2 size={30} />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Berhasil
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-slate-500">
+                  Instruksi reset password telah dikirim ke{" "}
+                  <span className="font-semibold text-slate-700">{forgotPasswordEmail || "email Anda"}</span>.
+                </p>
+                <button
+                  type="button"
+                  onClick={closeForgotPasswordModal}
+                  className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30"
+                >
+                  Tutup
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6 pr-10">
+                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-8 ring-blue-50/60">
+                    <Mail size={24} />
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                    Lupa Password?
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                    Masukkan email akun Anda, lalu kami kirimkan instruksi reset password.
+                  </p>
+                </div>
+
+                {forgotPasswordError && (
+                  <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                    {forgotPasswordError}
+                  </div>
+                )}
+
+                <form onSubmit={handleForgotPassword} className="space-y-5">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Email Akun</label>
+                    <input
+                      type="email"
+                      placeholder="Contoh: user@email.com"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                      value={forgotPasswordEmail}
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={closeForgotPasswordModal}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={forgotPasswordSubmitting}
+                      className="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30"
+                    >
+                      {forgotPasswordSubmitting ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <LoaderCircle className="h-4 w-4 animate-spin text-white" />
+                          Mengirim...
+                        </span>
+                      ) : (
+                        "Kirim Link Reset"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
