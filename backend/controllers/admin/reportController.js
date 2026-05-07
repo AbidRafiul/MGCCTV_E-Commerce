@@ -136,11 +136,11 @@ const getTransactionReport = async (req, res) => {
     ];
 
     const restockRows = restockTransactions.map((row) => ({
-      id: `RST-${String(row.id_stok_masuk).padStart(6, "0")}`,
+      id: row.no_faktur || `PB-${String(row.id_tr_pembelian).padStart(6, "0")}`,
       product: row.nama_produk,
-      jumlah: Number(row.qty_masuk || 0),
+      jumlah: Number(row.jumlah || 0),
       admin: row.nama_admin || "Admin",
-      date: row.tanggal_masuk,
+      date: row.tanggal,
     }));
 
     const restockInsights = topRestockedProducts.map((row) => ({

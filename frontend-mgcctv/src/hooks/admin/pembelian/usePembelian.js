@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CircleAlert } from "lucide-react";
-import { API_BASE_URL, PUBLIC_API_URL } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 
 // --- FUNGSI FORMATTER UTILITAS ---
 const formatCurrency = (value) =>
@@ -15,19 +15,23 @@ const formatDateTime = (value) => {
   return date.toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 };
 
-const statusTone = (stok) => {
-  const numericStock = Number(stok || 0);
-  if (numericStock <= 0) return { label: "Habis", className: "bg-rose-50 text-rose-700 ring-rose-100" };
-  if (numericStock <= 5) return { label: "Stok Tipis", className: "bg-amber-50 text-amber-700 ring-amber-100" };
-  return { label: "Aman", className: "bg-emerald-50 text-emerald-700 ring-emerald-100" };
-};
+const createEmptyForm = () => ({
+  id_supplier: "",
+  no_faktur: "",
+  tanggal: new Date().toISOString().slice(0, 10),
+  items: [{ id_produk: "", jumlah: "", harga_beli: "" }],
+});
 
 export const usePembelian = () => {
   const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [purchases, setPurchases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [formData, setFormData] = useState({ id_produk: "", qty_masuk: "", catatan: "" });
+  const [formData, setFormData] = useState(createEmptyForm);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [detailDialog, setDetailDialog] = useState({ open: false, isLoading: false, data: null });
+  const [deletingId, setDeletingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackDialog, setFeedbackDialog] = useState({ open: false, title: "", description: "", tone: "success" });
 
@@ -40,18 +44,20 @@ export const usePembelian = () => {
       setError("");
       const token = localStorage.getItem("token");
 
-      const [productsRes, ordersRes] = await Promise.all([
-        fetch(`${PUBLIC_API_URL}/produk`),
-        fetch(`${API_BASE_URL}/api/admin/pesanan`, { headers: { Authorization: `Bearer ${token}` } }),
+      const [optionsRes, purchasesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/pembelian/options`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/api/pembelian/transaksi`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
-      const productsPayload = await productsRes.json().catch(() => []);
-      const ordersPayload = await ordersRes.json().catch(() => []);
+      const optionsPayload = await optionsRes.json().catch(() => ({}));
+      const purchasesPayload = await purchasesRes.json().catch(() => ({}));
 
-      if (!productsRes.ok) throw new Error("Gagal mengambil data produk");
+      if (!optionsRes.ok) throw new Error(optionsPayload.message || "Gagal mengambil pilihan pembelian");
+      if (!purchasesRes.ok) throw new Error(purchasesPayload.message || "Gagal mengambil data pembelian");
 
-      setProducts(Array.isArray(productsPayload) ? productsPayload : []);
-      setOrders(Array.isArray(ordersPayload) ? ordersPayload : []);
+      setProducts(Array.isArray(optionsPayload.products) ? optionsPayload.products : []);
+      setSuppliers(Array.isArray(optionsPayload.suppliers) ? optionsPayload.suppliers : []);
+      setPurchases(Array.isArray(purchasesPayload.data) ? purchasesPayload.data : []);
     } catch (fetchError) {
       setError(fetchError.message || "Gagal memuat data pembelian");
     } finally {
@@ -66,13 +72,52 @@ export const usePembelian = () => {
 
   const handleFormChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  const openCreateForm = () => {
+    setFormData(createEmptyForm());
+    setIsFormOpen(true);
+  };
+
+  const closeCreateForm = () => {
+    if (!isSubmitting) setIsFormOpen(false);
+  };
+
+  const handleItemChange = (index, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((item, itemIndex) => (
+        itemIndex === index ? { ...item, [field]: value } : item
+      )),
+    }));
+  };
+
+  const addItemRow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, { id_produk: "", jumlah: "", harga_beli: "" }],
+    }));
+  };
+
+  const removeItemRow = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.length === 1
+        ? prev.items
+        : prev.items.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  const formTotal = useMemo(
+    () => formData.items.reduce((total, item) => total + (Number(item.jumlah || 0) * Number(item.harga_beli || 0)), 0),
+    [formData.items],
+  );
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pembelian/tambah`, {
+      const response = await fetch(`${API_BASE_URL}/api/pembelian`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData),
@@ -82,18 +127,19 @@ export const usePembelian = () => {
 
       if (response.ok) {
         openFeedbackDialog({
-          title: "Stok Berhasil Ditambahkan",
-          description: result?.data?.nama_produk && result?.data?.qty_masuk
-              ? `${result.data.qty_masuk} unit ${result.data.nama_produk} sudah masuk ke inventori.`
-              : result?.message || "Data stok masuk berhasil disimpan.",
+          title: "Pembelian Berhasil Disimpan",
+          description: result?.data?.total_item
+              ? `${result.data.total_item} item pembelian dengan total ${formatCurrency(result.data.total)} berhasil disimpan.`
+              : result?.message || "Data pembelian berhasil disimpan.",
           tone: "success",
         });
-        setFormData({ id_produk: "", qty_masuk: "", catatan: "" });
+        setFormData(createEmptyForm());
+        setIsFormOpen(false);
         await fetchInventoryData();
       } else {
         openFeedbackDialog({
-          title: "Gagal Menyimpan Stok",
-          description: result?.error || result?.message || "Terjadi kesalahan saat menyimpan stok masuk.",
+          title: "Gagal Menyimpan Pembelian",
+          description: result?.message || result?.error || "Terjadi kesalahan saat menyimpan pembelian.",
           tone: "error",
         });
       }
@@ -104,19 +150,77 @@ export const usePembelian = () => {
     }
   };
 
-  // --- COMPuted STATS ---
-  const inventoryStats = useMemo(() => {
-    const totalProduk = products.length;
-    const totalStok = products.reduce((total, product) => total + Number(product.stok || 0), 0);
-    const stokTipis = products.filter((p) => Number(p.stok || 0) > 0 && Number(p.stok || 0) <= 5).length;
-    const stokHabis = products.filter((p) => Number(p.stok || 0) <= 0).length;
-    const totalTerjual = orders.filter((order) => order.status_order === "selesai").reduce((total, order) => total + Number(order.total_item || 0), 0);
-    return { totalProduk, totalStok, stokTipis, stokHabis, totalTerjual };
-  }, [orders, products]);
+  const openPurchaseDetail = async (purchase) => {
+    const token = localStorage.getItem("token");
+    setDetailDialog({ open: true, isLoading: true, data: { ...purchase, items: [] } });
 
-  const productsByStock = useMemo(() => [...products].sort((a, b) => Number(a.stok || 0) - Number(b.stok || 0)), [products]);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pembelian/${purchase.id_pembelian}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.message || "Gagal mengambil detail pembelian");
+      }
+
+      setDetailDialog({ open: true, isLoading: false, data: result.data });
+    } catch (detailError) {
+      setDetailDialog((prev) => ({ ...prev, isLoading: false }));
+      openFeedbackDialog({
+        title: "Detail Gagal Dimuat",
+        description: detailError.message || "Gagal mengambil detail pembelian.",
+        tone: "error",
+      });
+    }
+  };
+
+  const closePurchaseDetail = () => setDetailDialog({ open: false, isLoading: false, data: null });
+
+  const deletePurchase = async (purchase) => {
+    const confirmed = window.confirm(`Hapus pembelian ${purchase.no_faktur || `#${purchase.id_pembelian}`}? Stok barang akan dikurangi sesuai trigger database.`);
+    if (!confirmed) return;
+
+    const token = localStorage.getItem("token");
+    setDeletingId(purchase.id_pembelian);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pembelian/${purchase.id_pembelian}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.message || "Gagal menghapus pembelian");
+      }
+
+      openFeedbackDialog({
+        title: "Pembelian Dihapus",
+        description: result.message || "Data pembelian berhasil dihapus.",
+        tone: "success",
+      });
+      await fetchInventoryData();
+    } catch (deleteError) {
+      openFeedbackDialog({
+        title: "Gagal Menghapus",
+        description: deleteError.message || "Pembelian gagal dihapus.",
+        tone: "error",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const inventoryStats = useMemo(() => {
+    const totalTransaksi = purchases.length;
+    const totalBarangMasuk = purchases.reduce((total, item) => total + Number(item.total_barang || 0), 0);
+    const totalNilaiPembelian = purchases.reduce((total, item) => total + Number(item.total || 0), 0);
+    const totalProdukDibeli = purchases.reduce((total, item) => total + Number(item.jumlah_item || 0), 0);
+    return { totalTransaksi, totalBarangMasuk, totalNilaiPembelian, totalProdukDibeli };
+  }, [purchases]);
   
-  const latestCompletedOrders = useMemo(() => orders.filter((order) => order.status_order === "selesai").slice(0, 5), [orders]);
+  const latestPurchases = useMemo(() => purchases.slice(0, 5), [purchases]);
 
   const feedbackMeta = feedbackDialog.tone === "success"
       ? { icon: CheckCircle2, mediaClass: "bg-emerald-50 text-emerald-600", buttonClass: "bg-[#0C2C55] hover:bg-[#123d73]" }
@@ -125,8 +229,10 @@ export const usePembelian = () => {
         : { icon: CircleAlert, mediaClass: "bg-red-50 text-red-600", buttonClass: "bg-red-600 text-white hover:bg-red-700" };
 
   return {
-    products, isLoading, error, formData, isSubmitting, feedbackDialog, setFeedbackDialog,
-    handleFormChange, handleFormSubmit, inventoryStats, productsByStock, latestCompletedOrders, feedbackMeta,
-    formatCurrency, formatNumber, formatDateTime, statusTone
+    products, suppliers, purchases, isLoading, error, formData, formTotal, isFormOpen, detailDialog,
+    deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, setDetailDialog, openCreateForm, closeCreateForm,
+    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, openPurchaseDetail,
+    closePurchaseDetail, deletePurchase, inventoryStats, latestPurchases, feedbackMeta,
+    formatCurrency, formatNumber, formatDateTime
   };
 };

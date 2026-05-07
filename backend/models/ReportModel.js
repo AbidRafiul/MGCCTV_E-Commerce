@@ -22,17 +22,17 @@ const buildTransactionDateFilter = (startDate, endDate, alias = "t") => {
   };
 };
 
-const buildRestockDateFilter = (startDate, endDate, alias = "tsm") => {
+const buildRestockDateFilter = (startDate, endDate, alias = "mp") => {
   const clauses = [];
   const params = [];
 
   if (startDate) {
-    clauses.push(`DATE(${alias}.tanggal_masuk) >= ?`);
+    clauses.push(`DATE(${alias}.tanggal) >= ?`);
     params.push(startDate);
   }
 
   if (endDate) {
-    clauses.push(`DATE(${alias}.tanggal_masuk) <= ?`);
+    clauses.push(`DATE(${alias}.tanggal) <= ?`);
     params.push(endDate);
   }
 
@@ -195,10 +195,11 @@ const ReportModel = {
     const [rows] = await connection.query(
       `
         SELECT
-          COALESCE(SUM(tsm.qty_masuk), 0) AS total_barang_masuk_bulan_ini,
+          COALESCE(SUM(tp.jumlah), 0) AS total_barang_masuk_bulan_ini,
           COALESCE(COUNT(*), 0) AS frekuensi_restock_bulan_ini,
           COALESCE(COUNT(*), 0) AS total_log_stok
-        FROM tr_stok_masuk tsm
+        FROM tr_pembelian tp
+        INNER JOIN ms_pembelian mp ON mp.id_pembelian = tp.id_pembelian
         WHERE 1 = 1${dateFilter.sql}
       `,
       dateFilter.params,
@@ -213,16 +214,18 @@ const ReportModel = {
     const [rows] = await connection.query(
       `
         SELECT
-          tsm.id_stok_masuk,
-          tsm.tanggal_masuk,
-          tsm.qty_masuk,
+          tp.id_tr_pembelian,
+          tp.jumlah,
+          mp.tanggal,
+          mp.no_faktur,
           p.nama_produk,
           u.nama AS nama_admin
-        FROM tr_stok_masuk tsm
-        INNER JOIN ms_produk p ON p.id_produk = tsm.id_produk
-        INNER JOIN ms_users u ON u.id_users = tsm.id_users
+        FROM tr_pembelian tp
+        INNER JOIN ms_pembelian mp ON mp.id_pembelian = tp.id_pembelian
+        INNER JOIN ms_produk p ON p.id_produk = tp.id_produk
+        INNER JOIN ms_users u ON u.id_users = mp.id_users
         WHERE 1 = 1${dateFilter.sql}
-        ORDER BY tsm.tanggal_masuk DESC
+        ORDER BY mp.tanggal DESC, tp.id_tr_pembelian DESC
         LIMIT 200
       `,
       dateFilter.params,
@@ -239,9 +242,10 @@ const ReportModel = {
         SELECT
           p.id_produk,
           p.nama_produk,
-          COALESCE(SUM(tsm.qty_masuk), 0) AS total_restock
-        FROM tr_stok_masuk tsm
-        INNER JOIN ms_produk p ON p.id_produk = tsm.id_produk
+          COALESCE(SUM(tp.jumlah), 0) AS total_restock
+        FROM tr_pembelian tp
+        INNER JOIN ms_pembelian mp ON mp.id_pembelian = tp.id_pembelian
+        INNER JOIN ms_produk p ON p.id_produk = tp.id_produk
         WHERE 1 = 1${dateFilter.sql}
         GROUP BY p.id_produk, p.nama_produk
         ORDER BY total_restock DESC
@@ -261,8 +265,9 @@ const ReportModel = {
         SELECT
           u.nama,
           COUNT(*) AS total_input
-        FROM tr_stok_masuk tsm
-        INNER JOIN ms_users u ON u.id_users = tsm.id_users
+        FROM tr_pembelian tp
+        INNER JOIN ms_pembelian mp ON mp.id_pembelian = tp.id_pembelian
+        INNER JOIN ms_users u ON u.id_users = mp.id_users
         WHERE 1 = 1${dateFilter.sql}
         GROUP BY u.id_users, u.nama
         ORDER BY total_input DESC
