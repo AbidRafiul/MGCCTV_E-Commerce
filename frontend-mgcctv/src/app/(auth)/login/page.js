@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle, Eye, EyeOff } from "lucide-react";
+import { LoaderCircle, Eye, EyeOff, Mail, X, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { AUTH_API_URL } from "@/lib/api";
 
