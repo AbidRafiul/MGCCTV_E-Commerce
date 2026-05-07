@@ -116,6 +116,7 @@ export default function AdminLayout({ children }) {
     logout: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
     report: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-6m4 6V7m4 10V4M5 20h14" /></svg>,
     purchase: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2 6h12M10 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" /></svg>,
+    supplier: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10h2m8 0H9m4 0h2m4 0h2v-5h-3l-2-4h-3" /></svg>,
     category: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
       <polyline points="2 12 12 17 22 12"></polyline>
@@ -129,6 +130,7 @@ export default function AdminLayout({ children }) {
     { name: "Kategori Barang", href: "/admin/kategori", section: "MANAJEMEN", icon: icons.category },
     { name: "Pesanan", href: "/admin/pesanan", section: "MANAJEMEN", icon: icons.cart, badge: 8 },
     { name: "Pembelian", href: "/admin/pembelian", section: "MANAJEMEN", icon: icons.purchase },
+    { name: "Data Supplier", href: "/admin/supplier", section: "MANAJEMEN", icon: icons.supplier },
     { name: "Data Pengguna", href: "/admin/pengguna", section: "MANAJEMEN", icon: icons.users },
     { name: "Laporan Transaksi", href: "/admin/laporan-transaksi", section: "MANAJEMEN", icon: icons.report },
     { name: "Kelola CMS", href: "/admin/cms", section: "KONTEN & ANALITIK", icon: icons.layout },
