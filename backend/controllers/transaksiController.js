@@ -23,7 +23,7 @@ const mapMidtransStatus = (transactionStatus, fraudStatus) => {
 };
 
 const RESTORE_STOCK_PAYMENT_STATUSES = new Set(["failed", "expired"]);
-const DEDUCT_STOCK_PAYMENT_STATUSES = new Set(["paid"]);
+const STOCK_RESERVED_PAYMENT_STATUSES = new Set(["pending", "paid"]);
 
 const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
   const connection = await db.getConnection();
@@ -57,13 +57,16 @@ const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
       throw error;
     }
 
+    // Stok sudah dikurangi oleh trigger after_insert_tr_detail_transaksi_stok
+    // ketika checkout dibuat. Backend hanya restore saat pembayaran gagal/expired,
+    // atau mengurangi ulang jika transaksi yang sudah direstore berubah valid lagi.
     const shouldRestoreStock =
       RESTORE_STOCK_PAYMENT_STATUSES.has(normalizedNextStatus) &&
-      DEDUCT_STOCK_PAYMENT_STATUSES.has(currentPaymentStatus);
+      STOCK_RESERVED_PAYMENT_STATUSES.has(currentPaymentStatus);
 
     const shouldDeductStock =
-      DEDUCT_STOCK_PAYMENT_STATUSES.has(normalizedNextStatus) &&
-      !DEDUCT_STOCK_PAYMENT_STATUSES.has(currentPaymentStatus);
+      STOCK_RESERVED_PAYMENT_STATUSES.has(normalizedNextStatus) &&
+      RESTORE_STOCK_PAYMENT_STATUSES.has(currentPaymentStatus);
 
     if (shouldDeductStock) {
       const [detailRows] = await connection.execute(

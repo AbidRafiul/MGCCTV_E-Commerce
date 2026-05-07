@@ -9,6 +9,7 @@ import PembelianSummarySection from "@/section/admin/pembelian/PembelianSummaryS
 import PembelianTableSection from "@/section/admin/pembelian/PembelianTableSection";
 import PembelianFormSection from "@/section/admin/pembelian/PembelianFormSection";
 import PembelianRecentOrdersSection from "@/section/admin/pembelian/PembelianRecentOrdersSection";
+import PembelianDetailDialogSection from "@/section/admin/pembelian/PembelianDetailDialogSection";
 
 // UI Components
 import {
@@ -18,9 +19,11 @@ import {
 
 export default function PembelianPage() {
   const {
-    products, isLoading, error, formData, isSubmitting, feedbackDialog, setFeedbackDialog,
-    handleFormChange, handleFormSubmit, inventoryStats, productsByStock, latestCompletedOrders, feedbackMeta,
-    formatCurrency, formatNumber, formatDateTime, statusTone
+    products, suppliers, purchases, isLoading, error, formData, formTotal, isFormOpen, detailDialog,
+    deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, openCreateForm, closeCreateForm,
+    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, openPurchaseDetail,
+    closePurchaseDetail, deletePurchase, inventoryStats, latestPurchases, feedbackMeta,
+    formatCurrency, formatNumber, formatDateTime
   } = usePembelian();
 
   const FeedbackIcon = feedbackMeta.icon;
@@ -28,7 +31,7 @@ export default function PembelianPage() {
   return (
     <>
       <div className="space-y-6">
-        <PembelianHeaderSection />
+        <PembelianHeaderSection openCreateForm={openCreateForm} />
 
         {isLoading ? (
           <div className="rounded-3xl border border-slate-200 bg-white px-6 py-20 shadow-sm">
@@ -48,18 +51,34 @@ export default function PembelianPage() {
 
             {/* Layout Grid: Kiri Tabel (Besar), Kanan Form & Pesanan (Kecil) */}
             <section className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.9fr)]">
-              <PembelianTableSection 
-                productsByStock={productsByStock} formatCurrency={formatCurrency} 
-                formatNumber={formatNumber} formatDateTime={formatDateTime} statusTone={statusTone} 
+              <PembelianTableSection
+                purchases={purchases}
+                deletingId={deletingId}
+                openPurchaseDetail={openPurchaseDetail}
+                deletePurchase={deletePurchase}
+                formatCurrency={formatCurrency}
+                formatNumber={formatNumber}
+                formatDateTime={formatDateTime}
               />
               
               <div className="space-y-6">
                 <PembelianFormSection 
-                  products={products} formData={formData} handleFormChange={handleFormChange} 
-                  handleFormSubmit={handleFormSubmit} isSubmitting={isSubmitting} 
+                  products={products}
+                  suppliers={suppliers}
+                  formData={formData}
+                  formTotal={formTotal}
+                  isFormOpen={isFormOpen}
+                  closeCreateForm={closeCreateForm}
+                  handleFormChange={handleFormChange}
+                  handleItemChange={handleItemChange}
+                  addItemRow={addItemRow}
+                  removeItemRow={removeItemRow}
+                  handleFormSubmit={handleFormSubmit}
+                  isSubmitting={isSubmitting}
+                  formatCurrency={formatCurrency}
                 />
                 <PembelianRecentOrdersSection 
-                  latestCompletedOrders={latestCompletedOrders} 
+                  latestPurchases={latestPurchases}
                   formatNumber={formatNumber} formatCurrency={formatCurrency} 
                 />
               </div>
@@ -67,6 +86,14 @@ export default function PembelianPage() {
           </>
         )}
       </div>
+
+      <PembelianDetailDialogSection
+        detailDialog={detailDialog}
+        closePurchaseDetail={closePurchaseDetail}
+        formatCurrency={formatCurrency}
+        formatNumber={formatNumber}
+        formatDateTime={formatDateTime}
+      />
 
       {/* FEEDBACK DIALOG */}
       <AlertDialog open={feedbackDialog.open} onOpenChange={(open) => setFeedbackDialog((prev) => ({ ...prev, open }))}>
