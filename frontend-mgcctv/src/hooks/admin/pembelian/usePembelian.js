@@ -31,6 +31,7 @@ export const usePembelian = () => {
   const [formData, setFormData] = useState(createEmptyForm);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState({ open: false, isLoading: false, data: null });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, purchase: null });
   const [deletingId, setDeletingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackDialog, setFeedbackDialog] = useState({ open: false, title: "", description: "", tone: "success" });
@@ -143,7 +144,7 @@ export const usePembelian = () => {
           tone: "error",
         });
       }
-    } catch (err) {
+    } catch {
       openFeedbackDialog({ title: "Server Tidak Merespons", description: "Koneksi ke server gagal. Coba lagi beberapa saat lagi.", tone: "warning" });
     } finally {
       setIsSubmitting(false);
@@ -177,9 +178,13 @@ export const usePembelian = () => {
 
   const closePurchaseDetail = () => setDetailDialog({ open: false, isLoading: false, data: null });
 
-  const deletePurchase = async (purchase) => {
-    const confirmed = window.confirm(`Hapus pembelian ${purchase.no_faktur || `#${purchase.id_pembelian}`}? Stok barang akan dikurangi sesuai trigger database.`);
-    if (!confirmed) return;
+  const deletePurchase = (purchase) => {
+    setDeleteDialog({ open: true, purchase });
+  };
+
+  const confirmDeletePurchase = async () => {
+    const purchase = deleteDialog.purchase;
+    if (!purchase) return;
 
     const token = localStorage.getItem("token");
     setDeletingId(purchase.id_pembelian);
@@ -200,6 +205,7 @@ export const usePembelian = () => {
         description: result.message || "Data pembelian berhasil dihapus.",
         tone: "success",
       });
+      setDeleteDialog({ open: false, purchase: null });
       await fetchInventoryData();
     } catch (deleteError) {
       openFeedbackDialog({
@@ -229,10 +235,10 @@ export const usePembelian = () => {
         : { icon: CircleAlert, mediaClass: "bg-red-50 text-red-600", buttonClass: "bg-red-600 text-white hover:bg-red-700" };
 
   return {
-    products, suppliers, purchases, isLoading, error, formData, formTotal, isFormOpen, detailDialog,
-    deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, setDetailDialog, openCreateForm, closeCreateForm,
+    products, suppliers, purchases, isLoading, error, formData, formTotal, isFormOpen, detailDialog, deleteDialog,
+    deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, setDetailDialog, setDeleteDialog, openCreateForm, closeCreateForm,
     handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, openPurchaseDetail,
-    closePurchaseDetail, deletePurchase, inventoryStats, latestPurchases, feedbackMeta,
+    closePurchaseDetail, deletePurchase, confirmDeletePurchase, inventoryStats, latestPurchases, feedbackMeta,
     formatCurrency, formatNumber, formatDateTime
   };
 };

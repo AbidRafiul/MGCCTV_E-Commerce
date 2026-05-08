@@ -9,6 +9,19 @@ export default function PembelianTableSection({
   formatNumber,
   formatDateTime,
 }) {
+  const parseProductSummary = (value) => {
+    if (!value) return [];
+
+    return String(value).split(";;").map((entry) => {
+      const [name, amount] = entry.split("|");
+
+      return {
+        name: name || "-",
+        amount: Number(amount || 0),
+      };
+    });
+  };
+
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col min-h-0">
       <div className="flex items-center justify-between gap-4">
@@ -24,6 +37,8 @@ export default function PembelianTableSection({
               <th className="px-4 py-3 font-semibold">Faktur</th>
               <th className="px-4 py-3 font-semibold">Supplier</th>
               <th className="px-4 py-3 font-semibold">Ringkasan Item</th>
+              <th className="px-4 py-3 font-semibold">Harga Jual</th>
+              <th className="px-4 py-3 font-semibold">Stok</th>
               <th className="px-4 py-3 font-semibold">Item</th>
               <th className="px-4 py-3 font-semibold">Barang</th>
               <th className="px-4 py-3 font-semibold">Total</th>
@@ -35,7 +50,7 @@ export default function PembelianTableSection({
           <tbody>
             {purchases.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
                   Belum ada data pembelian.
                 </td>
               </tr>
@@ -46,6 +61,28 @@ export default function PembelianTableSection({
                   <td className="px-4 py-4 font-medium text-slate-700">{purchase.nama_supplier || "-"}</td>
                   <td className="max-w-[280px] px-4 py-4 font-medium text-slate-700">
                     <span className="line-clamp-2">{purchase.item_ringkas || "-"}</span>
+                  </td>
+                  <td className="min-w-[180px] px-4 py-4">
+                    <div className="space-y-1">
+                      {parseProductSummary(purchase.harga_produk_ringkas).length === 0 ? (
+                        <p className="text-xs font-semibold text-slate-400">-</p>
+                      ) : parseProductSummary(purchase.harga_produk_ringkas).map((item, index) => (
+                        <p key={`${purchase.id_pembelian}-price-${index}`} className="text-xs font-bold text-emerald-700">
+                          {item.name}: {formatCurrency(item.amount)}
+                        </p>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="min-w-[150px] px-4 py-4">
+                    <div className="space-y-1">
+                      {parseProductSummary(purchase.stok_produk_ringkas).length === 0 ? (
+                        <p className="text-xs font-semibold text-slate-400">-</p>
+                      ) : parseProductSummary(purchase.stok_produk_ringkas).map((item, index) => (
+                        <p key={`${purchase.id_pembelian}-stock-${index}`} className="text-xs font-semibold text-slate-700">
+                          {item.name}: {formatNumber(item.amount)} pcs
+                        </p>
+                      ))}
+                    </div>
                   </td>
                   <td className="px-4 py-4 font-bold text-slate-900">{formatNumber(purchase.jumlah_item)}</td>
                   <td className="px-4 py-4 font-bold text-slate-900">{formatNumber(purchase.total_barang)}</td>

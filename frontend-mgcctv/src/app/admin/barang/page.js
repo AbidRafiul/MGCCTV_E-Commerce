@@ -348,7 +348,7 @@
                         </div>
                         <div className="flex flex-col gap-1 items-end">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Stok</span>
-                        <span className="font-bold text-xs"><span className={item.stok > 5 ? "text-green-600" : "text-orange-500"}>{item.stok} Pcs</span></span>
+                        <span className="font-bold text-xs"><span className={item.stok > 5 ? "text-green-600" : "text-orange-500"}>{item.stok}</span></span>
                         </div>
                     </div>
 
@@ -390,14 +390,15 @@
                     <th className="px-4 md:px-6 py-3 md:py-4">Produk</th>
                     <th className="px-4 md:px-6 py-3 md:py-4">Kategori</th>
                     <th className="px-4 md:px-6 py-3 md:py-4">Harga Jual</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4">Stok</th>
                     <th className="px-4 md:px-6 py-3 md:py-4 text-center">Aksi</th>
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                 {isLoading ? (
-                    <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-500 text-sm">Memuat data produk...</td></tr>
+                    <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-500 text-sm">Memuat data produk...</td></tr>
                 ) : produk.length === 0 ? (
-                    <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-500 text-sm">Produk tidak ditemukan.</td></tr>
+                    <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-500 text-sm">Produk tidak ditemukan.</td></tr>
                 ) : (
                     produk.map((item) => (
                     <tr key={item.id_produk} className="hover:bg-blue-50/50 transition-colors">
@@ -418,6 +419,9 @@
                         </td>
                         <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-slate-600 text-xs md:text-sm">{item.merek || "Tidak Ada"}</td>
                         <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-slate-800 text-xs md:text-sm">{formatRupiah(item.harga_produk)}</td>
+                        <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-xs md:text-sm">
+                        <span className={item.stok > 5 ? "text-green-600" : "text-orange-500"}>{item.stok} Pcs</span>
+                        </td>
                         <td className="px-4 md:px-6 py-3 md:py-4">
                         <div className="flex items-center justify-center gap-2">
                             
