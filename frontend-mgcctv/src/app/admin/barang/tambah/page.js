@@ -229,10 +229,6 @@ export default function TambahBarangPage() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-sm font-bold text-slate-700 block mb-2">Harga Jual (Rp)</label>
-                  <input type="number" name="harga_produk" value={form.harga_produk} onChange={handleChange} placeholder="Contoh: 1500000" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" required />
-                </div>
               </div>
 
               

@@ -15,10 +15,15 @@ export default function PembelianDetailDialogSection({
   formatDateTime,
 }) {
   const detail = detailDialog.data;
+  const formatSellingPrice = (value) => {
+    const price = Number(value || 0);
+
+    return price > 0 ? formatCurrency(price) : "-";
+  };
 
   return (
     <Dialog open={detailDialog.open} onOpenChange={(open) => !open && closePurchaseDetail()}>
-      <DialogContent className="max-h-[86vh] overflow-hidden rounded-2xl bg-white p-0 sm:max-w-3xl">
+      <DialogContent className="max-h-[86vh] overflow-hidden rounded-2xl bg-white p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-slate-200 bg-slate-50 px-6 py-5">
           <DialogTitle className="text-lg font-bold text-slate-900">
             Detail Pembelian {detail?.no_faktur || ""}
@@ -61,6 +66,7 @@ export default function PembelianDetailDialogSection({
                     <th className="px-4 py-3 font-semibold">Produk</th>
                     <th className="px-4 py-3 font-semibold">Jumlah</th>
                     <th className="px-4 py-3 font-semibold">Harga Beli</th>
+                    <th className="px-4 py-3 font-semibold">Harga Jual</th>
                     <th className="px-4 py-3 font-semibold">Subtotal</th>
                   </tr>
                 </thead>
@@ -70,6 +76,7 @@ export default function PembelianDetailDialogSection({
                       <td className="px-4 py-4 font-semibold text-slate-900">{item.nama_produk}</td>
                       <td className="px-4 py-4 font-bold text-slate-800">{formatNumber(item.jumlah)}</td>
                       <td className="px-4 py-4 font-medium text-slate-700">{formatCurrency(item.harga_beli)}</td>
+                      <td className="px-4 py-4 font-bold text-emerald-700">{formatSellingPrice(item.harga_produk)}</td>
                       <td className="px-4 py-4 font-bold text-blue-700">{formatCurrency(item.sub_total)}</td>
                     </tr>
                   ))}

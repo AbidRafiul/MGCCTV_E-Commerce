@@ -104,7 +104,15 @@ const getPembelianList = async (req, res) => {
           GROUP_CONCAT(
             CONCAT(p.nama_produk, ' x', COALESCE(tp.jumlah, 0))
             ORDER BY tp.id_tr_pembelian SEPARATOR ', '
-          ) AS item_ringkas
+          ) AS item_ringkas,
+          GROUP_CONCAT(
+            CONCAT(p.nama_produk, '|', COALESCE(p.harga_produk, 0))
+            ORDER BY tp.id_tr_pembelian SEPARATOR ';;'
+          ) AS harga_produk_ringkas,
+          GROUP_CONCAT(
+            CONCAT(p.nama_produk, '|', COALESCE(p.stok, 0))
+            ORDER BY tp.id_tr_pembelian SEPARATOR ';;'
+          ) AS stok_produk_ringkas
         FROM ms_pembelian mp
         INNER JOIN tr_pembelian tp ON tp.id_pembelian = mp.id_pembelian
         INNER JOIN ms_produk p ON p.id_produk = tp.id_produk
@@ -176,6 +184,8 @@ const getPembelianDetail = async (req, res) => {
           tp.id_produk,
           tp.jumlah,
           tp.harga_beli,
+          p.harga_produk,
+          p.stok,
           tp.sub_total,
           p.nama_produk
         FROM tr_pembelian tp
@@ -289,6 +299,21 @@ const createPembelian = async (req, res) => {
         `,
         [idPembelian, item.idProduk, item.jumlah, item.hargaBeli],
       );
+      const [detailRows] = await connection.query(
+        `
+          SELECT
+            tp.sub_total,
+            p.harga_produk
+          FROM tr_pembelian tp
+          INNER JOIN ms_produk p ON p.id_produk = tp.id_produk
+          WHERE tp.id_tr_pembelian = ?
+          LIMIT 1
+        `,
+        [detailResult.insertId],
+      );
+      const hargaProduk = Number(detailRows[0]?.harga_produk || 0);
+      const subTotal = Number(detailRows[0]?.sub_total || item.jumlah * item.hargaBeli);
+
       const product = products.find((row) => Number(row.id_produk) === item.idProduk);
       insertedItems.push({
         id_tr_pembelian: detailResult.insertId,
@@ -296,7 +321,8 @@ const createPembelian = async (req, res) => {
         nama_produk: product?.nama_produk || "-",
         jumlah: item.jumlah,
         harga_beli: item.hargaBeli,
-        sub_total: item.jumlah * item.hargaBeli,
+        harga_produk: hargaProduk,
+        sub_total: subTotal,
       });
     }
 
