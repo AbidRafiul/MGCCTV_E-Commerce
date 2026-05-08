@@ -19,9 +19,9 @@ import {
 
 export default function PembelianPage() {
   const {
-    products, suppliers, purchases, isLoading, error, formData, formTotal, isFormOpen, detailDialog, deleteDialog,
+    products, suppliers, purchases, isLoading, error, formData, itemFormData, formTotal, isFormOpen, detailDialog, deleteDialog,
     deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, setDeleteDialog, openCreateForm, closeCreateForm,
-    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, openPurchaseDetail,
+    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, handleItemSubmit, openPurchaseDetail,
     closePurchaseDetail, deletePurchase, confirmDeletePurchase, inventoryStats, latestPurchases, feedbackMeta,
     formatCurrency, formatNumber, formatDateTime
   } = usePembelian();
@@ -63,19 +63,13 @@ export default function PembelianPage() {
               
               <div className="space-y-6">
                 <PembelianFormSection 
-                  products={products}
                   suppliers={suppliers}
                   formData={formData}
-                  formTotal={formTotal}
                   isFormOpen={isFormOpen}
                   closeCreateForm={closeCreateForm}
                   handleFormChange={handleFormChange}
-                  handleItemChange={handleItemChange}
-                  addItemRow={addItemRow}
-                  removeItemRow={removeItemRow}
                   handleFormSubmit={handleFormSubmit}
                   isSubmitting={isSubmitting}
-                  formatCurrency={formatCurrency}
                 />
                 <PembelianRecentOrdersSection 
                   latestPurchases={latestPurchases}
@@ -89,7 +83,15 @@ export default function PembelianPage() {
 
       <PembelianDetailDialogSection
         detailDialog={detailDialog}
+        products={products}
+        itemFormData={itemFormData}
+        formTotal={formTotal}
         closePurchaseDetail={closePurchaseDetail}
+        handleItemChange={handleItemChange}
+        addItemRow={addItemRow}
+        removeItemRow={removeItemRow}
+        handleItemSubmit={handleItemSubmit}
+        isSubmitting={isSubmitting}
         formatCurrency={formatCurrency}
         formatNumber={formatNumber}
         formatDateTime={formatDateTime}

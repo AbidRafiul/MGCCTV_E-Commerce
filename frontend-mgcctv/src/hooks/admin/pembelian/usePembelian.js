@@ -19,8 +19,27 @@ const createEmptyForm = () => ({
   id_supplier: "",
   no_faktur: "",
   tanggal: new Date().toISOString().slice(0, 10),
+});
+
+const createEmptyItemForm = () => ({
   items: [{ id_produk: "", jumlah: "", harga_beli: "" }],
 });
+
+const mapDetailItemsToForm = (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return createEmptyItemForm();
+  }
+
+  return {
+    items: items.map((item) => ({
+      id_tr_pembelian: item.id_tr_pembelian,
+      id_produk: item.id_produk,
+      jumlah: item.jumlah,
+      harga_beli: item.harga_beli,
+      margin: item.margin,
+    })),
+  };
+};
 
 export const usePembelian = () => {
   const [products, setProducts] = useState([]);
@@ -29,6 +48,7 @@ export const usePembelian = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState(createEmptyForm);
+  const [itemFormData, setItemFormData] = useState(createEmptyItemForm);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState({ open: false, isLoading: false, data: null });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, purchase: null });
@@ -83,33 +103,33 @@ export const usePembelian = () => {
   };
 
   const handleItemChange = (index, field, value) => {
-    setFormData((prev) => ({
+    setItemFormData((prev) => ({
       ...prev,
-      items: prev.items.map((item, itemIndex) => (
+      items: (prev.items || []).map((item, itemIndex) => (
         itemIndex === index ? { ...item, [field]: value } : item
       )),
     }));
   };
 
   const addItemRow = () => {
-    setFormData((prev) => ({
+    setItemFormData((prev) => ({
       ...prev,
-      items: [...prev.items, { id_produk: "", jumlah: "", harga_beli: "" }],
+      items: [...(prev.items || []), { id_produk: "", jumlah: "", harga_beli: "" }],
     }));
   };
 
   const removeItemRow = (index) => {
-    setFormData((prev) => ({
+    setItemFormData((prev) => ({
       ...prev,
-      items: prev.items.length === 1
+      items: (prev.items || []).length === 1
         ? prev.items
-        : prev.items.filter((_, itemIndex) => itemIndex !== index),
+        : (prev.items || []).filter((_, itemIndex) => itemIndex !== index),
     }));
   };
 
   const formTotal = useMemo(
-    () => formData.items.reduce((total, item) => total + (Number(item.jumlah || 0) * Number(item.harga_beli || 0)), 0),
-    [formData.items],
+    () => (itemFormData.items || []).reduce((total, item) => total + (Number(item.jumlah || 0) * Number(item.harga_beli || 0)), 0),
+    [itemFormData.items],
   );
 
   const handleFormSubmit = async (e) => {
@@ -121,7 +141,11 @@ export const usePembelian = () => {
       const response = await fetch(`${API_BASE_URL}/api/pembelian`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          id_supplier: formData.id_supplier,
+          no_faktur: formData.no_faktur,
+          tanggal: formData.tanggal,
+        }),
       });
 
       const result = await response.json().catch(() => ({}));
@@ -151,9 +175,10 @@ export const usePembelian = () => {
     }
   };
 
-  const openPurchaseDetail = async (purchase) => {
+  const openPurchaseDetail = async (purchase, isEditMode = false) => {
     const token = localStorage.getItem("token");
-    setDetailDialog({ open: true, isLoading: true, data: { ...purchase, items: [] } });
+    setItemFormData(createEmptyItemForm());
+    setDetailDialog({ open: true, isLoading: true, mode: isEditMode ? "edit" : "view", data: { ...purchase, items: [] } });
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/pembelian/${purchase.id_pembelian}`, {
@@ -165,7 +190,11 @@ export const usePembelian = () => {
         throw new Error(result.message || "Gagal mengambil detail pembelian");
       }
 
-      setDetailDialog({ open: true, isLoading: false, data: result.data });
+      if (isEditMode) {
+        setItemFormData(mapDetailItemsToForm(result.data?.items));
+      }
+
+      setDetailDialog({ open: true, isLoading: false, mode: isEditMode ? "edit" : "view", data: result.data });
     } catch (detailError) {
       setDetailDialog((prev) => ({ ...prev, isLoading: false }));
       openFeedbackDialog({
@@ -176,7 +205,56 @@ export const usePembelian = () => {
     }
   };
 
-  const closePurchaseDetail = () => setDetailDialog({ open: false, isLoading: false, data: null });
+  const closePurchaseDetail = () => setDetailDialog({ open: false, isLoading: false, mode: "view", data: null });
+
+  const handleItemSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!detailDialog.data?.id_pembelian) {
+      openFeedbackDialog({
+        title: "Faktur Tidak Valid",
+        description: "Data faktur pembelian tidak ditemukan.",
+        tone: "error",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pembelian/${detailDialog.data.id_pembelian}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ items: itemFormData.items }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        openFeedbackDialog({
+          title: "Item Pembelian Disimpan",
+          description: result?.data?.total_item
+            ? `${result.data.total_item} item berhasil disimpan ke faktur.`
+            : result?.message || "Item pembelian berhasil disimpan.",
+          tone: "success",
+        });
+        setItemFormData(createEmptyItemForm());
+        closePurchaseDetail();
+        await fetchInventoryData();
+      } else {
+        openFeedbackDialog({
+          title: "Gagal Menyimpan Item",
+          description: result?.message || result?.error || "Terjadi kesalahan saat menyimpan item pembelian.",
+          tone: "error",
+        });
+      }
+    } catch {
+      openFeedbackDialog({ title: "Server Tidak Merespons", description: "Koneksi ke server gagal. Coba lagi beberapa saat lagi.", tone: "warning" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const deletePurchase = (purchase) => {
     setDeleteDialog({ open: true, purchase });
@@ -235,9 +313,9 @@ export const usePembelian = () => {
         : { icon: CircleAlert, mediaClass: "bg-red-50 text-red-600", buttonClass: "bg-red-600 text-white hover:bg-red-700" };
 
   return {
-    products, suppliers, purchases, isLoading, error, formData, formTotal, isFormOpen, detailDialog, deleteDialog,
+    products, suppliers, purchases, isLoading, error, formData, itemFormData, formTotal, isFormOpen, detailDialog, deleteDialog,
     deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, setDetailDialog, setDeleteDialog, openCreateForm, closeCreateForm,
-    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, openPurchaseDetail,
+    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, handleItemSubmit, openPurchaseDetail,
     closePurchaseDetail, deletePurchase, confirmDeletePurchase, inventoryStats, latestPurchases, feedbackMeta,
     formatCurrency, formatNumber, formatDateTime
   };
