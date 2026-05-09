@@ -7,6 +7,7 @@ const {
   getPembelianList,
   getPembelianDetail,
   createPembelian,
+  addPembelianItems,
   deletePembelian,
   tambahStok,
 } = require('../controllers/admin/pembelianController');
@@ -20,6 +21,7 @@ router.get('/options', auth, getPembelianOptions);
 router.get('/transaksi', auth, getPembelianList);
 router.get('/:id', auth, getPembelianDetail);
 router.post('/', auth, createPembelian);
+router.post('/:id/items', auth, addPembelianItems);
 router.delete('/:id', auth, deletePembelian);
 router.post('/tambah', auth, tambahStok);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { usePembelian } from "@/hooks/admin/pembelian/usePembelian";
 
 // Sections
@@ -13,16 +13,16 @@ import PembelianDetailDialogSection from "@/section/admin/pembelian/PembelianDet
 
 // UI Components
 import {
-  AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 export default function PembelianPage() {
   const {
-    products, suppliers, purchases, isLoading, error, formData, formTotal, isFormOpen, detailDialog,
-    deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, openCreateForm, closeCreateForm,
-    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, openPurchaseDetail,
-    closePurchaseDetail, deletePurchase, inventoryStats, latestPurchases, feedbackMeta,
+    products, suppliers, purchases, isLoading, error, formData, itemFormData, formTotal, isFormOpen, detailDialog, deleteDialog,
+    deletingId, isSubmitting, feedbackDialog, setFeedbackDialog, setDeleteDialog, openCreateForm, closeCreateForm,
+    handleFormChange, handleItemChange, addItemRow, removeItemRow, handleFormSubmit, handleItemSubmit, openPurchaseDetail,
+    closePurchaseDetail, deletePurchase, confirmDeletePurchase, inventoryStats, latestPurchases, feedbackMeta,
     formatCurrency, formatNumber, formatDateTime
   } = usePembelian();
 
@@ -63,19 +63,13 @@ export default function PembelianPage() {
               
               <div className="space-y-6">
                 <PembelianFormSection 
-                  products={products}
                   suppliers={suppliers}
                   formData={formData}
-                  formTotal={formTotal}
                   isFormOpen={isFormOpen}
                   closeCreateForm={closeCreateForm}
                   handleFormChange={handleFormChange}
-                  handleItemChange={handleItemChange}
-                  addItemRow={addItemRow}
-                  removeItemRow={removeItemRow}
                   handleFormSubmit={handleFormSubmit}
                   isSubmitting={isSubmitting}
-                  formatCurrency={formatCurrency}
                 />
                 <PembelianRecentOrdersSection 
                   latestPurchases={latestPurchases}
@@ -89,11 +83,55 @@ export default function PembelianPage() {
 
       <PembelianDetailDialogSection
         detailDialog={detailDialog}
+        products={products}
+        itemFormData={itemFormData}
+        formTotal={formTotal}
         closePurchaseDetail={closePurchaseDetail}
+        handleItemChange={handleItemChange}
+        addItemRow={addItemRow}
+        removeItemRow={removeItemRow}
+        handleItemSubmit={handleItemSubmit}
+        isSubmitting={isSubmitting}
         formatCurrency={formatCurrency}
         formatNumber={formatNumber}
         formatDateTime={formatDateTime}
       />
+
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setDeleteDialog({ open: false, purchase: null });
+        }}
+      >
+        <AlertDialogContent className="max-w-md rounded-[24px] border border-slate-200 bg-white p-0 shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+          <AlertDialogHeader className="px-6 pt-6 text-left sm:place-items-start sm:text-left">
+            <AlertDialogMedia className="size-12 rounded-2xl bg-red-50 text-red-600">
+              <Trash2 size={22} />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-lg font-bold text-[#0C2C55]">
+              Hapus Pembelian?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-6 text-slate-500">
+              Faktur {deleteDialog.purchase?.no_faktur || `#${deleteDialog.purchase?.id_pembelian || ""}`} akan dihapus. Stok barang akan dikurangi sesuai trigger database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="rounded-b-[24px] border-t border-slate-200 bg-slate-50/80 px-6 py-4">
+            <AlertDialogCancel
+              disabled={Boolean(deletingId)}
+              className="rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeletePurchase}
+              disabled={Boolean(deletingId)}
+              className="rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deletingId ? "Menghapus..." : "Ya, Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* FEEDBACK DIALOG */}
       <AlertDialog open={feedbackDialog.open} onOpenChange={(open) => setFeedbackDialog((prev) => ({ ...prev, open }))}>

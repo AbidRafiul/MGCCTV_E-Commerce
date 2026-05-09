@@ -27,7 +27,7 @@ const getListProduk = async (req, res) => {
   try {
     const [results] = await db.query(
       `
-        SELECT id_produk, nama_produk, stok, harga_produk
+        SELECT id_produk, nama_produk, stok, harga_produk, COALESCE(NULLIF(margin, 0), 5) AS margin
         FROM ms_produk
         ORDER BY nama_produk ASC
       `,
@@ -53,7 +53,7 @@ const getPembelianOptions = async (req, res) => {
     const [products, suppliers] = await Promise.all([
       db.query(
         `
-          SELECT id_produk, nama_produk, stok, harga_produk
+          SELECT id_produk, nama_produk, stok, harga_produk, COALESCE(NULLIF(margin, 0), 5) AS margin
           FROM ms_produk
           ORDER BY nama_produk ASC
         `,
@@ -104,10 +104,18 @@ const getPembelianList = async (req, res) => {
           GROUP_CONCAT(
             CONCAT(p.nama_produk, ' x', COALESCE(tp.jumlah, 0))
             ORDER BY tp.id_tr_pembelian SEPARATOR ', '
-          ) AS item_ringkas
+          ) AS item_ringkas,
+          GROUP_CONCAT(
+            CONCAT(p.nama_produk, '|', COALESCE(p.harga_produk, 0))
+            ORDER BY tp.id_tr_pembelian SEPARATOR ';;'
+          ) AS harga_produk_ringkas,
+          GROUP_CONCAT(
+            CONCAT(p.nama_produk, '|', COALESCE(p.stok, 0))
+            ORDER BY tp.id_tr_pembelian SEPARATOR ';;'
+          ) AS stok_produk_ringkas
         FROM ms_pembelian mp
-        INNER JOIN tr_pembelian tp ON tp.id_pembelian = mp.id_pembelian
-        INNER JOIN ms_produk p ON p.id_produk = tp.id_produk
+        LEFT JOIN tr_pembelian tp ON tp.id_pembelian = mp.id_pembelian
+        LEFT JOIN ms_produk p ON p.id_produk = tp.id_produk
         INNER JOIN ms_supplier s ON s.id_supplier = mp.id_supplier
         INNER JOIN ms_users u ON u.id_users = mp.id_users
         GROUP BY
@@ -176,6 +184,9 @@ const getPembelianDetail = async (req, res) => {
           tp.id_produk,
           tp.jumlah,
           tp.harga_beli,
+          COALESCE(NULLIF(p.margin, 0), 5) AS margin,
+          CEIL(tp.harga_beli + (tp.harga_beli * COALESCE(NULLIF(p.margin, 0), 5) / 100)) AS harga_produk,
+          p.stok,
           tp.sub_total,
           p.nama_produk
         FROM tr_pembelian tp
@@ -203,9 +214,6 @@ const getPembelianDetail = async (req, res) => {
 const createPembelian = async (req, res) => {
   const idUser = getUserId(req);
   const idSupplier = Number(req.body.id_supplier || 0);
-  const rawItems = Array.isArray(req.body.items) && req.body.items.length > 0
-    ? req.body.items
-    : [{ id_produk: req.body.id_produk, jumlah: req.body.jumlah || req.body.qty_masuk, harga_beli: req.body.harga_beli }];
   const noFaktur = String(req.body.no_faktur || "").trim();
   const tanggal = String(req.body.tanggal || "").trim() || new Date().toISOString().slice(0, 10);
   let connection;
@@ -221,7 +229,78 @@ const createPembelian = async (req, res) => {
       return res.status(400).json({ message: "Supplier wajib dipilih." });
     }
 
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const [supplier] = await connection.query(
+      "SELECT id_supplier FROM ms_supplier WHERE id_supplier = ? LIMIT 1",
+      [idSupplier],
+    );
+
+    if (supplier.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Supplier tidak ditemukan." });
+    }
+
+    const generatedNoFaktur = noFaktur || `PB-${Date.now()}`;
+    const [headerResult] = await connection.query(
+      `
+        INSERT INTO ms_pembelian (id_supplier, id_users, no_faktur, tanggal, total, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 0, NOW(), NOW())
+      `,
+      [idSupplier, idUser, generatedNoFaktur, tanggal],
+    );
+
+    const idPembelian = headerResult.insertId;
+
+    await connection.commit();
+
+    return res.status(201).json({
+      message: "Pembelian berhasil disimpan.",
+      data: {
+        id_pembelian: idPembelian,
+        no_faktur: generatedNoFaktur,
+        total_item: 0,
+        total_barang: 0,
+        total: 0,
+        items: [],
+      },
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error("Error createPembelian:", error.message);
+    return res.status(error.statusCode || 500).json({
+      message: error.message || "Gagal menyimpan pembelian barang",
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};
+
+const addPembelianItems = async (req, res) => {
+  const idUser = getUserId(req);
+  const idPembelian = Number(req.params.id || 0);
+  const rawItems = Array.isArray(req.body.items) ? req.body.items : [];
+  let connection;
+
+  try {
+    if (!idUser) {
+      return res.status(401).json({ message: "User tidak valid." });
+    }
+
+    await ensureAdminOrSuperadmin(idUser);
+
+    if (!idPembelian) {
+      return res.status(400).json({ message: "ID pembelian tidak valid." });
+    }
+
     const items = rawItems.map((item) => ({
+      idTrPembelian: Number(item.id_tr_pembelian || 0),
       idProduk: Number(item.id_produk || 0),
       jumlah: Number(item.jumlah || 0),
       hargaBeli: Number(item.harga_beli || 0),
@@ -248,19 +327,53 @@ const createPembelian = async (req, res) => {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    const [supplier] = await connection.query(
-      "SELECT id_supplier FROM ms_supplier WHERE id_supplier = ? LIMIT 1",
-      [idSupplier],
+    const [headerRows] = await connection.query(
+      "SELECT id_pembelian FROM ms_pembelian WHERE id_pembelian = ? LIMIT 1",
+      [idPembelian],
     );
 
-    if (supplier.length === 0) {
+    if (headerRows.length === 0) {
       await connection.rollback();
-      return res.status(404).json({ message: "Supplier tidak ditemukan." });
+      return res.status(404).json({ message: "Pembelian tidak ditemukan." });
+    }
+
+    const [existingRows] = await connection.query(
+      "SELECT id_tr_pembelian, id_produk FROM tr_pembelian WHERE id_pembelian = ?",
+      [idPembelian],
+    );
+
+    const existingMap = new Map(
+      existingRows.map((row) => [Number(row.id_tr_pembelian), Number(row.id_produk)]),
+    );
+
+    for (const item of items) {
+      if (item.idTrPembelian && !existingMap.has(item.idTrPembelian)) {
+        await connection.rollback();
+        return res.status(404).json({ message: "Ada item pembelian yang tidak ditemukan." });
+      }
+
+      if (item.idTrPembelian) {
+        item.idProduk = existingMap.get(item.idTrPembelian);
+      }
+    }
+
+    const submittedExistingIds = items
+      .map((item) => item.idTrPembelian)
+      .filter(Boolean);
+    const deletedExistingIds = existingRows
+      .map((row) => Number(row.id_tr_pembelian))
+      .filter((idTrPembelian) => !submittedExistingIds.includes(idTrPembelian));
+
+    if (deletedExistingIds.length > 0) {
+      await connection.query(
+        "DELETE FROM tr_pembelian WHERE id_pembelian = ? AND id_tr_pembelian IN (?)",
+        [idPembelian, deletedExistingIds],
+      );
     }
 
     const productIds = [...new Set(items.map((item) => item.idProduk))];
     const [products] = await connection.query(
-      `SELECT id_produk, nama_produk FROM ms_produk WHERE id_produk IN (?)`,
+      "SELECT id_produk, nama_produk, harga_produk, COALESCE(NULLIF(margin, 0), 5) AS margin FROM ms_produk WHERE id_produk IN (?)",
       [productIds],
     );
 
@@ -269,33 +382,53 @@ const createPembelian = async (req, res) => {
       return res.status(404).json({ message: "Ada produk yang tidak ditemukan." });
     }
 
-    const generatedNoFaktur = noFaktur || `PB-${Date.now()}`;
-    const [headerResult] = await connection.query(
-      `
-        INSERT INTO ms_pembelian (id_supplier, id_users, no_faktur, tanggal, total, created_at, updated_at)
-        VALUES (?, ?, ?, ?, 0, NOW(), NOW())
-      `,
-      [idSupplier, idUser, generatedNoFaktur, tanggal],
-    );
-
-    const idPembelian = headerResult.insertId;
-    const insertedItems = [];
+    const savedItems = [];
 
     for (const item of items) {
-      const [detailResult] = await connection.query(
-        `
-          INSERT INTO tr_pembelian (id_pembelian, id_produk, jumlah, harga_beli, created_at, updated_at)
-          VALUES (?, ?, ?, ?, NOW(), NOW())
-        `,
-        [idPembelian, item.idProduk, item.jumlah, item.hargaBeli],
-      );
+      let idTrPembelian = item.idTrPembelian;
+
+      if (idTrPembelian) {
+        await connection.query(
+          `
+            UPDATE tr_pembelian
+            SET jumlah = ?, harga_beli = ?, sub_total = ?, updated_at = NOW()
+            WHERE id_pembelian = ? AND id_tr_pembelian = ?
+          `,
+          [item.jumlah, item.hargaBeli, item.jumlah * item.hargaBeli, idPembelian, idTrPembelian],
+        );
+      } else {
+        const [detailResult] = await connection.query(
+          `
+            INSERT INTO tr_pembelian (id_pembelian, id_produk, jumlah, harga_beli, created_at, updated_at)
+            VALUES (?, ?, ?, ?, NOW(), NOW())
+          `,
+          [idPembelian, item.idProduk, item.jumlah, item.hargaBeli],
+        );
+
+        idTrPembelian = detailResult.insertId;
+      }
+
       const product = products.find((row) => Number(row.id_produk) === item.idProduk);
-      insertedItems.push({
-        id_tr_pembelian: detailResult.insertId,
+      const sellingPrice = Math.ceil(item.hargaBeli + (item.hargaBeli * Number(product?.margin || 0) / 100));
+
+      await connection.query(
+        `
+          UPDATE ms_produk
+          SET harga_produk = CEIL(? + (? * COALESCE(NULLIF(margin, 0), 5) / 100)),
+              updated_at = NOW()
+          WHERE id_produk = ?
+        `,
+        [item.hargaBeli, item.hargaBeli, item.idProduk],
+      );
+
+      savedItems.push({
+        id_tr_pembelian: idTrPembelian,
         id_produk: item.idProduk,
         nama_produk: product?.nama_produk || "-",
         jumlah: item.jumlah,
         harga_beli: item.hargaBeli,
+        harga_produk: sellingPrice,
+        margin: Number(product?.margin || 0),
         sub_total: item.jumlah * item.hargaBeli,
       });
     }
@@ -317,14 +450,13 @@ const createPembelian = async (req, res) => {
     await connection.commit();
 
     return res.status(201).json({
-      message: "Pembelian barang berhasil disimpan.",
+      message: "Item pembelian berhasil disimpan.",
       data: {
         id_pembelian: idPembelian,
-        no_faktur: generatedNoFaktur,
-        total_item: insertedItems.length,
-        total_barang: insertedItems.reduce((total, item) => total + item.jumlah, 0),
-        total: insertedItems.reduce((total, item) => total + item.sub_total, 0),
-        items: insertedItems,
+        total_item: savedItems.length,
+        total_barang: savedItems.reduce((total, item) => total + item.jumlah, 0),
+        total: savedItems.reduce((total, item) => total + item.sub_total, 0),
+        items: savedItems,
       },
     });
   } catch (error) {
@@ -332,9 +464,9 @@ const createPembelian = async (req, res) => {
       await connection.rollback();
     }
 
-    console.error("Error createPembelian:", error.message);
+    console.error("Error addPembelianItems:", error.message);
     return res.status(error.statusCode || 500).json({
-      message: error.message || "Gagal menyimpan pembelian barang",
+      message: error.message || "Gagal menyimpan item pembelian",
     });
   } finally {
     if (connection) {
@@ -409,6 +541,7 @@ module.exports = {
   getPembelianList,
   getPembelianDetail,
   createPembelian,
+  addPembelianItems,
   deletePembelian,
   tambahStok,
 };
