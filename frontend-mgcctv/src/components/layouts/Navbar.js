@@ -50,7 +50,7 @@ export default function Navbar() {
 
   const [notifications, setNotifications] = useState(dummyNotifications);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const unreadNotifCount = notifications.filter(n => n.is_read === 0).length;
+  const unreadNotifCount = notifications.filter(n => n.is_read == 0 || n.is_read === false).length;
 
   const router = useRouter();
 
@@ -185,14 +185,14 @@ export default function Navbar() {
                           </div>
                           <div className="max-h-[350px] overflow-y-auto">
                             {notifications.length > 0 ? notifications.map((notif) => (
-                              <div key={notif.id_notifikasi} className={`p-4 border-b border-slate-50 flex gap-3 ${notif.is_read === 0 ? 'bg-blue-50/30' : ''}`}>
+                              <div key={notif.id_notifikasi} className={`p-4 border-b border-slate-50 flex gap-3 ${(notif.is_read == 0 || notif.is_read === false) ? 'bg-blue-50/30' : ''}`}>
                                 <div className="mt-0.5 shrink-0">{getNotifIcon(notif.tipe)}</div>
                                 <div className="flex-1 space-y-1">
-                                  <h4 className={`text-sm font-bold ${notif.is_read === 0 ? 'text-slate-900' : 'text-slate-700'}`}>{notif.judul}</h4>
+                                  <h4 className={`text-sm font-bold ${(notif.is_read == 0 || notif.is_read === false) ? 'text-slate-900' : 'text-slate-700'}`}>{notif.judul}</h4>
                                   <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{notif.pesan}</p>
                                   <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatDate(notif.created_at)}</p>
                                 </div>
-                                {notif.is_read === 0 && <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>}
+                                {(notif.is_read == 0 || notif.is_read === false) && <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>}
                               </div>
                             )) : <div className="p-8 text-center text-slate-400 text-sm">Belum ada notifikasi</div>}
                           </div>
