@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,6 +18,8 @@ export default function AdminLayout({ children }) {
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState("");
+
+  const [pesananPending, setPesananPending] = useState(0);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -66,6 +69,26 @@ export default function AdminLayout({ children }) {
     }
 
     setIsAllowed(true);
+
+    const fetchPendingOrders = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const payload = await response.json();
+
+        console.log("Ngintip Data Backend:", payload);
+        
+        if (response.ok && payload?.stats?.pesananMenunggu !== undefined) {
+          setPesananPending(payload.stats.pesananMenunggu);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil notif pesanan:", error);
+      }
+    };
+
+    fetchPendingOrders();
+
   }, [pathname, router]);
 
   const handleLogout = () => {
@@ -128,7 +151,7 @@ export default function AdminLayout({ children }) {
     { name: "Dashboard", href: "/admin", section: "UTAMA", icon: icons.dashboard },
     { name: "Data Barang", href: "/admin/barang", section: "MANAJEMEN", icon: icons.box },
     { name: "Kategori Barang", href: "/admin/kategori", section: "MANAJEMEN", icon: icons.category },
-    { name: "Pesanan", href: "/admin/pesanan", section: "MANAJEMEN", icon: icons.cart, badge: 8 },
+    { name: "Pesanan", href: "/admin/pesanan", section: "MANAJEMEN", icon: icons.cart, badge: pesananPending > 0 ? pesananPending : null },
     { name: "Pembelian", href: "/admin/pembelian", section: "MANAJEMEN", icon: icons.purchase },
     { name: "Data Supplier", href: "/admin/supplier", section: "MANAJEMEN", icon: icons.supplier },
     { name: "Data Pengguna", href: "/admin/pengguna", section: "MANAJEMEN", icon: icons.users },

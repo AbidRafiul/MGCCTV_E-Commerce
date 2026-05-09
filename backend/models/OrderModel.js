@@ -17,6 +17,7 @@ const OrderModel = {
         t.total_harga,
         t.metode_bayar,
         t.status_order,
+        t.status_bayar,
         t.id_users,
         u.nama AS nama_pelanggan,
         u.alamat AS alamat_pelanggan,

@@ -38,12 +38,12 @@ const DashboardModel = {
     [{ total: 0 }]
   ),
   
-  getTotalPesanan: () => safeQuery(
+ getTotalPesanan: () => safeQuery(
     `SELECT
        COUNT(*) AS total,
        SUM(CASE
-         WHEN LOWER(COALESCE(status_order, 'pending')) IN ('pending', 'diproses')
-           OR LOWER(COALESCE(status_bayar, 'pending')) = 'pending'
+         WHEN LOWER(COALESCE(status_bayar, 'pending')) = 'paid' 
+          AND LOWER(COALESCE(status_order, 'pending')) IN ('pending', 'diproses')
          THEN 1 ELSE 0 END) AS menunggu
      FROM tr_transaksi`, 
     [{ total: 0, menunggu: 0 }]

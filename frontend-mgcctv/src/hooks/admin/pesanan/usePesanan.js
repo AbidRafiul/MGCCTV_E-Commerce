@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Swal from "sweetalert2";
 import { API_BASE_URL } from "@/lib/api";
-import { Clock, ShieldCheck, Truck, CheckCircle2, XCircle, Check, Package } from "lucide-react";
+import { Clock, ShieldCheck, Truck, CheckCircle2, XCircle, Check, Package, CreditCard, AlertTriangle } from "lucide-react";
 
 export const PAGE_SIZE = 10;
 
@@ -24,6 +24,15 @@ export const STATUS_META = {
   Dibatalkan: { badgeClass: "bg-red-50 border border-red-100 text-red-600", icon: XCircle, accentClass: "border-red-200 bg-red-50 text-red-700" },
 };
 
+// --- META UNTUK STATUS BAYAR ---
+export const PAYMENT_META = {
+  paid: { label: "Lunas", badgeClass: "bg-emerald-50 border border-emerald-200 text-emerald-600", icon: CheckCircle2 },
+  pending: { label: "Menunggu", badgeClass: "bg-yellow-50 border border-yellow-200 text-yellow-600", icon: Clock },
+  settlement: { label: "Lunas", badgeClass: "bg-emerald-50 border border-emerald-200 text-emerald-600", icon: CheckCircle2 },
+  expired: { label: "Kedaluwarsa", badgeClass: "bg-red-50 border border-red-200 text-red-600", icon: AlertTriangle },
+  failed: { label: "Gagal", badgeClass: "bg-red-50 border border-red-200 text-red-600", icon: XCircle },
+};
+
 const formatCurrency = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value) || 0);
 const formatDate = (value) => {
   if (!value) return "-";
@@ -43,6 +52,8 @@ const mapOrderFromApi = (order) => ({
   city: order.alamat_pelanggan || "-", product: order.produk_ringkas || "-",
   total: formatCurrency(order.total_harga), method: order.metode_bayar || "-",
   status: ORDER_STATUS_LABELS[order.status_order] || order.status_order,
+  // --- MENGAMBIL STATUS BAYAR DARI API ---
+  paymentStatus: order.status_bayar?.toLowerCase() || "pending", 
   totalItem: Number(order.total_item || 0),
   rawDate: order.tanggal_transaksi || order.created_at || null,
   rawTotal: Number(order.total_harga || 0),
@@ -187,6 +198,8 @@ export const usePesanan = () => {
         "Jumlah Item": order.totalItem,
         "Total Bayar": order.rawTotal,
         "Metode Bayar": order.method,
+        // --- MENAMBAHKAN STATUS BAYAR DI EXCEL ---
+        "Status Pembayaran": PAYMENT_META[order.paymentStatus]?.label || order.paymentStatus,
         "Status": order.status,
         "Periode Filter": exportDateLabel,
       }));

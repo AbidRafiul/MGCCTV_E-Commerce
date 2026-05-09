@@ -139,7 +139,7 @@ export default function TentangSection({
                 </div>
                 <p className="text-slate-600 text-sm md:text-base leading-relaxed">
                   <span className="font-bold text-slate-900 block mb-1">Madiun, Jawa Timur</span>
-                  {lokasiToko.content_value || "Alamat belum diatur."}
+                  {lokasiToko.content_value || "Jl. Nusantara No.15, Klegen, Kec. Kartoharjo, Kota Madiun, Jawa Timur 63117."}
                 </p>
               </div>
               

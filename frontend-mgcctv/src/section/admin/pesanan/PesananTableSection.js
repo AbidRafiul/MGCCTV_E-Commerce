@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Check, Loader2, Package } from "lucide-react";
-import { STATUS_META, STATUS_OPTIONS } from "@/hooks/admin/pesanan/usePesanan";
+import { ChevronDown, ChevronLeft, ChevronRight, Check, Loader2, Package, CreditCard } from "lucide-react";
+import { STATUS_META, STATUS_OPTIONS, PAYMENT_META } from "@/hooks/admin/pesanan/usePesanan";
 
 // --- SUB KOMPONEN (Hanya dipakai di file ini) ---
 function StatusBadge({ status }) {
@@ -9,6 +9,18 @@ function StatusBadge({ status }) {
     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit ${meta?.badgeClass || "bg-slate-50 border border-slate-200 text-slate-600"}`}>
       <Icon size={12} />
       <span className="text-[11px] font-bold">{status}</span>
+    </div>
+  );
+}
+
+// --- KOMPONEN BADGE STATUS BAYAR ---
+function PaymentBadge({ status }) {
+  const meta = PAYMENT_META[status] || { label: status, badgeClass: "bg-slate-50 border border-slate-200 text-slate-600", icon: CreditCard };
+  const Icon = meta.icon;
+  return (
+    <div className={`flex items-center justify-center gap-1 px-2 py-0.5 rounded-full w-fit mt-1.5 ${meta.badgeClass}`}>
+      <Icon size={10} />
+      <span className="text-[9px] font-extrabold uppercase tracking-wider">{meta.label}</span>
     </div>
   );
 }
@@ -80,7 +92,7 @@ export default function PesananTableSection({
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Pelanggan</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Produk</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</th>
-                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Metode</th>
+                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Metode & Bayar</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Status Order</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Aksi</th>
                 </tr>
@@ -99,7 +111,11 @@ export default function PesananTableSection({
                       </td>
                       <td className="py-4 px-4 text-xs text-slate-600 min-w-[220px]">{order.product}</td>
                       <td className="py-4 px-4 text-xs font-bold text-slate-800 whitespace-nowrap">{order.total}</td>
-                      <td className="py-4 px-4 text-xs text-slate-600 whitespace-nowrap">{order.method}</td>
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <p className="text-xs text-slate-600">{order.method}</p>
+                        {/* --- MEMANGGIL BADGE STATUS BAYAR DI BAWAH METODE --- */}
+                        <PaymentBadge status={order.paymentStatus} />
+                      </td>
                       <td className="py-4 px-4 whitespace-nowrap"><StatusBadge status={order.status} /></td>
                       <td className="py-4 px-4 whitespace-nowrap">
                         <ActionButtons order={order} onChangeStatus={handleChangeStatus} isMenuOpen={openActionMenu === order.id_pesanan} onToggleMenu={toggleActionMenu} isUpdating={updatingOrderId === order.id_pesanan} />
