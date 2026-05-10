@@ -48,7 +48,7 @@ const OrderModel = {
 
   getById: async (id) => {
     const [rows] = await connection.query(
-      "SELECT id_transaksi, status_order FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1",
+      "SELECT id_transaksi, id_users, status_order FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1",
       [id],
     );
 
@@ -62,7 +62,7 @@ const OrderModel = {
       await db.beginTransaction();
 
       const [orderRows] = await db.query(
-        "SELECT id_transaksi, status_order FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1 FOR UPDATE",
+        "SELECT id_transaksi, id_users, status_order FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1 FOR UPDATE",
         [id],
       );
 
@@ -87,6 +87,7 @@ const OrderModel = {
       await db.commit();
       return {
         id_transaksi: id,
+        id_users: orderRows[0].id_users,
         previous_status: currentStatus,
         current_status: statusOrder,
       };

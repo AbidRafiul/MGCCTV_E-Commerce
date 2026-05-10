@@ -6,13 +6,15 @@ import ReadNotifikasiSection from "@/section/admin/notifikasi/ReadNotifikasiSect
 
 export default function NotificationPage() {
   const { unreadNotifs, readNotifs, handleMarkAllRead, handleRead, getStyleByType } = useNotifikasi();
+  const filteredUnreadNotifs = unreadNotifs.filter((n) => n.is_read == 0 || n.is_read === false);
+  const filteredReadNotifs = readNotifs.filter((n) => n.is_read == 1 || n.is_read === true);
 
   return (
     <div className="p-5 md:p-8 w-full max-w-10xl mx-auto">
       
       {/* SECTION: BELUM DIBACA */}
       <UnreadNotifikasiSection 
-        unreadNotifs={unreadNotifs} 
+        unreadNotifs={filteredUnreadNotifs} 
         handleMarkAllRead={handleMarkAllRead} 
         handleRead={handleRead}
         getStyleByType={getStyleByType} 
@@ -23,7 +25,7 @@ export default function NotificationPage() {
 
       {/* SECTION: SUDAH DIBACA */}
       <ReadNotifikasiSection 
-        readNotifs={readNotifs} 
+        readNotifs={filteredReadNotifs} 
         handleRead={handleRead}
         getStyleByType={getStyleByType} 
       />

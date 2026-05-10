@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const midtransClient = require("midtrans-client");
 const db = require("../config/database");
+const NotificationModel = require("../models/NotificationModel");
 
 const mapMidtransStatus = (transactionStatus, fraudStatus) => {
   if (transactionStatus === "capture") {
@@ -280,6 +281,41 @@ const createMidtransTransaction = async (req, res) => {
     );
 
     await connection.commit();
+
+    try {
+      await NotificationModel.createNotification(
+        req.user.id,
+        insertId,
+        "transaksi",
+        "Transaksi Berhasil Dibuat",
+        `Transaksi #${insertId} berhasil dibuat. Silakan selesaikan pembayaran.`
+      );
+
+      let adminUsers = [];
+      try {
+        const [rows] = await db.query(
+          "SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+        );
+        adminUsers = rows;
+      } catch (adminLookupError) {
+        const [rows] = await db.query(
+          "SELECT id_users AS id FROM ms_users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+        );
+        adminUsers = rows;
+      }
+
+      for (const admin of adminUsers) {
+        await NotificationModel.createNotification(
+          admin.id,
+          insertId,
+          "transaksi",
+          "Pesanan Baru",
+          `Pesanan baru #${insertId} menunggu pembayaran pelanggan.`
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error sending checkout notifications:", notificationError);
+    }
 
     return res.status(200).json({
       success: true,

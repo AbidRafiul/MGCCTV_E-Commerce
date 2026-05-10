@@ -1,4 +1,5 @@
 const OrderModel = require("../../models/OrderModel");
+const NotificationModel = require("../../models/NotificationModel");
 
 const ALLOWED_ORDER_STATUS = [
   "pending",
@@ -7,6 +8,14 @@ const ALLOWED_ORDER_STATUS = [
   "selesai",
   "dibatalkan",
 ];
+
+const ORDER_STATUS_LABELS = {
+  pending: "Menunggu",
+  diproses: "Diproses",
+  dikirim: "Dikirim",
+  selesai: "Selesai",
+  dibatalkan: "Dibatalkan",
+};
 
 const handleOrderError = (res, error, fallbackMessage) => {
   console.error(fallbackMessage, error);
@@ -42,7 +51,22 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    await OrderModel.updateStatus(id, status_order);
+    const updateResult = await OrderModel.updateStatus(id, status_order);
+
+    if (updateResult.previous_status !== updateResult.current_status) {
+      try {
+        const statusLabel = ORDER_STATUS_LABELS[status_order] || status_order;
+        await NotificationModel.createNotification(
+          updateResult.id_users,
+          updateResult.id_transaksi,
+          "status_order",
+          "Status Pesanan Diperbarui",
+          `Status pesanan #${updateResult.id_transaksi} berubah menjadi ${statusLabel}.`
+        );
+      } catch (notificationError) {
+        console.error("Error sending order status notification:", notificationError);
+      }
+    }
 
     return res.status(200).json({
       message: "Status pesanan berhasil diperbarui",

@@ -245,6 +245,7 @@ export const usePesanan = () => {
       if (!response.ok) throw new Error(payload?.message || "Gagal memperbarui status");
 
       setOrders((prev) => prev.map((order) => order.id_pesanan === orderId ? { ...order, status: nextStatusLabel } : order));
+      window.dispatchEvent(new Event("orders-updated"));
       setOpenActionMenu(null);
       await Swal.fire({
         title: "Status Berhasil Diperbarui",
