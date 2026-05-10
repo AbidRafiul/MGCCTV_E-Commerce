@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const midtransClient = require("midtrans-client");
 const db = require("../config/database");
+const NotificationModel = require("../models/NotificationModel");
 
 const mapMidtransStatus = (transactionStatus, fraudStatus) => {
   if (transactionStatus === "capture") {
@@ -281,6 +282,41 @@ const createMidtransTransaction = async (req, res) => {
 
     await connection.commit();
 
+    try {
+      await NotificationModel.createNotification(
+        req.user.id,
+        insertId,
+        "transaksi",
+        "Transaksi Berhasil Dibuat",
+        `Transaksi #${insertId} berhasil dibuat. Silakan selesaikan pembayaran.`
+      );
+
+      let adminUsers = [];
+      try {
+        const [rows] = await db.query(
+          "SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+        );
+        adminUsers = rows;
+      } catch (adminLookupError) {
+        const [rows] = await db.query(
+          "SELECT id_users AS id FROM ms_users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+        );
+        adminUsers = rows;
+      }
+
+      for (const admin of adminUsers) {
+        await NotificationModel.createNotification(
+          admin.id,
+          insertId,
+          "transaksi",
+          "Pesanan Baru",
+          `Pesanan baru #${insertId} menunggu pembayaran pelanggan.`
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error sending checkout notifications:", notificationError);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Transaksi sandbox Midtrans berhasil dibuat",
@@ -353,6 +389,7 @@ const midtransWebhook = async (req, res) => {
       });
     }
 
+    // const id_transaksi = order_id.replace("MGCCTV-", "");
     const id_transaksi = order_id.split("-")[1];
     const status_bayar = mapMidtransStatus(transaction_status, fraud_status);
 
@@ -360,38 +397,6 @@ const midtransWebhook = async (req, res) => {
       idTransaksi: Number(id_transaksi),
       nextPaymentStatus: status_bayar,
     });
-
-    // 👉 KODINGAN BARU: BIKIN NOTIFIKASI OTOMATIS KE DATABASE
-    if (status_bayar === "paid") {
-      try {
-        // 1. Ambil id_user dulu karena Midtrans gak ngirim id_user
-        const [txRows] = await db.execute(
-          "SELECT id_users FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1",
-          [id_transaksi]
-        );
-
-        if (txRows.length > 0) {
-          const idUser = txRows[0].id_users;
-          const ordIdFormat = `#ORD-${String(id_transaksi).padStart(4, "0")}`;
-          
-          const judul = "Pembayaran Berhasil! 🎉";
-          const pesan = `Yay! Pembayaran untuk pesanan ${ordIdFormat} telah berhasil dikonfirmasi. Pesananmu akan segera diproses.`;
-
-          // 2. Tembak langsung ke tabel tr_notifikasi
-          await db.execute(
-            `INSERT INTO tr_notifikasi (id_users, id_transaksi, tipe, judul, pesan, link_tujuan, is_read, created_at) 
-             VALUES (?, ?, 'pembayaran', ?, ?, '/transaksi', 0, NOW())`,
-            [idUser, id_transaksi, judul, pesan]
-          );
-          
-          console.log(`[NOTIF] Sukses membuat notifikasi untuk User ID: ${idUser}`);
-        }
-      } catch (notifError) {
-        console.error("Gagal membuat notifikasi otomatis:", notifError);
-        // Kita nggak throw error biar webhook tetap sukses ngerespon Midtrans
-      }
-    }
-    // 👉 AKHIR KODINGAN NOTIFIKASI
 
     console.log("Midtrans webhook updated transaction:", {
       id_transaksi,

@@ -17,7 +17,6 @@ const OrderModel = {
         t.total_harga,
         t.metode_bayar,
         t.status_order,
-        t.status_bayar,
         t.id_users,
         u.nama AS nama_pelanggan,
         u.alamat AS alamat_pelanggan,
@@ -30,9 +29,6 @@ const OrderModel = {
       LEFT JOIN ms_users u ON u.id_users = t.id_users
       LEFT JOIN tr_detail_transaksi dt ON dt.id_transaksi = t.id_transaksi
       LEFT JOIN ms_produk p ON p.id_produk = dt.id_produk
-
-      WHERE t.status_bayar = 'paid'
-
       GROUP BY
         t.id_transaksi,
         t.tanggal_transaksi,
@@ -52,7 +48,7 @@ const OrderModel = {
 
   getById: async (id) => {
     const [rows] = await connection.query(
-      "SELECT id_transaksi, status_order FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1",
+      "SELECT id_transaksi, id_users, status_order FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1",
       [id],
     );
 
@@ -65,7 +61,6 @@ const OrderModel = {
     try {
       await db.beginTransaction();
 
-      // 1. Ambil data pesanan (Sekarang kita ambil juga id_users-nya)
       const [orderRows] = await db.query(
         "SELECT id_transaksi, id_users, status_order FROM tr_transaksi WHERE id_transaksi = ? LIMIT 1 FOR UPDATE",
         [id],
@@ -76,7 +71,6 @@ const OrderModel = {
       }
 
       const currentStatus = orderRows[0].status_order;
-      const idUser = orderRows[0].id_users; // Ambil ID User pembeli
 
       if (currentStatus === "selesai" && statusOrder !== "selesai") {
         throw createHttpError(
@@ -85,43 +79,15 @@ const OrderModel = {
         );
       }
 
-      // 2. Update status pesanan di tabel transaksi
       await db.query(
         "UPDATE tr_transaksi SET status_order = ?, updated_at = NOW() WHERE id_transaksi = ?",
         [statusOrder, id],
       );
 
-      // 👉 3. LOGIKA NOTIFIKASI OTOMATIS BERDASARKAN AKSI ADMIN
-      const ordIdFormat = `#ORD-${String(id).padStart(4, "0")}`;
-      let judulNotif = "";
-      let pesanNotif = "";
-
-      if (statusOrder === "diproses") {
-        judulNotif = "Pesanan Diproses ";
-        pesanNotif = `Pesanan ${ordIdFormat} sedang disiapkan dan dipacking oleh tim MG CCTV.`;
-      } else if (statusOrder === "dikirim") {
-        judulNotif = "Pesanan Dikirim ";
-        pesanNotif = `Pesanan ${ordIdFormat} mu sedang dalam perjalanan!`;
-      } else if (statusOrder === "selesai") {
-        judulNotif = "Pesanan Selesai ✅";
-        pesanNotif = `Pesanan ${ordIdFormat} telah selesai. Terima kasih telah berbelanja!`;
-      } else if (statusOrder === "dibatalkan") {
-        judulNotif = "Pesanan Dibatalkan ❌";
-        pesanNotif = `Maaf, pesanan ${ordIdFormat} Anda terpaksa dibatalkan karena alasan teknis.`;
-      }
-
-      // Masukkan ke tabel tr_notifikasi (Gunakan db.query agar masuk dalam transaksi yang sama)
-      if (judulNotif !== "") {
-        await db.query(
-          `INSERT INTO tr_notifikasi (id_users, id_transaksi, tipe, judul, pesan, link_tujuan, is_read, created_at) 
-           VALUES (?, ?, 'status_order', ?, ?, '/transaksi', 0, NOW())`,
-          [idUser, id, judulNotif, pesanNotif],
-        );
-      }
-
       await db.commit();
       return {
         id_transaksi: id,
+        id_users: orderRows[0].id_users,
         previous_status: currentStatus,
         current_status: statusOrder,
       };

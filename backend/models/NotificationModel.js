@@ -33,10 +33,10 @@ const NotificationModel = {
     return result;
   },
 
-  createNotification: async (userId, idTransaksi, tipe, judul, pesan, linkTujuan) => {
+  createNotification: async (id_users, id_transaksi, tipe, judul, pesan) => {
     const [result] = await connection.query(
-      "INSERT INTO tr_notifikasi (id_users, id_transaksi, tipe, judul, pesan, link_tujuan, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, NOW())",
-      [userId, idTransaksi, tipe, judul, pesan, linkTujuan]
+      "INSERT INTO tr_notifikasi (id_users, id_transaksi, tipe, judul, pesan, is_read, created_at) VALUES (?, ?, ?, ?, ?, 0, NOW())",
+      [id_users, id_transaksi, tipe, judul, pesan]
     );
     return result;
   },

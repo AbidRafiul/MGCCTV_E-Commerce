@@ -1,12 +1,10 @@
-import { Eye, Loader2, Trash2 } from "lucide-react";
+import { Eye, Loader2, Trash2, Edit } from "lucide-react";
 
 export default function PembelianTableSection({
   purchases,
   deletingId,
   openPurchaseDetail,
   deletePurchase,
-  formatCurrency,
-  formatNumber,
   formatDateTime,
 }) {
   return (
@@ -21,12 +19,8 @@ export default function PembelianTableSection({
         <table className="min-w-full text-left">
           <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-400">
             <tr>
-              <th className="px-4 py-3 font-semibold">Faktur</th>
+              <th className="px-4 py-3 font-semibold">No. Faktur</th>
               <th className="px-4 py-3 font-semibold">Supplier</th>
-              <th className="px-4 py-3 font-semibold">Ringkasan Item</th>
-              <th className="px-4 py-3 font-semibold">Item</th>
-              <th className="px-4 py-3 font-semibold">Barang</th>
-              <th className="px-4 py-3 font-semibold">Total</th>
               <th className="px-4 py-3 font-semibold">Tanggal</th>
               <th className="px-4 py-3 font-semibold">Admin</th>
               <th className="px-4 py-3 font-semibold">Aksi</th>
@@ -35,7 +29,7 @@ export default function PembelianTableSection({
           <tbody>
             {purchases.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
                   Belum ada data pembelian.
                 </td>
               </tr>
@@ -44,12 +38,6 @@ export default function PembelianTableSection({
                 <tr key={purchase.id_pembelian} className="border-t border-slate-100 text-sm text-slate-600">
                   <td className="px-4 py-4 font-semibold text-slate-900">{purchase.no_faktur || "-"}</td>
                   <td className="px-4 py-4 font-medium text-slate-700">{purchase.nama_supplier || "-"}</td>
-                  <td className="max-w-[280px] px-4 py-4 font-medium text-slate-700">
-                    <span className="line-clamp-2">{purchase.item_ringkas || "-"}</span>
-                  </td>
-                  <td className="px-4 py-4 font-bold text-slate-900">{formatNumber(purchase.jumlah_item)}</td>
-                  <td className="px-4 py-4 font-bold text-slate-900">{formatNumber(purchase.total_barang)}</td>
-                  <td className="px-4 py-4 font-bold text-blue-700">{formatCurrency(purchase.total)}</td>
                   <td className="px-4 py-4 font-medium text-slate-600">{formatDateTime(purchase.tanggal || purchase.created_at)}</td>
                   <td className="px-4 py-4 font-medium text-slate-700">{purchase.nama_admin || "-"}</td>
                   <td className="px-4 py-4">
@@ -61,6 +49,14 @@ export default function PembelianTableSection({
                         title="Lihat detail"
                       >
                         <Eye size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openPurchaseDetail(purchase, true)}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 text-emerald-600 transition hover:bg-emerald-50"
+                        title="Edit dan tambah barang"
+                      >
+                        <Edit size={16} />
                       </button>
                       <button
                         type="button"
