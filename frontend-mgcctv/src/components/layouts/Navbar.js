@@ -1,41 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  Menu, ShoppingCart, X, LogOut, User, 
-  Bell, CheckCircle2, AlertTriangle, Package
-} from "lucide-react";
+import { Menu, ShoppingCart, X, LogOut, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AUTH_API_URL } from "@/lib/api";
 import { getCartCount } from "@/services/cartService";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import SearchBar from "./SearchBar"; // Import sejajar karena di folder yang sama
+import SearchBar from "./SearchBar";
+import NotificationDropdown from "./NotificationDropdown"; // 
 
 const navLinks = [
   { href: "/beranda", label: "Beranda" },
   { href: "/produk", label: "Produk" },
   { href: "/tentang", label: "Tentang Kami" },
-];
-
-const dummyNotifications = [
-  {
-    id_notifikasi: 1,
-    judul: "Pembayaran Berhasil! 🎉",
-    pesan: "Pembayaran untuk pesanan INV-20260403 telah kami terima dan sedang diproses.",
-    tipe: "pesanan",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id_notifikasi: 2,
-    judul: "Pesanan Dikirim 🚚",
-    pesan: "Paket CCTV Anda sedang dalam perjalanan menggunakan kurir pengiriman.",
-    tipe: "stok",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 60 * 2).toISOString(),
-  }
 ];
 
 export default function Navbar() {
@@ -44,19 +23,10 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
-  const [notifications, setNotifications] = useState(dummyNotifications);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const unreadNotifCount = notifications.filter(n => n.is_read === 0).length;
-
   const router = useRouter();
-
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
-  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -66,8 +36,8 @@ export default function Navbar() {
       const token = localStorage.getItem("token");
       setIsLogin(!!token);
       if (!token) {
-        setProfile(null); setCartCount(0); setNotifications(dummyNotifications); 
-      } else { setNotifications(dummyNotifications); }
+        setProfile(null); setCartCount(0); 
+      }
     };
 
     const syncCartCount = async () => {
@@ -90,20 +60,12 @@ export default function Navbar() {
     const handleFocus = () => { syncAuth(); fetchProfile(); syncCartCount(); };
     handleScroll(); handleFocus();
 
-    // Polling notifikasi setiap 30 detik
-    const notifInterval = setInterval(() => {
-      const token = localStorage.getItem("token");
-      const isValidToken = token && token !== "undefined" && token !== "null";
-      if (isValidToken) fetchNotifications();
-    }, 30000);
-
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleFocus);
     window.addEventListener("cart-updated", syncCartCount);
 
     return () => {
-      clearInterval(notifInterval);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleFocus);
@@ -123,18 +85,6 @@ export default function Navbar() {
   };
 
   const profileInitial = profile?.nama?.trim()?.charAt(0)?.toUpperCase() || "U";
-  
-  const getNotifIcon = (type) => {
-    if (type === 'success') return <CheckCircle2 size={18} className="text-green-500" />;
-    if (type === 'stok' || type === 'warning') return <AlertTriangle size={18} className="text-amber-500" />;
-    if (type === 'pesanan' || type === 'package' || type === 'transaksi') return <Package size={18} className="text-blue-500" />;
-    return <Bell size={18} className="text-blue-500" />;
-  };
-  
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  };
 
   return (
     <>
@@ -168,40 +118,10 @@ export default function Navbar() {
 
             {/* ICONS DESKTOP */}
             <div className="hidden lg:flex items-center gap-2 shrink-0">
-              {isLogin && (
-                <div className="relative">
-                  <button onClick={() => setIsNotifOpen(!isNotifOpen)} className={`relative p-2.5 rounded-full transition-colors ${isNotifOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-600'}`}>
-                    <Bell size={20} />
-                    {unreadNotifCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>}
-                  </button>
-                  <AnimatePresence>
-                    {isNotifOpen && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
-                        <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.2 }} className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-50 origin-top-right">
-                          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <h3 className="font-extrabold text-slate-900">Notifikasi</h3>
-                            {unreadNotifCount > 0 && <button type="button" onClick={handleMarkAllAsRead} className="text-xs font-bold text-blue-600 cursor-pointer hover:underline">Tandai dibaca</button>}
-                          </div>
-                          <div className="max-h-[350px] overflow-y-auto">
-                            {notifications.length > 0 ? notifications.map((notif) => (
-                              <div key={notif.id_notifikasi} className={`p-4 border-b border-slate-50 flex gap-3 ${notif.is_read === 0 ? 'bg-blue-50/30' : ''}`}>
-                                <div className="mt-0.5 shrink-0">{getNotifIcon(notif.tipe)}</div>
-                                <div className="flex-1 space-y-1">
-                                  <h4 className={`text-sm font-bold ${notif.is_read === 0 ? 'text-slate-900' : 'text-slate-700'}`}>{notif.judul}</h4>
-                                  <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{notif.pesan}</p>
-                                  <p className="text-[10px] font-semibold text-slate-400 mt-1">{formatDate(notif.created_at)}</p>
-                                </div>
-                                {notif.is_read === 0 && <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0"></div>}
-                              </div>
-                            )) : <div className="p-8 text-center text-slate-400 text-sm">Belum ada notifikasi</div>}
-                          </div>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
+              
+              {/* 👉 KOMPONEN NOTIFIKASI MUNCUL DI SINI KALAU SUDAH LOGIN */}
+              {isLogin && <NotificationDropdown />}
+
               <button type="button" onClick={() => router.push("/keranjang")} className="relative p-2.5 rounded-full text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-colors shrink-0">
                 <ShoppingCart size={20} />
                 <AnimatePresence>
@@ -230,12 +150,10 @@ export default function Navbar() {
 
             {/* MOBILE ICONS */}
             <div className="flex items-center gap-2 lg:hidden z-50">
-              {isLogin && (
-                <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="relative p-2.5 rounded-full text-slate-600 hover:bg-blue-50 hover:text-blue-600">
-                  <Bell size={18} />
-                  {unreadNotifCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white">{unreadNotifCount}</span>}
-                </button>
-              )}
+              
+              {/* 👉 KOMPONEN NOTIFIKASI JUGA MUNCUL DI VERSI MOBILE */}
+              {isLogin && <NotificationDropdown />}
+
               <button type="button" onClick={() => router.push("/keranjang")} className="relative p-2.5 rounded-full text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                 <ShoppingCart size={18} />
                 {cartCount > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm ring-2 ring-white">{cartCount > 99 ? "99+" : cartCount}</span>}
@@ -253,7 +171,6 @@ export default function Navbar() {
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} className="absolute top-full left-0 w-full bg-white shadow-2xl border-t border-slate-100 lg:hidden overflow-hidden">
               <div className="px-6 py-6 flex flex-col gap-6">
                 
-                {/* --- MOBILE SEARCH BAR --- */}
                 <div className="relative">
                   <SearchBar onNavigate={() => setIsMobileMenuOpen(false)} isMobile={true} />
                 </div>
