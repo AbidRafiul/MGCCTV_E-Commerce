@@ -19,25 +19,6 @@ const navLinks = [
   { href: "/tentang", label: "Tentang Kami" },
 ];
 
-const dummyNotifications = [
-  {
-    id_notifikasi: 1,
-    judul: "Pembayaran Berhasil! 🎉",
-    pesan: "Pembayaran untuk pesanan INV-20260403 telah kami terima dan sedang diproses.",
-    tipe: "pesanan",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id_notifikasi: 2,
-    judul: "Pesanan Dikirim 🚚",
-    pesan: "Paket CCTV Anda sedang dalam perjalanan menggunakan kurir pengiriman.",
-    tipe: "stok",
-    is_read: 0,
-    created_at: new Date(new Date().getTime() - 1000 * 60 * 60 * 2).toISOString(),
-  }
-];
-
 export default function Navbar() {
   const [isMounted, setIsMounted] = useState(false);
   const [isLogin, setIsLogin] = useState(false);
@@ -48,11 +29,34 @@ export default function Navbar() {
   const [profile, setProfile] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
-  const [notifications, setNotifications] = useState(dummyNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const unreadNotifCount = notifications.filter(n => n.is_read == 0 || n.is_read === false).length;
 
   const router = useRouter();
+
+  const fetchNotifications = async () => {
+    const token = localStorage.getItem("token");
+    const isValidToken = token && token !== "undefined" && token !== "null";
+    if (!isValidToken) {
+      setNotifications([]);
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:3000/api/notifications", {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNotifications(data.notifications || data.data || data || []);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil notifikasi:", error);
+    }
+  };
 
   const handleMarkAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
@@ -66,8 +70,8 @@ export default function Navbar() {
       const token = localStorage.getItem("token");
       setIsLogin(!!token);
       if (!token) {
-        setProfile(null); setCartCount(0); setNotifications(dummyNotifications); 
-      } else { setNotifications(dummyNotifications); }
+        setProfile(null); setCartCount(0); setNotifications([]); 
+      } else { fetchNotifications(); }
     };
 
     const syncCartCount = async () => {
@@ -87,7 +91,7 @@ export default function Navbar() {
       } catch (error) { setProfile(null); }
     };
 
-    const handleFocus = () => { syncAuth(); fetchProfile(); syncCartCount(); };
+    const handleFocus = () => { syncAuth(); fetchProfile(); syncCartCount(); fetchNotifications(); };
     handleScroll(); handleFocus();
 
     // Polling notifikasi setiap 30 detik

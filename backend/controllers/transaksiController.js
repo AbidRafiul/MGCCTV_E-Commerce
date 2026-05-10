@@ -291,9 +291,18 @@ const createMidtransTransaction = async (req, res) => {
         `Transaksi #${insertId} berhasil dibuat. Silakan selesaikan pembayaran.`
       );
 
-      const [adminUsers] = await db.query(
-        "SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
-      );
+      let adminUsers = [];
+      try {
+        const [rows] = await db.query(
+          "SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+        );
+        adminUsers = rows;
+      } catch (adminLookupError) {
+        const [rows] = await db.query(
+          "SELECT id_users AS id FROM ms_users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+        );
+        adminUsers = rows;
+      }
 
       for (const admin of adminUsers) {
         await NotificationModel.createNotification(

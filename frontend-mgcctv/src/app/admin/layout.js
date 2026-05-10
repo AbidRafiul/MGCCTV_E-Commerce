@@ -19,6 +19,7 @@ export default function AdminLayout({ children }) {
   const [userRole, setUserRole] = useState("");
 
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingOrderCount, setPendingOrderCount] = useState(0);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -69,6 +70,24 @@ export default function AdminLayout({ children }) {
 
     setIsAllowed(true);
 
+    const fetchPendingOrderCount = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch("http://localhost:3000/api/admin/pesanan", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data)) {
+          const count = data.filter((order) => String(order.status_order || "pending").toLowerCase() === "pending").length;
+          setPendingOrderCount(count);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending order count", error);
+      }
+    };
+
     const fetchUnreadCount = async () => {
       if (!token) return;
       try {
@@ -80,7 +99,9 @@ export default function AdminLayout({ children }) {
         const data = await res.json();
         if (res.ok) {
           const notificationsArray = data.notifications || data.data || data || [];
-          const count = notificationsArray.filter(n => n.is_read == 0 || n.is_read === false).length;
+          const count = typeof data.unreadCount === "number"
+            ? data.unreadCount
+            : notificationsArray.filter(n => n.is_read == 0 || n.is_read === false).length;
           setUnreadCount(count);
         }
       } catch (error) {
@@ -88,10 +109,17 @@ export default function AdminLayout({ children }) {
       }
     };
 
+    fetchPendingOrderCount();
     fetchUnreadCount();
+    const orderInterval = setInterval(fetchPendingOrderCount, 30000);
     const notifInterval = setInterval(fetchUnreadCount, 30000);
+    window.addEventListener("orders-updated", fetchPendingOrderCount);
 
-    return () => clearInterval(notifInterval);
+    return () => {
+      clearInterval(orderInterval);
+      clearInterval(notifInterval);
+      window.removeEventListener("orders-updated", fetchPendingOrderCount);
+    };
   }, [pathname, router]);
 
   const handleLogout = () => {
@@ -154,7 +182,7 @@ export default function AdminLayout({ children }) {
     { name: "Dashboard", href: "/admin", section: "UTAMA", icon: icons.dashboard },
     { name: "Data Barang", href: "/admin/barang", section: "MANAJEMEN", icon: icons.box },
     { name: "Kategori Barang", href: "/admin/kategori", section: "MANAJEMEN", icon: icons.category },
-    { name: "Pesanan", href: "/admin/pesanan", section: "MANAJEMEN", icon: icons.cart, badge: 8 },
+    { name: "Pesanan", href: "/admin/pesanan", section: "MANAJEMEN", icon: icons.cart, badge: pendingOrderCount > 0 ? pendingOrderCount : null },
     { name: "Pembelian", href: "/admin/pembelian", section: "MANAJEMEN", icon: icons.purchase },
     { name: "Data Supplier", href: "/admin/supplier", section: "MANAJEMEN", icon: icons.supplier },
     { name: "Data Pengguna", href: "/admin/pengguna", section: "MANAJEMEN", icon: icons.users },
