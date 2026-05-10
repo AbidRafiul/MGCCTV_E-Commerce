@@ -21,7 +21,7 @@ const navLinks = [
 
 export default function Navbar() {
   const [isMounted, setIsMounted] = useState(false);
-  const [isLogin, setIsLogin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -68,8 +68,9 @@ export default function Navbar() {
     
     const syncAuth = () => {
       const token = localStorage.getItem("token");
-      setIsLogin(!!token);
-      if (!token) {
+      const isValidToken = token && token !== "undefined" && token !== "null";
+      setIsLoggedIn(!!isValidToken);
+      if (!isValidToken) {
         setProfile(null); setCartCount(0); setNotifications([]); 
       } else { fetchNotifications(); }
     };
@@ -120,7 +121,7 @@ export default function Navbar() {
     localStorage.removeItem("mgcctv-cart"); localStorage.removeItem("mgcctv-checkout");
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
     document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
-    setIsLogin(false); setProfile(null); setCartCount(0); setShowLogoutModal(false); setIsMobileMenuOpen(false);
+    setIsLoggedIn(false); setProfile(null); setCartCount(0); setShowLogoutModal(false); setIsMobileMenuOpen(false);
     window.dispatchEvent(new Event("cart-updated"));
     toast.success("Berhasil Logout", { description: "Anda telah keluar dari sesi dengan aman." });
     setTimeout(() => { window.location.href = "/beranda"; }, 1000);
@@ -172,7 +173,7 @@ export default function Navbar() {
 
             {/* ICONS DESKTOP */}
             <div className="hidden lg:flex items-center gap-2 shrink-0">
-              {isLogin && (
+              {isLoggedIn && (
                 <div className="relative">
                   <button onClick={() => setIsNotifOpen(!isNotifOpen)} className={`relative p-2.5 rounded-full transition-colors ${isNotifOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-600'}`}>
                     <Bell size={20} />
@@ -216,8 +217,11 @@ export default function Navbar() {
 
             {/* Desktop Auth */}
             <div className="hidden lg:flex items-center shrink-0 border-l border-slate-200 pl-4 ml-2">
-              {isMounted && (!isLogin ? (
-                <Link href="/login" className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-lg transition-all whitespace-nowrap ml-2">Masuk</Link>
+              {isMounted && (!isLoggedIn ? (
+                <div className="flex items-center gap-2">
+                  <Link href="/login" className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-lg transition-all whitespace-nowrap ml-2">Masuk</Link>
+                  <Link href="/register" className="px-5 py-2.5 rounded-full font-bold text-sm text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-colors whitespace-nowrap">Daftar</Link>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 p-1.5 pr-3 bg-slate-50 border border-slate-200 rounded-full shadow-sm hover:shadow-md transition-shadow ml-2">
                   <Link href="/profile" className="flex items-center gap-2.5 group">
@@ -234,7 +238,7 @@ export default function Navbar() {
 
             {/* MOBILE ICONS */}
             <div className="flex items-center gap-2 lg:hidden z-50">
-              {isLogin && (
+              {isLoggedIn && (
                 <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="relative p-2.5 rounded-full text-slate-600 hover:bg-blue-50 hover:text-blue-600">
                   <Bell size={18} />
                   {unreadNotifCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white">{unreadNotifCount}</span>}
@@ -269,9 +273,7 @@ export default function Navbar() {
                 </div>
 
                 <div className="border-t border-slate-100 pt-6">
-                  {isMounted && (!isLogin ? (
-                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-center w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-md shadow-blue-600/20 hover:bg-blue-700 transition-colors">Masuk ke Akun</Link>
-                  ) : (
+                  {isMounted && (isLoggedIn ? (
                     <div className="flex flex-col gap-3">
                       <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center font-bold text-lg shadow-inner">{profileInitial}</div>
@@ -282,6 +284,11 @@ export default function Navbar() {
                         <User size={20} className="text-slate-400" />
                       </Link>
                       <button onClick={() => { setIsMobileMenuOpen(false); setShowLogoutModal(true); }} className="w-full py-4 flex items-center justify-center gap-2 font-bold text-red-500 hover:bg-red-50 rounded-2xl transition-colors border border-transparent hover:border-red-100"><LogOut size={18} /> Keluar Akun</button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-center w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-md shadow-blue-600/20 hover:bg-blue-700 transition-colors">Masuk</Link>
+                      <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-center w-full bg-slate-100 text-slate-700 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-colors">Daftar</Link>
                     </div>
                   ))}
                 </div>

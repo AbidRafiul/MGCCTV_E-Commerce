@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AUTH_API_URL } from "../../../lib/api";
 import { LoaderCircle, CheckCircle2, ArrowRight } from "lucide-react";
@@ -15,7 +15,7 @@ const initialForm = {
   alamat: "",
 };
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/beranda";
@@ -426,5 +426,13 @@ export default function RegisterPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <RegisterContent />
+    </Suspense>
   );
 }

@@ -29,6 +29,7 @@ const OrderModel = {
       LEFT JOIN ms_users u ON u.id_users = t.id_users
       LEFT JOIN tr_detail_transaksi dt ON dt.id_transaksi = t.id_transaksi
       LEFT JOIN ms_produk p ON p.id_produk = dt.id_produk
+      WHERE LOWER(COALESCE(t.status_bayar, 'pending')) = 'paid'
       GROUP BY
         t.id_transaksi,
         t.tanggal_transaksi,

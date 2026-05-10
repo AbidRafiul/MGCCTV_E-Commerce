@@ -113,40 +113,62 @@ const AuthModel = {
     return rows;
   },
 
-  createOtpTableIfNotExists: async () => {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS tr_otp (
-        id_otp INT AUTO_INCREMENT PRIMARY KEY,
-        email VARCHAR(50) NOT NULL,
-        otp_code VARCHAR(6) NOT NULL,
-        expired_at DATETIME NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  ensurePasswordResetColumns: async () => {
+    const [resetTokenColumns] = await connection.query(
+      "SHOW COLUMNS FROM ms_users LIKE 'reset_token'"
+    );
+    if (resetTokenColumns.length === 0) {
+      await connection.query("ALTER TABLE ms_users ADD COLUMN reset_token VARCHAR(255) NULL");
+    }
+
+    const [resetExpiresColumns] = await connection.query(
+      "SHOW COLUMNS FROM ms_users LIKE 'reset_token_expires_at'"
+    );
+    if (resetExpiresColumns.length === 0) {
+      await connection.query("ALTER TABLE ms_users ADD COLUMN reset_token_expires_at DATETIME NULL");
+    }
   },
 
-  saveOtp: async (email, otpCode, expiredAt) => {
+  savePasswordResetToken: async (email, resetToken, expiresAt) => {
+    await AuthModel.ensurePasswordResetColumns();
     const [result] = await connection.query(
-      "INSERT INTO tr_otp (email, otp_code, expired_at) VALUES (?, ?, ?)",
-      [email, otpCode, expiredAt]
+      "UPDATE ms_users SET reset_token = ?, reset_token_expires_at = ?, updated_at = NOW() WHERE email = ?",
+      [resetToken, expiresAt, email]
     );
     return result;
   },
 
-  getLatestOtp: async (email) => {
+  findUserByValidResetToken: async (resetToken) => {
+    await AuthModel.ensurePasswordResetColumns();
     const [rows] = await connection.query(
-      "SELECT * FROM tr_otp WHERE email = ? ORDER BY id_otp DESC LIMIT 1",
-      [email]
+      `
+      SELECT id_users, email
+      FROM ms_users
+      WHERE reset_token = ?
+        AND reset_token_expires_at > NOW()
+      LIMIT 1
+      `,
+      [resetToken]
     );
     return rows;
   },
 
-  getOtpByEmailAndCode: async (email, otpCode) => {
-    const [rows] = await connection.query(
-      "SELECT * FROM tr_otp WHERE email = ? AND otp_code = ? ORDER BY id_otp DESC LIMIT 1",
-      [email, otpCode]
+  updatePasswordByResetToken: async (resetToken, hashedPassword) => {
+    await AuthModel.ensurePasswordResetColumns();
+    const [result] = await connection.query(
+      `
+      UPDATE ms_users
+      SET password = ?,
+          password_updated_at = NOW(),
+          reset_token = NULL,
+          reset_token_expires_at = NULL,
+          updated_at = NOW()
+      WHERE reset_token = ?
+        AND reset_token_expires_at > NOW()
+      `,
+      [hashedPassword, resetToken]
     );
-    return rows;
+    return result;
   },
 
   updatePasswordByEmail: async (email, hashedPassword) => {
@@ -154,11 +176,6 @@ const AuthModel = {
       "UPDATE ms_users SET password = ?, password_updated_at = NOW() WHERE email = ?",
       [hashedPassword, email]
     );
-    return result;
-  },
-
-  deleteOtp: async (email) => {
-    const [result] = await connection.query("DELETE FROM tr_otp WHERE email = ?", [email]);
     return result;
   }
 };

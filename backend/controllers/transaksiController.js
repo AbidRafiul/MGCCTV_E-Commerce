@@ -34,7 +34,7 @@ const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
 
     const [transactionRows] = await connection.execute(
       `
-        SELECT id_transaksi, status_bayar
+        SELECT id_transaksi, id_users, status_bayar
         FROM tr_transaksi
         WHERE id_transaksi = ?
         LIMIT 1
@@ -154,6 +154,7 @@ const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
     return {
       deductedStock: shouldDeductStock,
       restoredStock: shouldRestoreStock,
+      idUsers: transactionRows[0].id_users,
       previousStatus: currentPaymentStatus || "pending",
       nextStatus: normalizedNextStatus,
     };
@@ -163,6 +164,42 @@ const syncTransactionInventory = async ({ idTransaksi, nextPaymentStatus }) => {
   } finally {
     connection.release();
   }
+};
+
+const notifyAdminsForPaidOrder = async (idTransaksi) => {
+  let adminUsers = [];
+
+  try {
+    const [rows] = await db.query(
+      "SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+    );
+    adminUsers = rows;
+  } catch (adminLookupError) {
+    const [rows] = await db.query(
+      "SELECT id_users AS id FROM ms_users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
+    );
+    adminUsers = rows;
+  }
+
+  for (const admin of adminUsers) {
+    await NotificationModel.createNotification(
+      admin.id,
+      idTransaksi,
+      "transaksi",
+      "Pesanan Baru",
+      `Pesanan baru #${idTransaksi} sudah dibayar dan siap diproses.`
+    );
+  }
+};
+
+const notifyCustomerForPaidOrder = async (idUsers, idTransaksi) => {
+  await NotificationModel.createNotification(
+    idUsers,
+    idTransaksi,
+    "pembayaran",
+    "Pesanan Berhasil Dibayar",
+    `Pembayaran untuk pesanan #${idTransaksi} berhasil diterima. Pesanan Anda akan segera diproses.`
+  );
 };
 
 const createMidtransTransaction = async (req, res) => {
@@ -291,28 +328,6 @@ const createMidtransTransaction = async (req, res) => {
         `Transaksi #${insertId} berhasil dibuat. Silakan selesaikan pembayaran.`
       );
 
-      let adminUsers = [];
-      try {
-        const [rows] = await db.query(
-          "SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
-        );
-        adminUsers = rows;
-      } catch (adminLookupError) {
-        const [rows] = await db.query(
-          "SELECT id_users AS id FROM ms_users WHERE role IN ('admin', 'superadmin', 'Admin', 'Superadmin', 'ADMIN', 'SUPERADMIN')"
-        );
-        adminUsers = rows;
-      }
-
-      for (const admin of adminUsers) {
-        await NotificationModel.createNotification(
-          admin.id,
-          insertId,
-          "transaksi",
-          "Pesanan Baru",
-          `Pesanan baru #${insertId} menunggu pembayaran pelanggan.`
-        );
-      }
     } catch (notificationError) {
       console.error("Error sending checkout notifications:", notificationError);
     }
@@ -353,13 +368,13 @@ const midtransWebhook = async (req, res) => {
       fraud_status,
     } = req.body;
 
-    console.log("Midtrans webhook payload:", {
-      order_id,
-      status_code,
-      gross_amount,
-      transaction_status,
-      fraud_status,
-    });
+    // console.log("Midtrans webhook payload:", {
+    //   order_id,
+    //   status_code,
+    //   gross_amount,
+    //   transaction_status,
+    //   fraud_status,
+    // });
 
     if (!order_id) {
       return res.status(400).json({ success: false, message: "Invalid payload" });
@@ -398,13 +413,22 @@ const midtransWebhook = async (req, res) => {
       nextPaymentStatus: status_bayar,
     });
 
-    console.log("Midtrans webhook updated transaction:", {
-      id_transaksi,
-      order_id,
-      status_bayar,
-      deducted_stock: syncResult.deductedStock,
-      restored_stock: syncResult.restoredStock,
-    });
+    // console.log("Midtrans webhook updated transaction:", {
+    //   id_transaksi,
+    //   order_id,
+    //   status_bayar,
+    //   deducted_stock: syncResult.deductedStock,
+    //   restored_stock: syncResult.restoredStock,
+    // });
+
+    if (syncResult.nextStatus === "paid" && syncResult.previousStatus !== "paid") {
+      try {
+        await notifyCustomerForPaidOrder(syncResult.idUsers, Number(id_transaksi));
+        await notifyAdminsForPaidOrder(Number(id_transaksi));
+      } catch (notificationError) {
+        console.error("Error sending paid order notifications:", notificationError);
+      }
+    }
 
     return res.status(200).json({ success: true, message: "Webhook received" });
   } catch (error) {
@@ -430,10 +454,10 @@ const updateTransactionStatus = async (req, res) => {
       });
     }
 
-    if (requestedStatus !== "expired") {
+    if (!["paid", "expired"].includes(requestedStatus)) {
       return res.status(400).json({
         success: false,
-        message: "Status bayar yang diizinkan saat ini hanya expired",
+        message: "Status bayar yang diizinkan hanya paid atau expired",
       });
     }
 
@@ -482,12 +506,21 @@ const updateTransactionStatus = async (req, res) => {
 
     const syncResult = await syncTransactionInventory({
       idTransaksi,
-      nextPaymentStatus: "expired",
+      nextPaymentStatus: requestedStatus,
     });
+
+    if (syncResult.nextStatus === "paid" && syncResult.previousStatus !== "paid") {
+      try {
+        await notifyCustomerForPaidOrder(syncResult.idUsers, idTransaksi);
+        await notifyAdminsForPaidOrder(idTransaksi);
+      } catch (notificationError) {
+        console.error("Error sending paid order notifications:", notificationError);
+      }
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Status bayar berhasil diperbarui menjadi expired",
+      message: `Status bayar berhasil diperbarui menjadi ${requestedStatus}`,
       deducted_stock: syncResult.deductedStock,
       restored_stock: syncResult.restoredStock,
     });
