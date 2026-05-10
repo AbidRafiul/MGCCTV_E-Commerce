@@ -253,6 +253,7 @@ export const useCheckout = () => {
               pdf_url: result?.pdf_url || "",
               snap_result: result || null,
             });
+            await syncTransactionStatus({ token, orderId: data.order_id, statusBayar: "paid" });
             await cleanupAfterSuccessfulPayment(checkoutItems);
             toast.success("Pembayaran berhasil dilakukan.");
             router.push("/transaksi");
