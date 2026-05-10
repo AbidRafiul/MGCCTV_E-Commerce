@@ -1,12 +1,14 @@
-const connection = require("../../config/database");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+const AuthModel = require("../../models/AuthModel");
 
-const getMailer = () => {
-  try {
-    return require("nodemailer");
-  } catch {
-    return null;
-  }
-};
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 const lupaPassword = async (req, res) => {
   try {
@@ -16,83 +18,51 @@ const lupaPassword = async (req, res) => {
       return res.status(400).json({ message: "Email wajib diisi" });
     }
 
-    const [users] = await connection.query(
-      "SELECT id_users, nama, email, password FROM ms_users WHERE email = ? LIMIT 1",
-      [email]
-    );
-
+    const users = await AuthModel.checkEmailExists(email);
     if (users.length === 0) {
       return res.status(404).json({ message: "Email tidak terdaftar" });
     }
 
-    if (!users[0].password) {
+    const user = users[0];
+    if (!user.password) {
       return res.status(400).json({
         message: "Akun ini menggunakan Google Login dan tidak memakai password lokal",
       });
     }
 
-    const otpCode = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Simpan OTP terbaru ke tabel tr_otp agar bisa divalidasi pada step reset password berikutnya.
-    await connection.query(
-      `
-      INSERT INTO tr_otp (email, otp_code, expired_at, created_at)
-      VALUES (?, ?, ?, NOW())
-      `,
-      [email, otpCode, expiresAt]
-    );
+    await AuthModel.savePasswordResetToken(email, resetToken, resetTokenExpiresAt);
 
-    const requiredMailConfig = [
-      process.env.SMTP_HOST,
-      process.env.SMTP_PORT,
-      process.env.SMTP_USER,
-      process.env.SMTP_PASS,
-    ];
-
-    if (requiredMailConfig.some((value) => !value)) {
-      return res.status(500).json({
-        message: "Layanan email belum dikonfigurasi di backend",
-      });
-    }
-
-    const nodemailer = getMailer();
-    if (!nodemailer) {
-      return res.status(500).json({
-        message: "Package nodemailer belum terinstall di backend",
-      });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: String(process.env.SMTP_SECURE || "false") === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8000";
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: users[0].email,
+      from: process.env.EMAIL_USER,
+      to: user.email,
       subject: "Reset Password MGCCTV",
       html: `
-        <div style="font-family: Arial, sans-serif; color: #0f172a;">
-          <h2>Kode OTP Reset Password MGCCTV</h2>
-          <p>Halo ${users[0].nama}, gunakan kode OTP berikut untuk mengatur ulang password Anda.</p>
-          <div style="font-size:28px;font-weight:700;letter-spacing:6px;background:#eff6ff;color:#1d4ed8;padding:14px 18px;border-radius:10px;display:inline-block;">
-            ${otpCode}
-          </div>
-          <p>Kode ini berlaku selama 10 menit.</p>
+        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+          <h2>Reset Password MGCCTV</h2>
+          <p>Halo ${user.nama || "Pelanggan"},</p>
+          <p>Kami menerima permintaan untuk mengatur ulang password akun Anda.</p>
+          <p>
+            <a href="${resetUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">
+              Reset Password
+            </a>
+          </p>
+          <p>Link ini berlaku selama 1 jam. Jika Anda tidak meminta reset password, abaikan email ini.</p>
+          <p style="font-size:12px;color:#64748b;">${resetUrl}</p>
         </div>
       `,
     });
 
     return res.status(200).json({
-      message: "Instruksi reset password berhasil dikirim ke email Anda",
+      message: "Instruksi reset password telah dikirim ke email Anda",
     });
   } catch (error) {
+    console.error("Error lupaPassword:", error);
     return res.status(500).json({
       message: "Gagal mengirim email reset password",
       error: error.message,
