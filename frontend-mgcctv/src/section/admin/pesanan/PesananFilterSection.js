@@ -53,7 +53,7 @@ export default function PesananFilterSection({
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
               />
-              <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
             <span className="text-slate-400">-</span>
             <div className="relative flex-1 sm:w-32">
@@ -63,7 +63,7 @@ export default function PesananFilterSection({
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
               />
-              <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
             <button
               type="button"

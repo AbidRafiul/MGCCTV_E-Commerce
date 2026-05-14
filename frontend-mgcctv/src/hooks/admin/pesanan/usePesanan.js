@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Swal from "sweetalert2";
 import { API_BASE_URL } from "@/lib/api";
 import { Clock, ShieldCheck, Truck, CheckCircle2, XCircle, Check, Package, CreditCard, AlertTriangle } from "lucide-react";
+import { exportToExcel } from "@/utils/exportExcel";
 
 export const PAGE_SIZE = 10;
 
@@ -185,9 +186,8 @@ export const usePesanan = () => {
 
     try {
       setIsExporting(true);
-      const XLSX = await import("xlsx");
 
-      const workbook = XLSX.utils.book_new();
+      // 1. Petakan Data (Kolom "Status Pembayaran" sudah dihapus)
       const worksheetData = filteredOrders.map((order, index) => ({
         "No": index + 1,
         "ID Pesanan": order.id,
@@ -198,36 +198,34 @@ export const usePesanan = () => {
         "Jumlah Item": order.totalItem,
         "Total Bayar": order.rawTotal,
         "Metode Bayar": order.method,
-        // --- MENAMBAHKAN STATUS BAYAR DI EXCEL ---
-        "Status Pembayaran": PAYMENT_META[order.paymentStatus]?.label || order.paymentStatus,
         "Status": order.status,
         "Periode Filter": exportDateLabel,
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pesanan");
+      // 2. Tentukan Nama File
+      const filename = `laporan-pesanan_${activeDateFilters.startDate || "semua"}_${activeDateFilters.endDate || "semua"}`;
 
-      const filename = `laporan-pesanan_${activeDateFilters.startDate || "semua"}_${activeDateFilters.endDate || "semua"}.xlsx`;
-      const workbookBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-      const blob = new Blob([workbookBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const downloadUrl = URL.createObjectURL(blob);
-      const downloadLink = document.createElement("a");
+      // 3. Atur Lebar Kolom biar rapi di Excel
+      const columnWidths = [
+        { wch: 5 },   // No
+        { wch: 15 },  // ID Pesanan
+        { wch: 20 },  // Tanggal Pesanan
+        { wch: 25 },  // Nama Pelanggan
+        { wch: 35 },  // Alamat
+        { wch: 40 },  // Produk
+        { wch: 12 },  // Jumlah Item
+        { wch: 15 },  // Total Bayar
+        { wch: 15 },  // Metode Bayar
+        { wch: 15 },  // Status
+        { wch: 25 },  // Periode Filter
+      ];
 
-      downloadLink.href = downloadUrl;
-      downloadLink.download = filename;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(downloadUrl);
+      // 4. Eksekusi Export Pakai Fungsi Universal Lu
+      exportToExcel(worksheetData, filename, "Data Pesanan", columnWidths);
 
       await Swal.fire({
         title: "Export Berhasil",
-        text: `File ${filename} berhasil disiapkan.`,
+        text: `File ${filename}.xlsx berhasil disiapkan.`,
         icon: "success",
         confirmButtonColor: "#0C2C55",
       });

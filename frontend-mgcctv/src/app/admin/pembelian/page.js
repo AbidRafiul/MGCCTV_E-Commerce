@@ -135,27 +135,34 @@ export default function PembelianPage() {
 
       {/* FEEDBACK DIALOG */}
       <AlertDialog open={feedbackDialog.open} onOpenChange={(open) => setFeedbackDialog((prev) => ({ ...prev, open }))}>
-        <AlertDialogContent className="max-w-md rounded-[24px] border border-slate-200 bg-white p-0 shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
-          <AlertDialogHeader className="px-6 pt-6 text-left sm:place-items-start sm:text-left">
-            <AlertDialogMedia className={`size-12 rounded-2xl ${feedbackMeta.mediaClass}`}>
-              <FeedbackIcon size={22} />
-            </AlertDialogMedia>
-            <AlertDialogTitle className="text-lg font-bold text-[#0C2C55]">
-              {feedbackDialog.title}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm leading-6 text-slate-500">
-              {feedbackDialog.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="rounded-b-[24px] border-t border-slate-200 bg-slate-50/80 px-6 py-4">
-            <AlertDialogAction
-              onClick={() => setFeedbackDialog((prev) => ({ ...prev, open: false }))}
-              className={`w-full rounded-xl text-white sm:w-auto ${feedbackMeta.buttonClass}`}
-            >
-              Mengerti
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+       <AlertDialogContent className="max-w-md rounded-[24px] border border-slate-200 bg-white p-0 shadow-[0_24px_80px_rgba(15,23,42,0.18)] overflow-visible"> 
+  
+  <AlertDialogHeader className="px-6 pt-6 flex flex-row items-center gap-4 text-left">
+    {/* Ikon dan Judul tetap di sini sesuai kodingan asli lu */}
+    <AlertDialogMedia className={`size-12 shrink-0 rounded-2xl ${feedbackMeta.mediaClass}`}>
+      <FeedbackIcon size={22} />
+    </AlertDialogMedia>
+    <div>
+      <AlertDialogTitle className="text-lg font-bold text-[#0C2C55]">
+        {feedbackDialog.title}
+      </AlertDialogTitle>
+      <AlertDialogDescription className="text-sm leading-6 text-slate-500">
+        {feedbackDialog.description}
+      </AlertDialogDescription>
+    </div>
+  </AlertDialogHeader>
+
+  {/* BAGIAN YANG HARUS DIPERBAIKI: */}
+  <AlertDialogFooter className="bg-transparent px-6 py-6 mt-2"> 
+    
+    <AlertDialogAction
+      onClick={() => setFeedbackDialog((prev) => ({ ...prev, open: false }))}
+      className={`w-full rounded-full py-6 text-white sm:w-auto px-10 font-bold ${feedbackMeta.buttonClass}`}
+    >
+      Mengerti
+    </AlertDialogAction>
+  </AlertDialogFooter>
+</AlertDialogContent>
       </AlertDialog>
     </>
   );

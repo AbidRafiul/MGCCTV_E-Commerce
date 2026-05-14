@@ -81,21 +81,48 @@ export const usePengguna = () => {
 
   const handleExportExcel = () => {
     if (filteredUsers.length === 0) {
-      Swal.fire("Data Kosong", "Tidak ada data untuk diekspor.", "warning");
+      Swal.fire({
+        title: "Data Kosong", 
+        text: "Tidak ada data untuk diekspor.", 
+        icon: "warning",
+        confirmButtonColor: "#0C2C55"
+      });
       return;
     }
+
     const dataToExport = filteredUsers.map((user, index) => ({
-      No: index + 1,
+      "No": index + 1,
       "Nama Lengkap": user.nama,
-      Role: user.role,
-      Email: user.email,
+      "Role": user.role,
+      "Email": user.email,
       "No. Handphone": user.no_hp || "-",
       "Kota/Alamat": user.alamat || "-",
-      Status: user.status,
+      "Status": user.status,
       "Tanggal Daftar": new Date(user.created_at).toLocaleDateString("id-ID"),
     }));
 
-    exportToExcel(dataToExport, "Laporan_Data_Pengguna_MGCCTV", "Data Pengguna");
+    // Tambahkan pengaturan lebar kolom biar tampilannya rapi dan profesional
+    const columnWidths = [
+      { wch: 5 },   // No
+      { wch: 30 },  // Nama Lengkap
+      { wch: 15 },  // Role
+      { wch: 35 },  // Email
+      { wch: 20 },  // No. Handphone
+      { wch: 40 },  // Kota/Alamat
+      { wch: 15 },  // Status
+      { wch: 20 },  // Tanggal Daftar
+    ];
+
+    // Panggil fungsi universal dengan parameter columnWidths
+    exportToExcel(dataToExport, "Laporan_Data_Pengguna_MGCCTV", "Data Pengguna", columnWidths);
+    
+    // (Opsional) Kasih notif sukses biar makin mantap
+    Swal.fire({
+      title: "Export Berhasil",
+      text: "File Laporan Pengguna berhasil diunduh.",
+      icon: "success",
+      confirmButtonColor: "#0C2C55"
+    });
   };
 
   return {

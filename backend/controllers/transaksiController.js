@@ -310,7 +310,7 @@ const createMidtransTransaction = async (req, res) => {
           insertId,
           "transaksi",
           "Pesanan Baru",
-          `Pesanan baru #${insertId} menunggu pembayaran pelanggan.`
+          `Pesanan baru #${insertId} pembayaran berhasil.`
         );
       }
     } catch (notificationError) {
