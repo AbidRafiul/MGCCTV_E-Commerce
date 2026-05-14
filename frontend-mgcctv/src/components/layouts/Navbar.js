@@ -58,9 +58,29 @@ export default function Navbar() {
     }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
-  };
+  const handleMarkAllAsRead = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    // 1. Lapor ke Backend biar di Database berubah jadi 1 selamanya
+    const res = await fetch("http://localhost:3000/api/notifications/read-all", {
+      method: "PUT", // Sesuaikan dengan route backend lu (bisa PUT atau PATCH)
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      // 2. Kalau database sukses update, baru kita ubah tampilan di layar
+      setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
+      toast.success("Semua notifikasi ditandai dibaca");
+    }
+  } catch (error) {
+    console.error("Gagal update notifikasi:", error);
+    toast.error("Gagal memperbarui status notifikasi");
+  }
+};
 
   useEffect(() => {
     setIsMounted(true);

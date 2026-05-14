@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Swal from "sweetalert2";
 import { API_BASE_URL } from "@/lib/api";
-import { Clock, ShieldCheck, Truck, CheckCircle2, XCircle, Check, Package } from "lucide-react";
+import { Clock, ShieldCheck, Truck, CheckCircle2, XCircle, Check, Package, CreditCard, AlertTriangle } from "lucide-react";
+import { exportToExcel } from "@/utils/exportExcel";
 
 export const PAGE_SIZE = 10;
 
@@ -24,6 +25,15 @@ export const STATUS_META = {
   Dibatalkan: { badgeClass: "bg-red-50 border border-red-100 text-red-600", icon: XCircle, accentClass: "border-red-200 bg-red-50 text-red-700" },
 };
 
+// --- META UNTUK STATUS BAYAR ---
+export const PAYMENT_META = {
+  paid: { label: "Lunas", badgeClass: "bg-emerald-50 border border-emerald-200 text-emerald-600", icon: CheckCircle2 },
+  pending: { label: "Menunggu", badgeClass: "bg-yellow-50 border border-yellow-200 text-yellow-600", icon: Clock },
+  settlement: { label: "Lunas", badgeClass: "bg-emerald-50 border border-emerald-200 text-emerald-600", icon: CheckCircle2 },
+  expired: { label: "Kedaluwarsa", badgeClass: "bg-red-50 border border-red-200 text-red-600", icon: AlertTriangle },
+  failed: { label: "Gagal", badgeClass: "bg-red-50 border border-red-200 text-red-600", icon: XCircle },
+};
+
 const formatCurrency = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value) || 0);
 const formatDate = (value) => {
   if (!value) return "-";
@@ -43,6 +53,8 @@ const mapOrderFromApi = (order) => ({
   city: order.alamat_pelanggan || "-", product: order.produk_ringkas || "-",
   total: formatCurrency(order.total_harga), method: order.metode_bayar || "-",
   status: ORDER_STATUS_LABELS[order.status_order] || order.status_order,
+  // --- MENGAMBIL STATUS BAYAR DARI API ---
+  paymentStatus: order.status_bayar?.toLowerCase() || "pending", 
   totalItem: Number(order.total_item || 0),
   rawDate: order.tanggal_transaksi || order.created_at || null,
   rawTotal: Number(order.total_harga || 0),
@@ -174,9 +186,8 @@ export const usePesanan = () => {
 
     try {
       setIsExporting(true);
-      const XLSX = await import("xlsx");
 
-      const workbook = XLSX.utils.book_new();
+      // 1. Petakan Data (Kolom "Status Pembayaran" sudah dihapus)
       const worksheetData = filteredOrders.map((order, index) => ({
         "No": index + 1,
         "ID Pesanan": order.id,
@@ -191,30 +202,30 @@ export const usePesanan = () => {
         "Periode Filter": exportDateLabel,
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pesanan");
+      // 2. Tentukan Nama File
+      const filename = `laporan-pesanan_${activeDateFilters.startDate || "semua"}_${activeDateFilters.endDate || "semua"}`;
 
-      const filename = `laporan-pesanan_${activeDateFilters.startDate || "semua"}_${activeDateFilters.endDate || "semua"}.xlsx`;
-      const workbookBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-      const blob = new Blob([workbookBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const downloadUrl = URL.createObjectURL(blob);
-      const downloadLink = document.createElement("a");
+      // 3. Atur Lebar Kolom biar rapi di Excel
+      const columnWidths = [
+        { wch: 5 },   // No
+        { wch: 15 },  // ID Pesanan
+        { wch: 20 },  // Tanggal Pesanan
+        { wch: 25 },  // Nama Pelanggan
+        { wch: 35 },  // Alamat
+        { wch: 40 },  // Produk
+        { wch: 12 },  // Jumlah Item
+        { wch: 15 },  // Total Bayar
+        { wch: 15 },  // Metode Bayar
+        { wch: 15 },  // Status
+        { wch: 25 },  // Periode Filter
+      ];
 
-      downloadLink.href = downloadUrl;
-      downloadLink.download = filename;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(downloadUrl);
+      // 4. Eksekusi Export Pakai Fungsi Universal Lu
+      exportToExcel(worksheetData, filename, "Data Pesanan", columnWidths);
 
       await Swal.fire({
         title: "Export Berhasil",
-        text: `File ${filename} berhasil disiapkan.`,
+        text: `File ${filename}.xlsx berhasil disiapkan.`,
         icon: "success",
         confirmButtonColor: "#0C2C55",
       });
